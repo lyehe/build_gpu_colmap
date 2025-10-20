@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git submodule add:*)",
+      "Bash(chmod:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(git describe:*)",
+      "WebSearch",
+      "Read(//c/Program Files/NVIDIA cuDSS/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
