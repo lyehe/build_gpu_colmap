@@ -14,6 +14,7 @@ install_manifest.txt
 # CMake generated files (but keep cmake/ directory with our scripts)
 *.cmake
 !cmake/*.cmake
+!overlay-ports/*.cmake
 
 # IDE and editor files
 .vscode/
