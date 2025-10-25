@@ -89,17 +89,22 @@ After building COLMAP, you can create redistributable Python wheels for pycolmap
 pip install third_party\colmap-for-pycolmap\wheelhouse\pycolmap-*.whl
 ```
 
-### Linux - Single or Multi-Version Build
+### Linux - Multi-Version Build (Default)
 
 ```bash
-# Single version - Build for current Python
+# Build COLMAP and wheels for ALL installed Python 3.9+ versions
+./scripts_linux/build_colmap.sh
+./scripts_linux/build_pycolmap_wheels.sh
+
+# Install wheel for your Python version
+pip install third_party/colmap-for-pycolmap/wheelhouse/pycolmap-*.whl
+```
+
+**Alternative - Single version:**
+```bash
 ./scripts_linux/build_colmap.sh
 ./scripts_linux/build_pycolmap_wheel.sh
 pip install third_party/colmap/wheelhouse/pycolmap-*.whl
-
-# Multi-version - Build for ALL installed Python 3.9+ versions
-./scripts_linux/build_colmap.sh
-./scripts_linux/build_pycolmap_wheels_all.sh
 ```
 
 **Features:**

@@ -82,7 +82,7 @@ The Windows script uses [delvewheel](https://github.com/adang1345/delvewheel) to
 
 ### Linux - Using auditwheel
 
-The Linux script uses [auditwheel](https://github.com/pypa/auditwheel) to bundle shared libraries:
+The Linux scripts use [auditwheel](https://github.com/pypa/auditwheel) to bundle shared libraries:
 
 1. **Build Phase:**
    - Sets `CMAKE_PREFIX_PATH` and `LD_LIBRARY_PATH`
@@ -123,6 +123,7 @@ Note: This script auto-detects and builds wheels for ALL installed Python 3.9+ v
 
 ### Linux Script Options
 
+**Single-version script:**
 ```bash
 ./scripts_linux/build_pycolmap_wheel.sh [options]
 
@@ -131,6 +132,20 @@ Options:
   --no-cuda          Build without CUDA support
   --clean            Clean previous build artifacts
   --help, -h         Show help message
+```
+
+**Multi-version script (recommended):**
+```bash
+./scripts_linux/build_pycolmap_wheels.sh [options]
+
+Options:
+  Debug|Release      Build configuration (default: Release)
+  --no-cuda          Build without CUDA support
+  --clean            Clean previous build artifacts
+  --help, -h         Show help message
+
+Note: Auto-detects and builds wheels for ALL installed Python 3.9+ versions.
+Searches python3.9, python3.10, python3.11, python3.12, etc.
 ```
 
 ## Common Issues
@@ -264,27 +279,37 @@ winget install Python.Python.3.12
 winget install Python.Python.3.13
 ```
 
-### Linux - Automatic Multi-Version Build
+### Linux - Multi-Version Build
 
+**Option 1: New unified script (recommended)**
 ```bash
 # Build COLMAP first
 ./scripts_linux/build_colmap.sh
 
 # Build wheels for ALL installed Python versions (3.9+)
-./scripts_linux/build_pycolmap_wheels_all.sh
+./scripts_linux/build_pycolmap_wheels.sh
 
 # Build without CUDA for all versions
-./scripts_linux/build_pycolmap_wheels_all.sh --no-cuda
+./scripts_linux/build_pycolmap_wheels.sh --no-cuda
 
 # Clean build for all versions
-./scripts_linux/build_pycolmap_wheels_all.sh --clean
+./scripts_linux/build_pycolmap_wheels.sh --clean
 ```
 
 **Features:**
-- Automatically detects python3.9, python3.10, python3.11, etc.
-- Builds wheel for each version
-- Shows success/failure summary
-- All wheels output to `third_party/colmap/wheelhouse/`
+- Auto-detects all Python 3.9+ installations
+- Uses colmap-for-pycolmap with optimized settings (GUI/tests disabled)
+- scikit-build-core integration with proper CMake configuration
+- auditwheel bundling for manylinux compatibility
+- Builds wheel for each version sequentially
+- Shows success/failure summary for each version
+- All wheels output to `third_party/colmap-for-pycolmap/wheelhouse/`
+
+**Option 2: Legacy wrapper script (still available)**
+```bash
+# Build wheels for all detected versions
+./scripts_linux/build_pycolmap_wheels_all.sh
+```
 
 **Install multiple Python versions (Ubuntu):**
 ```bash

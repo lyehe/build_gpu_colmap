@@ -68,12 +68,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 
 ```bash
-# Linux - Single version
+# Linux - All versions (recommended)
 ./scripts_linux/build_colmap.sh
-./scripts_linux/build_pycolmap_wheel.sh
+./scripts_linux/build_pycolmap_wheels.sh
 
-# Linux - All versions
-./scripts_linux/build_pycolmap_wheels_all.sh
+# Linux - Single version (alternative)
+./scripts_linux/build_pycolmap_wheel.sh
 ```
 
 **Option 2: Use COLMAP-for-pycolmap (optimized configuration)**
