@@ -81,9 +81,16 @@ try {
 
     # Checkout expected commit
     Write-Host "  Checking out commit $ExpectedColmapCommit..." -ForegroundColor Gray
-    git checkout $ExpectedColmapCommit 2>&1 | Out-Null
 
-    if ($LASTEXITCODE -eq 0) {
+    # Temporarily suppress error action preference for git checkout
+    # Git outputs informational messages to stderr which PowerShell treats as errors
+    $PreviousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $null = git checkout $ExpectedColmapCommit 2>&1
+    $CheckoutExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $PreviousErrorActionPreference
+
+    if ($CheckoutExitCode -eq 0) {
         Write-Host "[OK] Successfully updated colmap-for-glomap" -ForegroundColor Green
     } else {
         Write-Host "[ERROR] Failed to checkout commit" -ForegroundColor Red

@@ -43,6 +43,58 @@ Examples:
 
 $ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = Split-Path -Parent $ScriptDir
+
+# Helper function to initialize submodules if not already done
+function Initialize-Submodule {
+    param([string]$SubmodulePath, [string]$Name)
+
+    $FullPath = Join-Path $ProjectRoot $SubmodulePath
+    $GitDir = Join-Path $FullPath ".git"
+
+    if (-not (Test-Path $GitDir)) {
+        Write-Host "Initializing $Name submodule..." -ForegroundColor Yellow
+        Push-Location $ProjectRoot
+        try {
+            git submodule update --init --recursive $SubmodulePath
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to initialize $Name submodule"
+            }
+            Write-Host "  $Name initialized successfully" -ForegroundColor Green
+        } finally {
+            Pop-Location
+        }
+    }
+}
+
+# Initialize required submodules based on what will be built
+Write-Host "Checking required submodules..." -ForegroundColor Cyan
+Initialize-Submodule "third_party\vcpkg" "vcpkg"
+Initialize-Submodule "third_party\ceres-solver" "Ceres Solver"
+
+if (-not $SkipColmap) {
+    Initialize-Submodule "third_party\colmap" "COLMAP"
+}
+
+if (-not $SkipGlomap) {
+    Initialize-Submodule "third_party\poselib" "PoseLib"
+    Initialize-Submodule "third_party\colmap-for-glomap" "COLMAP for GLOMAP"
+    Initialize-Submodule "third_party\glomap" "GLOMAP"
+}
+Write-Host ""
+
+# Bootstrap vcpkg if needed
+$VcpkgRoot = Join-Path $ProjectRoot "third_party\vcpkg"
+$VcpkgExe = Join-Path $VcpkgRoot "vcpkg.exe"
+if (-not (Test-Path $VcpkgExe)) {
+    Write-Host "Bootstrapping vcpkg..." -ForegroundColor Yellow
+    $BootstrapScript = Join-Path $ScriptDir "bootstrap.ps1"
+    & $BootstrapScript -NoPrompt
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to bootstrap vcpkg"
+    }
+    Write-Host ""
+}
 
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host "Point Cloud Tools - Build All" -ForegroundColor Cyan

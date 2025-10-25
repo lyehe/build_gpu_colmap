@@ -78,6 +78,56 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Helper function to initialize submodules if not already done
+initialize_submodule() {
+    local submodule_path=$1
+    local name=$2
+    local full_path="${PROJECT_ROOT}/${submodule_path}"
+
+    if [ ! -d "${full_path}/.git" ]; then
+        echo -e "${YELLOW}Initializing ${name} submodule...${NC}"
+        cd "${PROJECT_ROOT}"
+        git submodule update --init --recursive "${submodule_path}"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}ERROR: Failed to initialize ${name} submodule${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}  ${name} initialized successfully${NC}"
+    fi
+}
+
+# Initialize required submodules based on what will be built
+echo -e "${CYAN}Checking required submodules...${NC}"
+initialize_submodule "third_party/vcpkg" "vcpkg"
+initialize_submodule "third_party/ceres-solver" "Ceres Solver"
+
+if [ "$SKIP_COLMAP" = false ]; then
+    initialize_submodule "third_party/colmap" "COLMAP"
+fi
+
+if [ "$SKIP_GLOMAP" = false ]; then
+    initialize_submodule "third_party/poselib" "PoseLib"
+    initialize_submodule "third_party/colmap-for-glomap" "COLMAP for GLOMAP"
+    initialize_submodule "third_party/glomap" "GLOMAP"
+fi
+echo ""
+
+# Bootstrap vcpkg if needed
+VCPKG_ROOT="${PROJECT_ROOT}/third_party/vcpkg"
+VCPKG_EXE="${VCPKG_ROOT}/vcpkg"
+if [ ! -f "${VCPKG_EXE}" ]; then
+    echo -e "${YELLOW}Bootstrapping vcpkg...${NC}"
+    BOOTSTRAP_SCRIPT="${SCRIPT_DIR}/bootstrap.sh"
+    bash "${BOOTSTRAP_SCRIPT}" --no-prompt
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}ERROR: Failed to bootstrap vcpkg${NC}"
+        exit 1
+    fi
+    echo ""
+fi
+
 echo "================================================================"
 echo -e "${CYAN}Point Cloud Tools - Build All${NC}"
 echo "================================================================"

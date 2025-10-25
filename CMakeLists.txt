@@ -27,6 +27,7 @@ include(ExternalProject)
 
 # Options for build modules
 option(BUILD_COLMAP "Build COLMAP" ON)
+option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF)
 option(BUILD_GLOMAP "Build GLOMAP" ON)
 option(BUILD_CERES "Build Ceres Solver" ON)
 
@@ -350,6 +351,10 @@ if(BUILD_COLMAP)
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
+        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
+        PATCH_COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
@@ -359,6 +364,7 @@ if(BUILD_COLMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
         BUILD_ALWAYS OFF
@@ -366,6 +372,45 @@ if(BUILD_COLMAP)
     )
 
     list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/colmap")
+endif()
+
+# Step 3b: Build COLMAP for pycolmap (Python wheel building - depends on Ceres)
+# This is built separately with specific configurations optimized for Python bindings
+# Configuration based on COLMAP's official pycolmap GitHub Actions workflow
+if(BUILD_COLMAP_FOR_PYCOLMAP)
+    message(STATUS "Configuring COLMAP for pycolmap (Python wheels) as external project...")
+
+    ExternalProject_Add(colmap-for-pycolmap-external
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-pycolmap"
+        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
+        CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
+        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
+        PATCH_COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
+        CMAKE_ARGS
+            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+            -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
+            -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-pycolmap
+            -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
+            -DCUDA_ENABLED=${CUDA_ENABLED}
+            -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DGUI_ENABLED=OFF
+            -DTESTS_ENABLED=OFF
+            -DCGAL_ENABLED=ON
+            -DOPENGL_ENABLED=OFF
+            -DGFLAGS_USE_TARGET_NAMESPACE=ON
+            -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+        BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
+        INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
+        BUILD_ALWAYS OFF
+        DEPENDS ceres-solver-external
+    )
+
+    list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/colmap-for-pycolmap")
 endif()
 
 # Step 4: Build COLMAP for GLOMAP (pinned to commit 78f1eefa - COLMAP 3.11)
@@ -378,6 +423,10 @@ if(BUILD_GLOMAP)
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-g"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
+        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
+        PATCH_COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
@@ -390,6 +439,7 @@ if(BUILD_GLOMAP)
             -DGUI_ENABLED=OFF
             -DCGAL_ENABLED=OFF
             -DTESTS_ENABLED=OFF
+            -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
         BUILD_ALWAYS OFF
@@ -423,6 +473,7 @@ if(CUDA_ENABLED)
     endif()
 endif()
 message(STATUS "Build COLMAP: ${BUILD_COLMAP}")
+message(STATUS "Build COLMAP for pycolmap: ${BUILD_COLMAP_FOR_PYCOLMAP}")
 message(STATUS "Build GLOMAP: ${BUILD_GLOMAP}")
 message(STATUS "Build Ceres Solver: ${BUILD_CERES}")
 message(STATUS "===============================================================")

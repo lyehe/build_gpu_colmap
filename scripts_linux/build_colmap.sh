@@ -81,6 +81,44 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Helper function to initialize submodules if not already done
+initialize_submodule() {
+    local submodule_path=$1
+    local name=$2
+    local full_path="${PROJECT_ROOT}/${submodule_path}"
+
+    if [ ! -d "${full_path}/.git" ]; then
+        echo -e "${YELLOW}Initializing ${name} submodule...${NC}"
+        cd "${PROJECT_ROOT}"
+        git submodule update --init --recursive "${submodule_path}"
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}ERROR: Failed to initialize ${name} submodule${NC}"
+            exit 1
+        fi
+        echo -e "${GREEN}  ${name} initialized successfully${NC}"
+    fi
+}
+
+# Initialize required submodules
+echo -e "${CYAN}Checking required submodules...${NC}"
+initialize_submodule "third_party/vcpkg" "vcpkg"
+initialize_submodule "third_party/ceres-solver" "Ceres Solver"
+initialize_submodule "third_party/colmap" "COLMAP"
+echo ""
+
+# Bootstrap vcpkg if needed
+VCPKG_EXE="${VCPKG_ROOT}/vcpkg"
+if [ ! -f "${VCPKG_EXE}" ]; then
+    echo -e "${YELLOW}Bootstrapping vcpkg...${NC}"
+    BOOTSTRAP_SCRIPT="${SCRIPT_DIR}/bootstrap.sh"
+    bash "${BOOTSTRAP_SCRIPT}" --no-prompt
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}ERROR: Failed to bootstrap vcpkg${NC}"
+        exit 1
+    fi
+    echo ""
+fi
+
 echo "================================================================"
 echo -e "${CYAN}Fast COLMAP Build (Optimized)${NC}"
 echo "================================================================"
