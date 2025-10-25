@@ -17,3 +17,7 @@
 	path = third_party/colmap-for-glomap
 	url = https://github.com/colmap/colmap.git
 	branch = main
+[submodule "third_party/colmap-for-pycolmap"]
+	path = third_party/colmap-for-pycolmap
+	url = https://github.com/colmap/colmap.git
+	branch = main
