@@ -16,9 +16,22 @@ Self-contained build environment for COLMAP, GLOMAP, and related computer vision
 
 ### Prerequisites
 
-- **Windows**: Visual Studio 2022 or Build Tools, CMake 3.28+, Git, Python 3.8+
-- **Linux**: GCC 9+, CMake 3.28+, Git, Python 3.8+
-- **GPU (optional)**: CUDA Toolkit 11.0+ for GPU acceleration
+#### Required Downloads
+
+**Windows:**
+- **[Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)** (Community/Professional/Enterprise) with "Desktop development with C++" workload (includes CMake) **OR** **[Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)** with "Desktop development with C++" workload + **[CMake 3.28+](https://cmake.org/download/)** separately
+- **[Git](https://git-scm.com/download/win)**
+- **[Python 3.8+](https://www.python.org/downloads/)**
+
+**Linux:**
+- GCC 9+, CMake 3.28+, Git, Python 3.8+ (install via package manager)
+
+#### GPU Acceleration (Optional but Recommended)
+
+- **[CUDA Toolkit 11.0+](https://developer.nvidia.com/cuda-downloads)** - Required for GPU-accelerated processing
+- **[cuDSS](https://developer.nvidia.com/cudss-downloads)** - Optional sparse solver acceleration (see [installation guide](docs/INSTALL_CUDSS.md))
+
+> **Note**: GPU acceleration significantly improves performance for large-scale 3D reconstruction. CUDA 12.x is recommended for latest GPU support.
 
 Check your environment:
 ```bash
@@ -65,32 +78,26 @@ Build outputs are in `build/install/`.
 
 After building COLMAP, you can create redistributable Python wheels for pycolmap:
 
-### Single Python Version
+### Windows - Multi-Version Build (Default)
 
 ```powershell
-# Windows - Build for current Python version
+# Build COLMAP and wheels for ALL installed Python 3.9+ versions
 .\scripts_windows\build_colmap.ps1
-.\scripts_windows\build_pycolmap_wheel.ps1
-pip install third_party\colmap\wheelhouse\pycolmap-*.whl
+.\scripts_windows\build_pycolmap_wheels.ps1
+
+# Install wheel for your Python version
+pip install third_party\colmap-for-pycolmap\wheelhouse\pycolmap-*.whl
 ```
 
+### Linux - Single or Multi-Version Build
+
 ```bash
-# Linux - Build for current Python version
+# Single version - Build for current Python
 ./scripts_linux/build_colmap.sh
 ./scripts_linux/build_pycolmap_wheel.sh
 pip install third_party/colmap/wheelhouse/pycolmap-*.whl
-```
 
-### Multiple Python Versions (Recommended)
-
-```powershell
-# Windows - Build for ALL installed Python 3.9+ versions
-.\scripts_windows\build_colmap.ps1
-.\scripts_windows\build_pycolmap_wheels_all.ps1
-```
-
-```bash
-# Linux - Build for ALL installed Python 3.9+ versions
+# Multi-version - Build for ALL installed Python 3.9+ versions
 ./scripts_linux/build_colmap.sh
 ./scripts_linux/build_pycolmap_wheels_all.sh
 ```
@@ -196,14 +203,13 @@ export VCPKG_DEFAULT_BINARY_CACHE=$HOME/vcpkg-cache
 <summary>Windows</summary>
 
 **Required:**
-- Visual Studio 2022 or Build Tools with "Desktop development with C++" workload
-- CMake 3.28+ ([download](https://cmake.org/download/))
-- Git ([download](https://git-scm.com/download/win))
-- Python 3.8+ ([download](https://www.python.org/downloads/))
+- **[Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)** with "Desktop development with C++" workload (includes CMake) **OR** **[Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)** with "Desktop development with C++" workload + **[CMake 3.28+](https://cmake.org/download/)** separately
+- **[Git](https://git-scm.com/download/win)**
+- **[Python 3.8+](https://www.python.org/downloads/)**
 
-**Optional:**
-- CUDA Toolkit 11.0+ ([download](https://developer.nvidia.com/cuda-downloads))
-- cuDSS for sparse solver acceleration ([download](https://developer.nvidia.com/cudss-downloads))
+**Optional (GPU Acceleration):**
+- **[CUDA Toolkit 11.0+](https://developer.nvidia.com/cuda-downloads)** - GPU acceleration for reconstruction
+- **[cuDSS](https://developer.nvidia.com/cudss-downloads)** - Sparse solver acceleration (see [installation guide](docs/INSTALL_CUDSS.md))
 - Ninja build system: `winget install Ninja-build.Ninja`
 
 </details>
@@ -217,7 +223,7 @@ sudo apt-get update
 sudo apt-get install build-essential cmake git python3 python3-dev
 ```
 
-**Optional (CUDA):**
+**Optional (GPU Acceleration):**
 ```bash
 # Install NVIDIA drivers
 sudo apt-get install nvidia-driver-535
@@ -225,6 +231,10 @@ sudo apt-get install nvidia-driver-535
 # Install CUDA Toolkit
 sudo apt-get install nvidia-cuda-toolkit
 # Or download from: https://developer.nvidia.com/cuda-downloads
+
+# cuDSS (manual installation required)
+# Download from: https://developer.nvidia.com/cudss-downloads
+# See installation guide: docs/INSTALL_CUDSS.md
 ```
 
 **Optional (Performance):**

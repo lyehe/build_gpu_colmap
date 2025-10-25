@@ -33,13 +33,9 @@ cmake .. `
     -DGFLAGS_USE_TARGET_NAMESPACE=ON
 ```
 
-### 2. scripts_windows/build_pycolmap_wheel.ps1
+### 2. scripts_windows/build_pycolmap_wheels.ps1
 
-Added `-DGFLAGS_USE_TARGET_NAMESPACE=ON` to CMAKE_ARGS (line 152):
-
-```powershell
-$env:CMAKE_ARGS = "-DCMAKE_TOOLCHAIN_FILE=`"$VcpkgToolchain`" -DGUI_ENABLED=OFF -DOPENGL_ENABLED=OFF -DTESTS_ENABLED=OFF -DGFLAGS_USE_TARGET_NAMESPACE=ON"
-```
+The gflags fix is now handled via the CMake patch system (`cmake/patch_colmap_gflags.cmake`) which sets `GFLAGS_USE_TARGET_NAMESPACE=ON` before COLMAP's FindDependencies is included. The unified wheel building script passes CMake configuration via `--config-settings` to scikit-build-core, ensuring proper dependency resolution.
 
 ## Technical Details
 

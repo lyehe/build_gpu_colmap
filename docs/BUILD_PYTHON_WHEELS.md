@@ -26,11 +26,11 @@ The wheel building scripts create self-contained `.whl` files that include all r
 # 1. Build COLMAP
 .\scripts_windows\build_colmap.ps1
 
-# 2. Build pycolmap wheel
-.\scripts_windows\build_pycolmap_wheel.ps1
+# 2. Build pycolmap wheels (auto-detects all Python 3.9+ versions)
+.\scripts_windows\build_pycolmap_wheels.ps1
 
-# 3. Install the wheel
-pip install third_party\colmap\wheelhouse\pycolmap-*.whl
+# 3. Install the wheel for your Python version
+pip install third_party\colmap-for-pycolmap\wheelhouse\pycolmap-*.whl
 
 # 4. Test installation
 python -c "import pycolmap; print(pycolmap.__version__)"
@@ -110,13 +110,15 @@ The Linux script uses [auditwheel](https://github.com/pypa/auditwheel) to bundle
 ### Windows Script Options
 
 ```powershell
-.\scripts_windows\build_pycolmap_wheel.ps1 [options]
+.\scripts_windows\build_pycolmap_wheels.ps1 [options]
 
 Options:
   -Configuration Debug|Release   Build configuration (default: Release)
   -NoCuda                        Build without CUDA support
   -Clean                         Clean previous build artifacts
   -Help                          Show help message
+
+Note: This script auto-detects and builds wheels for ALL installed Python 3.9+ versions.
 ```
 
 ### Linux Script Options
@@ -177,7 +179,7 @@ ModuleNotFoundError: No module named '_pycolmap'
 pip show delvewheel
 
 # Rebuild with verbose output
-.\scripts_windows\build_pycolmap_wheel.ps1 -Clean
+.\scripts_windows\build_pycolmap_wheels.ps1 -Clean
 ```
 
 **Linux:**
@@ -199,7 +201,7 @@ auditwheel show third_party/colmap/wheelhouse/pycolmap-*.whl
 **Solution:**
 ```powershell
 # Use Release build (smaller binaries)
-.\scripts_windows\build_pycolmap_wheel.ps1 -Configuration Release
+.\scripts_windows\build_pycolmap_wheels.ps1 -Configuration Release
 ```
 
 For Linux, debug symbols are stripped by default during wheel repair.
@@ -229,30 +231,30 @@ pip install pycolmap-3.13.0.dev0-cp312-cp312-*.whl
 
 ## Advanced: Building for Multiple Python Versions
 
-The project includes scripts to automatically build wheels for all installed Python versions.
+The Windows script automatically builds wheels for all installed Python versions by default.
 
-### Windows - Automatic Multi-Version Build
+### Windows - Multi-Version Build (Default Behavior)
 
 ```powershell
 # Build COLMAP first
 .\scripts_windows\build_colmap.ps1
 
 # Build wheels for ALL installed Python versions (3.9+)
-.\scripts_windows\build_pycolmap_wheels_all.ps1
+.\scripts_windows\build_pycolmap_wheels.ps1
 
 # Build without CUDA for all versions
-.\scripts_windows\build_pycolmap_wheels_all.ps1 -NoCuda
+.\scripts_windows\build_pycolmap_wheels.ps1 -NoCuda
 
 # Clean build for all versions
-.\scripts_windows\build_pycolmap_wheels_all.ps1 -Clean
+.\scripts_windows\build_pycolmap_wheels.ps1 -Clean
 ```
 
 **Features:**
 - Automatically detects all Python 3.9+ installations
 - Searches py launcher, PATH, and common directories
-- Builds wheel for each version in parallel
-- Shows success/failure summary
-- All wheels output to `third_party\colmap\wheelhouse\`
+- Builds wheel for each version sequentially with progress reporting
+- Shows success/failure summary for each version
+- All wheels output to `third_party\colmap-for-pycolmap\wheelhouse\`
 
 **Install multiple Python versions:**
 ```powershell
@@ -292,20 +294,20 @@ sudo apt-get install python3.11 python3.11-dev
 sudo apt-get install python3.12 python3.12-dev
 ```
 
-### Manual Multi-Version Build
+### Manual Single-Version Build
 
-If you need more control, use the single-version scripts manually:
+If you need to build for a specific Python version only (Windows):
 
 ```powershell
-# Windows - Use different Python executables via py launcher
-py -3.10 -m pip install build delvewheel
-# Temporarily add Python 3.10 to PATH, then run:
-.\scripts_windows\build_pycolmap_wheel.ps1
+# Ensure only the desired Python version is in PATH
+# The script will detect and use the first Python 3.9+ it finds
 
-# Repeat for other versions
-py -3.12 -m pip install build delvewheel
-# Temporarily add Python 3.12 to PATH, then run:
-.\scripts_windows\build_pycolmap_wheel.ps1
+# Option 1: Temporarily modify PATH
+$env:PATH = "C:\Python310;$env:PATH"
+.\scripts_windows\build_pycolmap_wheels.ps1
+
+# Option 2: Install required Python versions selectively
+# The script automatically builds for all detected versions
 ```
 
 ```bash
