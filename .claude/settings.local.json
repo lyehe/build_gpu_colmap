@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git submodule add:*)",
+      "Bash(chmod:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(git describe:*)",
+      "WebSearch",
+      "Read(//c/Program Files/NVIDIA cuDSS/**)",
+      "Bash(for commit in 4f840b0 e80aacb 791c991 f4dc2b1 e0f8784)",
+      "Bash(do echo \"=== $commit ===\")",
+      "Bash(done)",
+      "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" release edit:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,23 @@
+[submodule "third_party/vcpkg"]
+	path = third_party/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
+[submodule "third_party/colmap"]
+	path = third_party/colmap
+	url = https://github.com/colmap/colmap.git
+[submodule "third_party/glomap"]
+	path = third_party/glomap
+	url = https://github.com/colmap/glomap.git
+[submodule "third_party/ceres-solver"]
+	path = third_party/ceres-solver
+	url = https://github.com/ceres-solver/ceres-solver.git
+[submodule "third_party/poselib"]
+	path = third_party/poselib
+	url = https://github.com/PoseLib/PoseLib.git
+[submodule "third_party/colmap-for-glomap"]
+	path = third_party/colmap-for-glomap
+	url = https://github.com/colmap/colmap.git
+	branch = main
+[submodule "third_party/colmap-for-pycolmap"]
+	path = third_party/colmap-for-pycolmap
+	url = https://github.com/colmap/colmap.git
+	branch = main

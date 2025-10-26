@@ -1,0 +1,55 @@
+# Custom files
+LocalConfig.cmake
+src/colmap/util/version.cc
+CMakeUserPresets.json
+.clangd
+compile_commands.json
+
+# Custom directories
+.idea/
+.vscode
+.vs
+.DS_Store
+.cache
+build*/
+install-debug/
+install-release/
+data/
+benchmark/reconstruction/data/
+benchmark/reconstruction/runs/
+doc/_build
+vcpkg_installed/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.pyc
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# backup files
+*~
+*.orig
