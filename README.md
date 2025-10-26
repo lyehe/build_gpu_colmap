@@ -1,4 +1,4 @@
-# GPU-Accelerated COLMAP & GLOMAP Build Scripts
+# COLMAP GPU Builder
 
 **Automated build scripts for COLMAP and GLOMAP with full GPU support and optimizations.**
 
@@ -61,7 +61,7 @@ Check your environment:
 ```bash
 # Clone repository
 git clone <repository-url>
-cd build_gpu_colmap
+cd colmap-gpu-builder
 
 # Build everything (automatically initializes submodules and bootstraps vcpkg)
 .\scripts_windows\build.ps1              # Windows
@@ -256,7 +256,7 @@ sudo apt-get install ninja-build
 ## Project Structure
 
 ```
-build_gpu_colmap/
+colmap-gpu-builder/
 ├── build/                       # Build output (gitignored)
 │   └── install/                # Executables and libraries
 │       ├── colmap/             # COLMAP (latest)
