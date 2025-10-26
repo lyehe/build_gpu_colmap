@@ -1,4 +1,4 @@
-# Point Cloud Tools v1.0.0
+# COLMAP GPU Builder v1.0.0
 
 Pre-built Windows binaries for COLMAP, GLOMAP, and Python wheels with CUDA support.
 
@@ -106,9 +106,9 @@ Each component has its own BSD 3-Clause License:
 
 ## Documentation
 
-- [Build from source](https://github.com/lyehe/build_gpu_colmap)
+- [Build from source](https://github.com/YOUR-USERNAME/colmap-gpu-builder)
 - [COLMAP Documentation](https://colmap.github.io/)
-- [Report issues](https://github.com/lyehe/build_gpu_colmap/issues)
+- [Report issues](https://github.com/YOUR-USERNAME/colmap-gpu-builder/issues)
 
 ---
 

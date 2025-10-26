@@ -1,5 +1,5 @@
 ================================================================================
-                    Point Cloud Tools - Release Package
+                    COLMAP GPU Builder - Release Package
 ================================================================================
 
 This directory contains packaged builds ready for GitHub release.
@@ -47,7 +47,7 @@ Option 2: Manual Upload
 
 2. Create a new tag: v1.0.0
 
-3. Set release title: Point Cloud Tools v1.0.0 - Windows CUDA Build
+3. Set release title: COLMAP GPU Builder v1.0.0 - Windows CUDA Build
 
 4. Copy the content from RELEASE_NOTES.md into the description
 
@@ -66,9 +66,9 @@ Option 3: Command Line (One-liner)
 After authenticating with gh CLI:
 
 "C:\Program Files\GitHub CLI\gh.exe" release create v1.0.0 ^
-  --title "Point Cloud Tools v1.0.0 - Windows CUDA Build" ^
+  --title "COLMAP GPU Builder v1.0.0 - Windows CUDA Build" ^
   --notes-file RELEASE_NOTES.md ^
-  --repo lyehe/build_gpu_colmap ^
+  --repo YOUR-USERNAME/colmap-gpu-builder ^
   COLMAP-3.13-dev-Windows-x64-CUDA.zip ^
   GLOMAP-Windows-x64-CUDA.zip ^
   pycolmap-3.13.0.dev0-cp310-cp310-win_amd64.whl ^
