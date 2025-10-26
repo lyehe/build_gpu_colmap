@@ -65,6 +65,12 @@ pycolmap.extract_features(image_path="images/", database_path="database.db")
 
 ## System Requirements
 
+**⚠️ Windows Defender False Positive Notice**:
+Windows Defender may flag these binaries as potentially unwanted software (typically `Wacatac.B!ml`). This is a **false positive** common with CUDA-compiled binaries. These files are built from official open-source COLMAP/GLOMAP repositories with no modifications. You can:
+- Add an exclusion in Windows Security
+- Submit as false positive to Microsoft: https://www.microsoft.com/en-us/wdsi/filesubmission
+- Verify by building from source yourself using this repository
+
 **Windows Compatibility**:
 - ✅ **Windows 10/11 (64-bit only)** - Fully tested and supported
 - ⚠️ **Windows 7/8/8.1** - May work but not tested
