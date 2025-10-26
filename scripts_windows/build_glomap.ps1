@@ -273,6 +273,49 @@ try {
         Pop-Location
     }
 
+    # Copy cuDSS DLLs if cuDSS was found and enabled
+    if ($CudaEnabled -eq "ON") {
+        Write-Host ""
+        Write-Host "Checking for cuDSS DLLs to copy..." -ForegroundColor Cyan
+
+        $cuDSSFound = $false
+        $cuDSSBinDir = $null
+
+        # Check standard cuDSS installation locations
+        $cuDSSSearchPaths = @(
+            "$env:ProgramW6432\NVIDIA cuDSS",
+            "$env:ProgramFiles\NVIDIA cuDSS",
+            "C:\Program Files\NVIDIA cuDSS"
+        )
+
+        foreach ($searchPath in $cuDSSSearchPaths) {
+            if (Test-Path $searchPath) {
+                $cuDSSVersions = Get-ChildItem "$searchPath\v*" -ErrorAction SilentlyContinue | Sort-Object -Descending
+                if ($cuDSSVersions) {
+                    $cuDSSBinDir = Join-Path $cuDSSVersions[0].FullName "bin"
+                    if (Test-Path $cuDSSBinDir) {
+                        $cuDSSFound = $true
+                        break
+                    }
+                }
+            }
+        }
+
+        if ($cuDSSFound) {
+            $InstallBin = Join-Path $BuildDir "install\glomap\bin"
+            if (Test-Path $InstallBin) {
+                Write-Host "  Copying cuDSS DLLs from: $cuDSSBinDir" -ForegroundColor Yellow
+                Copy-Item "$cuDSSBinDir\*.dll" $InstallBin -Force -ErrorAction SilentlyContinue
+                Write-Host "  cuDSS DLLs copied successfully" -ForegroundColor Green
+            } else {
+                Write-Host "  Warning: Install directory not found, skipping cuDSS DLL copy" -ForegroundColor Yellow
+            }
+        } else {
+            Write-Host "  cuDSS not found - skipping DLL copy" -ForegroundColor Gray
+            Write-Host "  (This is optional - GLOMAP will work without cuDSS)" -ForegroundColor Gray
+        }
+    }
+
 } finally {
     Pop-Location
 }

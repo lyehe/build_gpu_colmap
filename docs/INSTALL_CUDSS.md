@@ -160,8 +160,17 @@ echo $CUDA_PATH
 
 ### Library Not Found at Runtime
 
+**Good News:** The build scripts automatically copy cuDSS DLLs/libraries to the installation directory, so **no PATH configuration is needed** for builds created with this project!
+
+The build scripts (`build_colmap.ps1`, `build_glomap.ps1`, etc.) automatically:
+- Detect cuDSS installation location
+- Copy cuDSS DLLs (Windows) or shared libraries (Linux) to `build/install/*/bin` or `build/install/*/lib`
+- Make the installation self-contained
+
+**If you still encounter runtime errors:**
+
 **Windows:**
-Ensure CUDA bin directory is in PATH:
+Ensure CUDA bin directory is in PATH (rare, usually not needed):
 ```powershell
 $env:PATH -split ';' | Select-String "CUDA"
 
@@ -170,7 +179,7 @@ $env:PATH += ";C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin"
 ```
 
 **Linux:**
-Ensure CUDA lib64 is in LD_LIBRARY_PATH:
+Ensure CUDA lib64 is in LD_LIBRARY_PATH (rare, usually not needed):
 ```bash
 echo $LD_LIBRARY_PATH | grep cuda
 

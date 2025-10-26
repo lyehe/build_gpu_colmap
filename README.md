@@ -68,7 +68,10 @@ cd colmap-gpu-builder
 ./scripts_linux/build.sh                  # Linux
 ```
 
-**Note:** Build scripts automatically initialize required submodules and bootstrap vcpkg. No manual setup needed!
+**Note:** Build scripts automatically:
+- Initialize required submodules and bootstrap vcpkg
+- Copy all dependency DLLs/libraries (including cuDSS if installed) to installation directories
+- Create self-contained builds that run without PATH configuration
 
 Build outputs are in `build/install/`.
 

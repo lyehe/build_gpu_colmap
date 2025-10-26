@@ -226,6 +226,63 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Copy cuDSS libraries if cuDSS was found and enabled
+if [ "$CUDA_ENABLED" = "ON" ]; then
+    echo ""
+    echo -e "${CYAN}Checking for cuDSS libraries to copy...${NC}"
+
+    CUDSS_FOUND=false
+    CUDSS_LIB_DIR=""
+
+    # Check standard cuDSS installation locations on Linux
+    CUDSS_SEARCH_PATHS=(
+        "$CUDSS_ROOT"
+        "/usr/local/cuda/lib64"
+        "/usr/local/cuda/lib"
+        "/opt/nvidia/cudss/lib64"
+        "/opt/nvidia/cudss/lib"
+    )
+
+    for search_path in "${CUDSS_SEARCH_PATHS[@]}"; do
+        if [ -n "$search_path" ] && [ -d "$search_path" ]; then
+            if [ -f "$search_path/libcudss.so" ]; then
+                CUDSS_LIB_DIR="$search_path"
+                CUDSS_FOUND=true
+                break
+            fi
+        fi
+    done
+
+    # Also check for versioned installations in /opt/nvidia/cudss
+    if [ "$CUDSS_FOUND" = false ] && [ -d "/opt/nvidia/cudss" ]; then
+        for version_dir in $(ls -d /opt/nvidia/cudss/v* 2>/dev/null | sort -r); do
+            if [ -f "$version_dir/lib64/libcudss.so" ]; then
+                CUDSS_LIB_DIR="$version_dir/lib64"
+                CUDSS_FOUND=true
+                break
+            elif [ -f "$version_dir/lib/libcudss.so" ]; then
+                CUDSS_LIB_DIR="$version_dir/lib"
+                CUDSS_FOUND=true
+                break
+            fi
+        done
+    fi
+
+    if [ "$CUDSS_FOUND" = true ]; then
+        INSTALL_LIB="$BUILD_DIR/install/colmap/lib"
+        if [ -d "$INSTALL_LIB" ]; then
+            echo -e "${YELLOW}  Copying cuDSS libraries from: ${CUDSS_LIB_DIR}${NC}"
+            cp -f "$CUDSS_LIB_DIR"/libcudss*.so* "$INSTALL_LIB/" 2>/dev/null || true
+            echo -e "${GREEN}  cuDSS libraries copied successfully${NC}"
+        else
+            echo -e "${YELLOW}  Warning: Install directory not found, skipping cuDSS library copy${NC}"
+        fi
+    else
+        echo -e "  cuDSS not found - skipping library copy"
+        echo -e "  (This is optional - COLMAP will work without cuDSS)"
+    fi
+fi
+
 cd ..
 cd ..
 echo ""
