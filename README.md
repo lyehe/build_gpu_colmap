@@ -1,18 +1,30 @@
-# Point Cloud Tools
+# GPU-Accelerated COLMAP & GLOMAP Build Scripts
 
-Self-contained build environment for COLMAP, GLOMAP, and related computer vision tools with CUDA support.
+**Automated build scripts for COLMAP and GLOMAP with full GPU support and optimizations.**
 
-## Features
+This repository provides a complete, self-contained build environment for COLMAP, GLOMAP, and related computer vision tools, with a focus on **maximum GPU performance** for 3D reconstruction workflows.
 
-- **COLMAP 3.13 dev** - Structure-from-Motion and Multi-View Stereo (latest development)
-- **COLMAP 3.13 dev for pycolmap** - Optimized configuration for Python wheel building
-- **GLOMAP** - Fast global Structure-from-Motion (uses COLMAP 3.11)
-- **Ceres Solver** - Nonlinear optimization library
-- **PoseLib** - Camera pose estimation
-- Automated dependency management via vcpkg
-- Automatic submodule initialization and vcpkg bootstrapping
-- CUDA support with optimizations for modern GPUs (RTX 20/30/40 series, H100)
-- Cross-platform (Windows/Linux)
+## Purpose
+
+This project simplifies building COLMAP and GLOMAP with:
+- ✅ **Full CUDA GPU acceleration** - Optimized for modern NVIDIA GPUs (RTX 20/30/40 series, H100)
+- ✅ **cuDSS integration** - Optional sparse solver for 2-5x faster bundle adjustment
+- ✅ **Automated build process** - One-command builds with dependency management
+- ✅ **Python wheel generation** - Build redistributable pycolmap packages
+- ✅ **Cross-platform support** - Works on Windows and Linux
+
+Perfect for researchers and developers who need high-performance 3D reconstruction tools without manual dependency configuration.
+
+## What's Included
+
+- **COLMAP 3.13 dev** - Latest Structure-from-Motion and Multi-View Stereo
+- **COLMAP 3.13 dev for pycolmap** - Python-optimized build configuration
+- **GLOMAP** - Fast global Structure-from-Motion (uses COLMAP 3.11 for compatibility)
+- **Ceres Solver** - Nonlinear optimization library with CUDA support
+- **PoseLib** - Camera pose estimation library
+- Automated vcpkg dependency management
+- GPU architecture targeting (RTX 20/30/40, H100, etc.)
+- Optional cuDSS sparse solver integration
 
 ## Quick Start
 
@@ -178,8 +190,6 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=../third_party/vcpkg/scripts/buildsystems/vcpkg.
   -DGFLAGS_USE_TARGET_NAMESPACE=ON
 ```
 
-See [docs/GFLAGS_FIX.md](docs/GFLAGS_FIX.md) for technical details.
-
 ### Speed Up Builds
 Enable vcpkg binary caching:
 ```bash
@@ -192,12 +202,8 @@ export VCPKG_DEFAULT_BINARY_CACHE=$HOME/vcpkg-cache
 
 ## Documentation
 
-- [Build System Analysis](docs/BUILD_ANALYSIS.md)
 - [Building Python Wheels](docs/BUILD_PYTHON_WHEELS.md)
-- [COLMAP Version Compatibility](docs/GLOMAP_COLMAP_VERSION.md)
-- [gflags Target Namespace Fix](docs/GFLAGS_FIX.md)
 - [cuDSS Installation Guide](docs/INSTALL_CUDSS.md)
-- [cuDSS Detection](docs/CUDSS_DETECTION.md)
 
 ## Requirements Details
 
