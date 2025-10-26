@@ -1,4 +1,4 @@
-# GitHub Release Creation Script
+﻿# GitHub Release Creation Script
 # This script creates a GitHub release and uploads all assets from releases/ directory
 
 $ErrorActionPreference = "Stop"
@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Please run: gh auth login" -ForegroundColor Yellow
     exit 1
 }
-Write-Host "✓ Authenticated" -ForegroundColor Green
+Write-Host "Authenticated" -ForegroundColor Green
 Write-Host ""
 
 # List files to be released
@@ -61,10 +61,24 @@ Get-ChildItem -File | Where-Object { $_.Extension -in @('.zip', '.whl') } | ForE
 Write-Host ""
 
 # Confirm with user
-$confirmation = Read-Host "Create release $RELEASE_TAG? (y/N)"
+$confirmation = Read-Host "Create/overwrite release $RELEASE_TAG? (y/N)"
 if ($confirmation -ne 'y' -and $confirmation -ne 'Y') {
     Write-Host "Release creation cancelled." -ForegroundColor Yellow
     exit 0
+}
+
+# Check if release already exists and delete it
+Write-Host ""
+Write-Host "Checking for existing release..." -ForegroundColor Yellow
+& $GH_CLI release view $RELEASE_TAG --repo "lyehe/build_gpu_colmap" 2>&1 | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Found existing release. Deleting..." -ForegroundColor Yellow
+    & $GH_CLI release delete $RELEASE_TAG --repo "lyehe/build_gpu_colmap" --yes
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Existing release deleted" -ForegroundColor Green
+    } else {
+        Write-Host "WARNING: Failed to delete existing release" -ForegroundColor Yellow
+    }
 }
 
 # Create release
