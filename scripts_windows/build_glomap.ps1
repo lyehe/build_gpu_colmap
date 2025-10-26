@@ -232,7 +232,8 @@ try {
                 -DFETCH_COLMAP=OFF `
                 -DFETCH_POSELIB=OFF `
                 -DCUDA_ENABLED="$CudaEnabled" `
-                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120"
+                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" `
+                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
         } else {
             cmake "$GlomapSource" `
                 -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
@@ -245,6 +246,7 @@ try {
                 -DFETCH_POSELIB=OFF `
                 -DCUDA_ENABLED="$CudaEnabled" `
                 -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" `
+                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
                 -G "Visual Studio 17 2022" `
                 -A x64
         }
@@ -268,6 +270,81 @@ try {
         if ($LASTEXITCODE -ne 0) {
             throw "GLOMAP install failed"
         }
+
+        # Copy all runtime dependencies to make GLOMAP fully self-contained
+        Write-Host ""
+        Write-Host "Copying runtime dependencies..." -ForegroundColor Cyan
+
+        $GlomapBin = Join-Path $BuildDir "install\glomap\bin"
+        $ColmapBin = Join-Path $BuildDir "install\colmap-for-glomap\bin"
+
+        # 1. Copy all DLLs from COLMAP-for-glomap (includes all shared dependencies)
+        if (Test-Path $ColmapBin) {
+            Write-Host "  Copying DLLs from COLMAP-for-glomap..." -ForegroundColor DarkGray
+            Copy-Item "$ColmapBin\*.dll" $GlomapBin -Force -ErrorAction SilentlyContinue
+            $copiedCount = (Get-ChildItem "$GlomapBin\*.dll").Count
+            Write-Host "    Copied dependencies from COLMAP ($copiedCount DLLs total)" -ForegroundColor Green
+        }
+
+        # 2. Copy CUDA runtime DLLs if CUDA is enabled
+        if ($CudaEnabled -eq "ON") {
+            $CudaBinPaths = @(
+                "$env:CUDA_PATH\bin",
+                "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin",
+                "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin",
+                "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0\bin"
+            )
+
+            $CudaBinFound = $false
+            foreach ($CudaBinPath in $CudaBinPaths) {
+                if (Test-Path $CudaBinPath) {
+                    Write-Host "  Copying CUDA runtime DLLs from: $CudaBinPath" -ForegroundColor DarkGray
+
+                    # Copy essential CUDA runtime DLLs
+                    $CudaDlls = @(
+                        "cudart64_*.dll",
+                        "curand64_*.dll",
+                        "cublas64_*.dll",
+                        "cublasLt64_*.dll",
+                        "cusparse64_*.dll",
+                        "cusolver64_*.dll",
+                        "cufft64_*.dll"
+                    )
+
+                    foreach ($pattern in $CudaDlls) {
+                        Get-ChildItem "$CudaBinPath\$pattern" -ErrorAction SilentlyContinue | ForEach-Object {
+                            Copy-Item $_.FullName $GlomapBin -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+
+                    $CudaBinFound = $true
+                    Write-Host "    CUDA runtime DLLs copied" -ForegroundColor Green
+                    break
+                }
+            }
+
+            if (-not $CudaBinFound) {
+                Write-Host "    Warning: CUDA bin directory not found, CUDA DLLs not copied" -ForegroundColor Yellow
+                Write-Host "    Set CUDA_PATH environment variable or install CUDA Toolkit" -ForegroundColor Yellow
+            }
+        }
+
+        # 3. Copy vcpkg dependencies that might be missing
+        $VcpkgBin = Join-Path $BuildDir "vcpkg_installed\x64-windows\bin"
+        if (Test-Path $VcpkgBin) {
+            Write-Host "  Ensuring all vcpkg dependencies are present..." -ForegroundColor DarkGray
+            # Only copy DLLs that don't already exist (avoid overwriting)
+            Get-ChildItem "$VcpkgBin\*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+                $destFile = Join-Path $GlomapBin $_.Name
+                if (-not (Test-Path $destFile)) {
+                    Copy-Item $_.FullName $GlomapBin -Force -ErrorAction SilentlyContinue
+                }
+            }
+            Write-Host "    All vcpkg dependencies ensured" -ForegroundColor Green
+        }
+
+        $finalCount = (Get-ChildItem "$GlomapBin" -File).Count
+        Write-Host "  Total files in GLOMAP bin: $finalCount" -ForegroundColor Cyan
 
     } finally {
         Pop-Location

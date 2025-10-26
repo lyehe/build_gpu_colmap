@@ -266,7 +266,8 @@ cmake "$GLOMAP_SOURCE" \
     -DFETCH_COLMAP=OFF \
     -DFETCH_POSELIB=OFF \
     -DCUDA_ENABLED="$CUDA_ENABLED" \
-    -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120"
+    -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" \
+    -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}GLOMAP configuration failed${NC}"
@@ -290,6 +291,81 @@ if [ $? -ne 0 ]; then
     echo -e "${RED}GLOMAP install failed${NC}"
     exit 1
 fi
+
+# Copy all runtime dependencies to make GLOMAP fully self-contained
+echo ""
+echo -e "${CYAN}Copying runtime dependencies...${NC}"
+
+GLOMAP_LIB="${BUILD_DIR}/install/glomap/lib"
+COLMAP_LIB="${BUILD_DIR}/install/colmap-for-glomap/lib"
+
+# 1. Copy all shared libraries from COLMAP-for-glomap (includes all shared dependencies)
+if [ -d "$COLMAP_LIB" ]; then
+    echo -e "${DARK_GRAY}  Copying libraries from COLMAP-for-glomap...${NC}"
+    cp -f "$COLMAP_LIB"/*.so* "$GLOMAP_LIB/" 2>/dev/null || true
+    COPIED_COUNT=$(ls -1 "$GLOMAP_LIB"/*.so* 2>/dev/null | wc -l)
+    echo -e "${GREEN}    Copied dependencies from COLMAP ($COPIED_COUNT libraries total)${NC}"
+fi
+
+# 2. Copy CUDA runtime libraries if CUDA is enabled
+if [ "$CUDA_ENABLED" = "ON" ]; then
+    CUDA_LIB_PATHS=(
+        "${CUDA_HOME}/lib64"
+        "/usr/local/cuda/lib64"
+        "/usr/local/cuda/lib"
+    )
+
+    CUDA_LIB_FOUND=false
+    for CUDA_LIB_PATH in "${CUDA_LIB_PATHS[@]}"; do
+        if [ -d "$CUDA_LIB_PATH" ]; then
+            echo -e "${DARK_GRAY}  Copying CUDA runtime libraries from: ${CUDA_LIB_PATH}${NC}"
+
+            # Copy essential CUDA runtime libraries
+            CUDA_LIBS=(
+                "libcudart.so*"
+                "libcurand.so*"
+                "libcublas.so*"
+                "libcublasLt.so*"
+                "libcusparse.so*"
+                "libcusolver.so*"
+                "libcufft.so*"
+            )
+
+            for pattern in "${CUDA_LIBS[@]}"; do
+                cp -f "$CUDA_LIB_PATH"/$pattern "$GLOMAP_LIB/" 2>/dev/null || true
+            done
+
+            CUDA_LIB_FOUND=true
+            echo -e "${GREEN}    CUDA runtime libraries copied${NC}"
+            break
+        fi
+    done
+
+    if [ "$CUDA_LIB_FOUND" = false ]; then
+        echo -e "${YELLOW}    Warning: CUDA lib directory not found, CUDA libraries not copied${NC}"
+        echo -e "${YELLOW}    Set CUDA_HOME environment variable or install CUDA Toolkit${NC}"
+    fi
+fi
+
+# 3. Copy vcpkg dependencies that might be missing
+VCPKG_LIB="${BUILD_DIR}/vcpkg_installed/x64-linux/lib"
+if [ -d "$VCPKG_LIB" ]; then
+    echo -e "${DARK_GRAY}  Ensuring all vcpkg dependencies are present...${NC}"
+    # Only copy libraries that don't already exist (avoid overwriting)
+    for lib in "$VCPKG_LIB"/*.so*; do
+        if [ -f "$lib" ]; then
+            LIB_NAME=$(basename "$lib")
+            DEST_FILE="$GLOMAP_LIB/$LIB_NAME"
+            if [ ! -e "$DEST_FILE" ]; then
+                cp -f "$lib" "$GLOMAP_LIB/" 2>/dev/null || true
+            fi
+        fi
+    done
+    echo -e "${GREEN}    All vcpkg dependencies ensured${NC}"
+fi
+
+FINAL_COUNT=$(ls -1 "$GLOMAP_LIB" 2>/dev/null | wc -l)
+echo -e "${CYAN}  Total files in GLOMAP lib: ${FINAL_COUNT}${NC}"
 
 cd ..
 cd ..

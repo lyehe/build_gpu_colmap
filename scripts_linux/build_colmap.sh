@@ -226,6 +226,71 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Copy all runtime dependencies to make COLMAP fully self-contained
+echo ""
+echo -e "${CYAN}Copying runtime dependencies...${NC}"
+
+COLMAP_LIB="$BUILD_DIR/install/colmap/lib"
+
+# 1. Copy CUDA runtime libraries if CUDA is enabled
+if [ "$CUDA_ENABLED" = "ON" ]; then
+    CUDA_LIB_PATHS=(
+        "${CUDA_HOME}/lib64"
+        "/usr/local/cuda/lib64"
+        "/usr/local/cuda/lib"
+    )
+
+    CUDA_LIB_FOUND=false
+    for CUDA_LIB_PATH in "${CUDA_LIB_PATHS[@]}"; do
+        if [ -d "$CUDA_LIB_PATH" ]; then
+            echo -e "${DARK_GRAY}  Copying CUDA runtime libraries from: ${CUDA_LIB_PATH}${NC}"
+
+            # Copy essential CUDA runtime libraries
+            CUDA_LIBS=(
+                "libcudart.so*"
+                "libcurand.so*"
+                "libcublas.so*"
+                "libcublasLt.so*"
+                "libcusparse.so*"
+                "libcusolver.so*"
+                "libcufft.so*"
+            )
+
+            for pattern in "${CUDA_LIBS[@]}"; do
+                cp -f "$CUDA_LIB_PATH"/$pattern "$COLMAP_LIB/" 2>/dev/null || true
+            done
+
+            CUDA_LIB_FOUND=true
+            echo -e "${GREEN}    CUDA runtime libraries copied${NC}"
+            break
+        fi
+    done
+
+    if [ "$CUDA_LIB_FOUND" = false ]; then
+        echo -e "${YELLOW}    Warning: CUDA lib directory not found, CUDA libraries not copied${NC}"
+    fi
+fi
+
+# 2. Ensure all vcpkg dependencies are present
+VCPKG_LIB="$BUILD_DIR/vcpkg_installed/x64-linux/lib"
+if [ -d "$VCPKG_LIB" ]; then
+    echo -e "${DARK_GRAY}  Ensuring all vcpkg dependencies are present...${NC}"
+    # Only copy libraries that don't already exist (avoid overwriting)
+    for lib in "$VCPKG_LIB"/*.so*; do
+        if [ -f "$lib" ]; then
+            LIB_NAME=$(basename "$lib")
+            DEST_FILE="$COLMAP_LIB/$LIB_NAME"
+            if [ ! -e "$DEST_FILE" ]; then
+                cp -f "$lib" "$COLMAP_LIB/" 2>/dev/null || true
+            fi
+        fi
+    done
+    echo -e "${GREEN}    All vcpkg dependencies ensured${NC}"
+fi
+
+FINAL_COUNT=$(ls -1 "$COLMAP_LIB" 2>/dev/null | wc -l)
+echo -e "${CYAN}  Total files in COLMAP lib: ${FINAL_COUNT}${NC}"
+
 # Copy cuDSS libraries if cuDSS was found and enabled
 if [ "$CUDA_ENABLED" = "ON" ]; then
     echo ""

@@ -154,6 +154,71 @@ try {
         throw "Build failed"
     }
 
+    # Copy all runtime dependencies to make COLMAP fully self-contained
+    Write-Host ""
+    Write-Host "Copying runtime dependencies..." -ForegroundColor Cyan
+
+    $ColmapBin = Join-Path $BuildDir "install\colmap\bin"
+
+    # 1. Copy CUDA runtime DLLs if CUDA is enabled
+    if ($CudaEnabled -eq "ON") {
+        $CudaBinPaths = @(
+            "$env:CUDA_PATH\bin",
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin",
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin",
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0\bin"
+        )
+
+        $CudaBinFound = $false
+        foreach ($CudaBinPath in $CudaBinPaths) {
+            if (Test-Path $CudaBinPath) {
+                Write-Host "  Copying CUDA runtime DLLs from: $CudaBinPath" -ForegroundColor DarkGray
+
+                # Copy essential CUDA runtime DLLs
+                $CudaDlls = @(
+                    "cudart64_*.dll",
+                    "curand64_*.dll",
+                    "cublas64_*.dll",
+                    "cublasLt64_*.dll",
+                    "cusparse64_*.dll",
+                    "cusolver64_*.dll",
+                    "cufft64_*.dll"
+                )
+
+                foreach ($pattern in $CudaDlls) {
+                    Get-ChildItem "$CudaBinPath\$pattern" -ErrorAction SilentlyContinue | ForEach-Object {
+                        Copy-Item $_.FullName $ColmapBin -Force -ErrorAction SilentlyContinue
+                    }
+                }
+
+                $CudaBinFound = $true
+                Write-Host "    CUDA runtime DLLs copied" -ForegroundColor Green
+                break
+            }
+        }
+
+        if (-not $CudaBinFound) {
+            Write-Host "    Warning: CUDA bin directory not found, CUDA DLLs not copied" -ForegroundColor Yellow
+        }
+    }
+
+    # 2. Ensure all vcpkg dependencies are present
+    $VcpkgBin = Join-Path $BuildDir "vcpkg_installed\x64-windows\bin"
+    if (Test-Path $VcpkgBin) {
+        Write-Host "  Ensuring all vcpkg dependencies are present..." -ForegroundColor DarkGray
+        # Only copy DLLs that don't already exist (avoid overwriting)
+        Get-ChildItem "$VcpkgBin\*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+            $destFile = Join-Path $ColmapBin $_.Name
+            if (-not (Test-Path $destFile)) {
+                Copy-Item $_.FullName $ColmapBin -Force -ErrorAction SilentlyContinue
+            }
+        }
+        Write-Host "    All vcpkg dependencies ensured" -ForegroundColor Green
+    }
+
+    $finalCount = (Get-ChildItem "$ColmapBin" -File).Count
+    Write-Host "  Total files in COLMAP bin: $finalCount" -ForegroundColor Cyan
+
     # Copy cuDSS DLLs if cuDSS was found and enabled
     if ($CudaEnabled -eq "ON") {
         Write-Host ""
