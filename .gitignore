@@ -112,4 +112,4 @@ docs/latex/
 *.orig
 
 # Keep .claude directory but ignore potential cache
-.claude/cache/
+.claude
