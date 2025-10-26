@@ -12,7 +12,17 @@
       "Bash(done)",
       "Bash(\"C:\\Program Files\\GitHub CLI\\gh.exe\" release edit:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(Test-Path \"third_party\\vcpkg\\vcpkg.exe\")",
+      "Bash(Test-Path \"third_party\\vcpkg\\scripts\\tls12-download.exe\")",
+      "Bash(git rm:*)",
+      "Bash(git submodule:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)",
+      "Bash(rm:*)",
+      "Bash(git restore:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(test -d:*)"
     ],
     "deny": [],
     "ask": []
