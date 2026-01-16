@@ -1,0 +1,221 @@
+name: Build COLMAP
+
+on:
+  workflow_call:
+  push:
+    branches: [master, main]
+    paths:
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
+      - 'third_party/colmap/**'
+      - 'third_party/ceres-solver/**'
+      - 'scripts_windows/**'
+      - 'scripts_linux/**'
+      - '.github/workflows/build-colmap.yml'
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      cuda:
+        description: 'Build with CUDA'
+        type: boolean
+        default: true
+      cudss:
+        description: 'Build with cuDSS'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            cuda: true
+            cudss: true
+            name: "Windows CUDA+cuDSS"
+          - os: windows-latest
+            cuda: true
+            cudss: false
+            name: "Windows CUDA"
+          - os: windows-latest
+            cuda: false
+            cudss: false
+            name: "Windows CPU"
+          - os: ubuntu-22.04
+            cuda: true
+            cudss: true
+            name: "Linux CUDA+cuDSS"
+          - os: ubuntu-22.04
+            cuda: true
+            cudss: false
+            name: "Linux CUDA"
+          - os: ubuntu-22.04
+            cuda: false
+            cudss: false
+            name: "Linux CPU"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ==================== CUDA Setup ====================
+      - name: Install CUDA Toolkit (Windows)
+        if: matrix.cuda && runner.os == 'Windows'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.9.1'
+          method: 'network'
+          sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          log-file-suffix: '-${{ matrix.name }}.log'
+
+      - name: Install CUDA Toolkit (Linux)
+        if: matrix.cuda && runner.os == 'Linux'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.9.1'
+          method: 'network'
+          linux-local-args: '["--toolkit"]'
+          log-file-suffix: '-${{ matrix.name }}.log'
+
+      # ==================== cuDSS Setup ====================
+      - name: Install cuDSS (Windows)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "Downloading cuDSS 0.4.0..."
+          $cudssUrl = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.4.0.2_cuda12-archive.zip"
+
+          try {
+            Invoke-WebRequest -Uri $cudssUrl -OutFile cudss.zip -UseBasicParsing
+          } catch {
+            Write-Error "Failed to download cuDSS: $_"
+            exit 1
+          }
+
+          Write-Host "Extracting cuDSS..."
+          Expand-Archive cudss.zip -DestinationPath "C:/cudss"
+
+          # Find the extracted directory
+          $cudssPath = Get-ChildItem -Path "C:/cudss" -Directory | Select-Object -First 1
+
+          # Validate extraction
+          if (-not (Test-Path "$($cudssPath.FullName)/include/cudss.h")) {
+            Write-Error "cuDSS extraction failed - cudss.h not found"
+            exit 1
+          }
+
+          Write-Host "cuDSS installed at: $($cudssPath.FullName)"
+          echo "CUDSS_ROOT=$($cudssPath.FullName)" >> $env:GITHUB_ENV
+
+      - name: Install cuDSS (Linux)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Linux'
+        run: |
+          echo "Downloading cuDSS 0.4.0..."
+          CUDSS_URL="https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.4.0.2_cuda12-archive.tar.xz"
+
+          if ! wget -nv "$CUDSS_URL" -O cudss.tar.xz; then
+            echo "ERROR: Failed to download cuDSS"
+            exit 1
+          fi
+
+          echo "Extracting cuDSS..."
+          sudo mkdir -p /opt/nvidia/cudss
+          sudo tar -xf cudss.tar.xz -C /opt/nvidia/cudss --strip-components=1
+
+          # Validate extraction
+          if [ ! -f "/opt/nvidia/cudss/include/cudss.h" ]; then
+            echo "ERROR: cuDSS extraction failed - cudss.h not found"
+            exit 1
+          fi
+
+          echo "cuDSS installed at: /opt/nvidia/cudss"
+          echo "CUDSS_ROOT=/opt/nvidia/cudss" >> $GITHUB_ENV
+
+      # ==================== Build Tools ====================
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install ninja -y
+
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache
+
+      # ==================== Compiler Caching ====================
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ccache-${{ matrix.os }}-${{ matrix.cuda && 'cuda' || 'cpu' }}
+          max-size: 2G
+
+      - name: Configure ccache (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+
+      # ==================== vcpkg Setup ====================
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ github.workspace }}/third_party/vcpkg'
+          vcpkgJsonGlob: 'vcpkg.json'
+        env:
+          # vcpkg binary caching via GitHub Actions cache
+          VCPKG_BINARY_SOURCES: 'clear;default,readwrite'
+
+      # ==================== Build ====================
+      - name: Build COLMAP (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "" } else { "-NoCuda" }
+
+          Write-Host "Building COLMAP with CUDA=${{ matrix.cuda }}"
+          if ($cudaFlag) {
+            .\scripts_windows\build_colmap.ps1 -Configuration Release $cudaFlag
+          } else {
+            .\scripts_windows\build_colmap.ps1 -Configuration Release
+          }
+
+      - name: Build COLMAP (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          CUDA_FLAG=""
+          if [ "${{ matrix.cuda }}" != "true" ]; then
+            CUDA_FLAG="--no-cuda"
+          fi
+
+          echo "Building COLMAP with CUDA=${{ matrix.cuda }}"
+          chmod +x ./scripts_linux/build_colmap.sh
+          ./scripts_linux/build_colmap.sh Release $CUDA_FLAG
+
+      # ==================== Artifacts ====================
+      - name: Prepare artifact name
+        id: artifact-name
+        shell: bash
+        run: |
+          CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
+          CUDSS_SUFFIX="${{ matrix.cudss && '-cuDSS' || '' }}"
+          echo "name=COLMAP-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}" >> $GITHUB_OUTPUT
+
+      - name: Upload COLMAP artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            build/install/colmap/
+          retention-days: 7
+          if-no-files-found: error

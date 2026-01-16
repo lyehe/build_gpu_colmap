@@ -1,0 +1,292 @@
+name: Build pycolmap Wheels
+
+on:
+  workflow_call:
+  push:
+    branches: [master, main]
+    paths:
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
+      - 'third_party/colmap-for-pycolmap/**'
+      - 'third_party/ceres-solver/**'
+      - 'scripts_windows/**'
+      - 'scripts_linux/**'
+      - '.github/workflows/build-pycolmap.yml'
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      cuda:
+        description: 'Build with CUDA'
+        type: boolean
+        default: true
+      python_version:
+        description: 'Python version (leave empty for all)'
+        type: string
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-wheels:
+    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && 'CUDA' || 'CPU' }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
+        cuda: [true, false]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ==================== Python Setup ====================
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python build dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install scikit-build-core[pyproject] pybind11 delvewheel
+
+      # ==================== CUDA Setup ====================
+      - name: Install CUDA Toolkit (Windows)
+        if: matrix.cuda && runner.os == 'Windows'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.9.1'
+          method: 'network'
+          sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          log-file-suffix: '-windows-py${{ matrix.python-version }}.log'
+
+      - name: Install CUDA Toolkit (Linux)
+        if: matrix.cuda && runner.os == 'Linux'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.9.1'
+          method: 'network'
+          linux-local-args: '["--toolkit"]'
+          log-file-suffix: '-linux-py${{ matrix.python-version }}.log'
+
+      # ==================== Build Tools ====================
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install ninja -y
+
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache patchelf
+
+      # ==================== Compiler Caching ====================
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ccache-pycolmap-${{ matrix.os }}-${{ matrix.cuda && 'cuda' || 'cpu' }}-py${{ matrix.python-version }}
+          max-size: 2G
+
+      - name: Configure ccache (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+
+      # ==================== vcpkg Setup ====================
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ github.workspace }}/third_party/vcpkg'
+          vcpkgJsonGlob: 'vcpkg.json'
+        env:
+          VCPKG_BINARY_SOURCES: 'clear;default,readwrite'
+
+      # ==================== Build COLMAP-for-pycolmap ====================
+      - name: Build COLMAP-for-pycolmap (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "ON" } else { "OFF" }
+
+          Write-Host "Building COLMAP-for-pycolmap with CUDA=$cudaFlag"
+
+          # Create build directory
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          Set-Location build
+
+          # Configure
+          $vcpkgToolchain = "${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          cmake .. `
+            -G Ninja `
+            -DCMAKE_TOOLCHAIN_FILE="$vcpkgToolchain" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCUDA_ENABLED="$cudaFlag" `
+            -DBUILD_COLMAP=OFF `
+            -DBUILD_COLMAP_FOR_PYCOLMAP=ON `
+            -DBUILD_GLOMAP=OFF `
+            -DBUILD_CERES=ON `
+            -DGFLAGS_USE_TARGET_NAMESPACE=ON
+
+          # Build
+          cmake --build . --config Release --parallel
+
+      - name: Build COLMAP-for-pycolmap (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          CUDA_FLAG="${{ matrix.cuda && 'ON' || 'OFF' }}"
+
+          echo "Building COLMAP-for-pycolmap with CUDA=$CUDA_FLAG"
+
+          # Create build directory
+          mkdir -p build
+          cd build
+
+          # Configure
+          cmake .. \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDA_ENABLED="$CUDA_FLAG" \
+            -DBUILD_COLMAP=OFF \
+            -DBUILD_COLMAP_FOR_PYCOLMAP=ON \
+            -DBUILD_GLOMAP=OFF \
+            -DBUILD_CERES=ON \
+            -DGFLAGS_USE_TARGET_NAMESPACE=ON
+
+          # Build
+          cmake --build . --config Release --parallel
+
+      # ==================== Build Python Wheel ====================
+      - name: Build wheel (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          # Get paths
+          $vcpkgToolchain = "${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake".Replace('\', '/')
+          $vcpkgInstalled = "${{ github.workspace }}/build/vcpkg_installed".Replace('\', '/')
+          $colmapInstall = "${{ github.workspace }}/build/install/colmap-for-pycolmap".Replace('\', '/')
+          $pybind11Dir = (python -c "import pybind11; print(pybind11.get_cmake_dir())").Replace('\', '/')
+
+          $cmakePrefixPath = "${colmapInstall};${pybind11Dir}"
+
+          Write-Host "CMAKE_TOOLCHAIN_FILE: $vcpkgToolchain"
+          Write-Host "VCPKG_INSTALLED_DIR: $vcpkgInstalled"
+          Write-Host "CMAKE_PREFIX_PATH: $cmakePrefixPath"
+
+          # Build wheel
+          python -m pip wheel . --no-deps -w wheelhouse `
+            --config-settings="cmake.define.CMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}" `
+            --config-settings="cmake.define.VCPKG_INSTALLED_DIR=${vcpkgInstalled}" `
+            --config-settings="cmake.define.CMAKE_PREFIX_PATH=${cmakePrefixPath}" `
+            --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-windows"
+
+      - name: Build wheel (Linux)
+        if: runner.os == 'Linux'
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          # Get paths
+          VCPKG_TOOLCHAIN="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          VCPKG_INSTALLED="${{ github.workspace }}/build/vcpkg_installed"
+          COLMAP_INSTALL="${{ github.workspace }}/build/install/colmap-for-pycolmap"
+          PYBIND11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
+
+          CMAKE_PREFIX_PATH="${COLMAP_INSTALL}:${PYBIND11_DIR}"
+
+          echo "CMAKE_TOOLCHAIN_FILE: $VCPKG_TOOLCHAIN"
+          echo "VCPKG_INSTALLED_DIR: $VCPKG_INSTALLED"
+          echo "CMAKE_PREFIX_PATH: $CMAKE_PREFIX_PATH"
+
+          # Build wheel
+          python -m pip wheel . --no-deps -w wheelhouse \
+            --config-settings="cmake.define.CMAKE_TOOLCHAIN_FILE=${VCPKG_TOOLCHAIN}" \
+            --config-settings="cmake.define.VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED}" \
+            --config-settings="cmake.define.CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}" \
+            --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-linux"
+
+      # ==================== Repair Wheel ====================
+      - name: Repair wheel with delvewheel (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          $vcpkgBin = "${{ github.workspace }}/build/vcpkg_installed/x64-windows/bin"
+          $colmapBin = "${{ github.workspace }}/build/install/colmap-for-pycolmap/bin"
+
+          $wheel = Get-ChildItem -Path wheelhouse -Filter "pycolmap-*.whl" | Select-Object -First 1
+
+          if ($wheel) {
+            Write-Host "Repairing wheel: $($wheel.Name)"
+            python -m delvewheel repair -v `
+              --add-path "$vcpkgBin" `
+              --add-path "$colmapBin" `
+              -w wheelhouse `
+              $wheel.FullName
+
+            # Remove original wheel, keep repaired one
+            # delvewheel creates a new wheel with the same name
+          } else {
+            Write-Error "No wheel found to repair!"
+            exit 1
+          }
+
+      - name: Repair wheel with auditwheel (Linux)
+        if: runner.os == 'Linux'
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          pip install auditwheel
+
+          WHEEL=$(ls wheelhouse/pycolmap-*.whl | head -n 1)
+
+          if [ -n "$WHEEL" ]; then
+            echo "Repairing wheel: $WHEEL"
+
+            # Set library paths for auditwheel
+            export LD_LIBRARY_PATH="${{ github.workspace }}/build/vcpkg_installed/x64-linux/lib:${{ github.workspace }}/build/install/colmap-for-pycolmap/lib:$LD_LIBRARY_PATH"
+
+            # Try modern manylinux first, fall back to broader compatibility
+            if auditwheel repair "$WHEEL" -w wheelhouse --plat manylinux_2_31_x86_64 2>/dev/null; then
+              echo "Created manylinux_2_31_x86_64 wheel"
+            elif auditwheel repair "$WHEEL" -w wheelhouse --plat manylinux2014_x86_64 2>/dev/null; then
+              echo "Created manylinux2014_x86_64 wheel"
+            else
+              echo "ERROR: auditwheel repair failed"
+              exit 1
+            fi
+          else
+            echo "ERROR: No wheel found to repair!"
+            exit 1
+          fi
+
+      # ==================== Artifacts ====================
+      - name: List built wheels
+        shell: bash
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          echo "Built wheels:"
+          ls -la wheelhouse/*.whl || echo "No wheels found"
+
+      - name: Prepare artifact name
+        id: artifact-name
+        shell: bash
+        run: |
+          CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
+          PYVER=$(echo "${{ matrix.python-version }}" | tr -d '.')
+          echo "name=pycolmap-py${PYVER}-${{ matrix.os }}-${CUDA_SUFFIX}" >> $GITHUB_OUTPUT
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: third_party/colmap-for-pycolmap/wheelhouse/*.whl
+          retention-days: 7
+          if-no-files-found: error

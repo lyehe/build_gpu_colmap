@@ -1,0 +1,209 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.0.0)'
+        required: true
+        type: string
+      skip_build:
+        description: 'Skip building and use existing artifacts'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ==================== Build Jobs ====================
+  build-colmap:
+    name: Build COLMAP
+    if: ${{ !inputs.skip_build }}
+    uses: ./.github/workflows/build-colmap.yml
+    secrets: inherit
+
+  build-glomap:
+    name: Build GLOMAP
+    if: ${{ !inputs.skip_build }}
+    uses: ./.github/workflows/build-glomap.yml
+    secrets: inherit
+
+  build-pycolmap:
+    name: Build pycolmap
+    if: ${{ !inputs.skip_build }}
+    uses: ./.github/workflows/build-pycolmap.yml
+    secrets: inherit
+
+  # ==================== Package and Release ====================
+  create-release-packages:
+    name: Create Release Packages
+    needs: [build-colmap, build-glomap, build-pycolmap]
+    if: |
+      always() && (
+        (needs.build-colmap.result == 'success' &&
+         needs.build-glomap.result == 'success' &&
+         needs.build-pycolmap.result == 'success') ||
+        (inputs.skip_build &&
+         needs.build-colmap.result == 'skipped' &&
+         needs.build-glomap.result == 'skipped' &&
+         needs.build-pycolmap.result == 'skipped')
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          find artifacts/ -type f -name "*.whl" -o -name "*.zip" -o -name "*.tar.gz" | head -100
+          echo ""
+          echo "Directory structure:"
+          ls -la artifacts/
+
+      # ==================== Package COLMAP ====================
+      - name: Package COLMAP artifacts
+        run: |
+          mkdir -p packages
+
+          for dir in artifacts/COLMAP-*; do
+            if [ -d "$dir" ]; then
+              name=$(basename "$dir")
+              echo "Packaging $name..."
+              cd "$dir"
+              zip -r "../../packages/${name}.zip" .
+              cd ../..
+            fi
+          done
+
+          echo "COLMAP packages created:"
+          ls -la packages/COLMAP-* || echo "No COLMAP packages"
+
+      # ==================== Package GLOMAP ====================
+      - name: Package GLOMAP artifacts
+        run: |
+          for dir in artifacts/GLOMAP-*; do
+            if [ -d "$dir" ]; then
+              name=$(basename "$dir")
+              echo "Packaging $name..."
+              cd "$dir"
+              zip -r "../../packages/${name}.zip" .
+              cd ../..
+            fi
+          done
+
+          echo "GLOMAP packages created:"
+          ls -la packages/GLOMAP-* || echo "No GLOMAP packages"
+
+      # ==================== Collect pycolmap wheels ====================
+      - name: Collect pycolmap wheels
+        run: |
+          mkdir -p packages/wheels
+
+          # Find and copy all wheel files
+          find artifacts/ -name "*.whl" -exec cp {} packages/wheels/ \;
+
+          echo "pycolmap wheels:"
+          ls -la packages/wheels/*.whl || echo "No wheels found"
+
+      # ==================== Upload Release Assets ====================
+      - name: Get release tag
+        id: release-tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload COLMAP to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/COLMAP-*.zip
+          fail_on_unmatched_files: false
+
+      - name: Upload GLOMAP to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/GLOMAP-*.zip
+          fail_on_unmatched_files: false
+
+      - name: Upload pycolmap wheels to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: packages/wheels/*.whl
+          fail_on_unmatched_files: false
+
+      # ==================== Manual dispatch: create draft release ====================
+      - name: Create draft release (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release-tag.outputs.tag }}
+          name: Release ${{ steps.release-tag.outputs.tag }}
+          draft: true
+          generate_release_notes: true
+          files: |
+            packages/COLMAP-*.zip
+            packages/GLOMAP-*.zip
+            packages/wheels/*.whl
+          fail_on_unmatched_files: false
+
+      # ==================== Summary ====================
+      - name: Generate release summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### COLMAP Packages" >> $GITHUB_STEP_SUMMARY
+          for f in packages/COLMAP-*.zip; do
+            if [ -f "$f" ]; then
+              size=$(du -h "$f" | cut -f1)
+              name=$(basename "$f")
+              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### GLOMAP Packages" >> $GITHUB_STEP_SUMMARY
+          for f in packages/GLOMAP-*.zip; do
+            if [ -f "$f" ]; then
+              size=$(du -h "$f" | cut -f1)
+              name=$(basename "$f")
+              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### pycolmap Wheels" >> $GITHUB_STEP_SUMMARY
+          for f in packages/wheels/*.whl; do
+            if [ -f "$f" ]; then
+              size=$(du -h "$f" | cut -f1)
+              name=$(basename "$f")
+              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Upload all packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-packages-${{ steps.release-tag.outputs.tag }}
+          path: packages/
+          retention-days: 30

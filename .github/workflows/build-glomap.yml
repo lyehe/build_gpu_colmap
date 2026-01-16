@@ -1,0 +1,151 @@
+name: Build GLOMAP
+
+on:
+  workflow_call:
+  push:
+    branches: [master, main]
+    paths:
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
+      - 'third_party/glomap/**'
+      - 'third_party/colmap-for-glomap/**'
+      - 'third_party/poselib/**'
+      - 'third_party/ceres-solver/**'
+      - 'scripts_windows/**'
+      - 'scripts_linux/**'
+      - '.github/workflows/build-glomap.yml'
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      cuda:
+        description: 'Build with CUDA'
+        type: boolean
+        default: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            cuda: true
+            name: "Windows CUDA"
+          - os: windows-latest
+            cuda: false
+            name: "Windows CPU"
+          - os: ubuntu-22.04
+            cuda: true
+            name: "Linux CUDA"
+          - os: ubuntu-22.04
+            cuda: false
+            name: "Linux CPU"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ==================== CUDA Setup ====================
+      - name: Install CUDA Toolkit (Windows)
+        if: matrix.cuda && runner.os == 'Windows'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.9.1'
+          method: 'network'
+          sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          log-file-suffix: '-windows.log'
+
+      - name: Install CUDA Toolkit (Linux)
+        if: matrix.cuda && runner.os == 'Linux'
+        uses: Jimver/cuda-toolkit@v0.2.30
+        with:
+          cuda: '12.9.1'
+          method: 'network'
+          linux-local-args: '["--toolkit"]'
+          log-file-suffix: '-linux.log'
+
+      # ==================== Build Tools ====================
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install ninja -y
+
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache
+
+      # ==================== Compiler Caching ====================
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ccache-glomap-${{ matrix.os }}-${{ matrix.cuda && 'cuda' || 'cpu' }}
+          max-size: 2G
+
+      - name: Configure ccache (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+
+      # ==================== vcpkg Setup ====================
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgDirectory: '${{ github.workspace }}/third_party/vcpkg'
+          vcpkgJsonGlob: 'vcpkg.json'
+        env:
+          VCPKG_BINARY_SOURCES: 'clear;default,readwrite'
+
+      # ==================== Build ====================
+      - name: Build GLOMAP (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "" } else { "-NoCuda" }
+
+          Write-Host "Building GLOMAP with CUDA=${{ matrix.cuda }}"
+          if ($cudaFlag) {
+            .\scripts_windows\build_glomap.ps1 -Configuration Release $cudaFlag
+          } else {
+            .\scripts_windows\build_glomap.ps1 -Configuration Release
+          }
+
+      - name: Build GLOMAP (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          CUDA_FLAG=""
+          if [ "${{ matrix.cuda }}" != "true" ]; then
+            CUDA_FLAG="--no-cuda"
+          fi
+
+          echo "Building GLOMAP with CUDA=${{ matrix.cuda }}"
+          chmod +x ./scripts_linux/build_glomap.sh
+          ./scripts_linux/build_glomap.sh Release $CUDA_FLAG
+
+      # ==================== Artifacts ====================
+      - name: Prepare artifact name
+        id: artifact-name
+        shell: bash
+        run: |
+          CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
+          echo "name=GLOMAP-${{ matrix.os }}-${CUDA_SUFFIX}" >> $GITHUB_OUTPUT
+
+      - name: Upload GLOMAP artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            build/install/glomap/
+          retention-days: 7
+          if-no-files-found: error
