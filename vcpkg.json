@@ -21,7 +21,7 @@
                          "lapack",
                          {
                              "name": "suitesparse",
-                             "features": ["gpl", "cuda", "openmp"]
+                             "features": ["gpl", "openmp"]
                          }
                      ],
     "features":  {
@@ -31,6 +31,10 @@
                                                        {
                                                            "name":  "cuda",
                                                            "platform":  "windows | linux"
+                                                       },
+                                                       {
+                                                           "name": "suitesparse",
+                                                           "features": ["cuda"]
                                                        }
                                                    ]
                               },
