@@ -48,11 +48,20 @@ jobs:
           - os: windows-latest
             cuda: true
             cuda_version: '13.0.0'
-            name: "Windows CUDA13"
+            name: "Windows CUDA13.0"
           - os: ubuntu-22.04
             cuda: true
             cuda_version: '13.0.0'
-            name: "Linux CUDA13"
+            name: "Linux CUDA13.0"
+          # CUDA 13.1 builds
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.1.0'
+            name: "Windows CUDA13.1"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.1.0'
+            name: "Linux CUDA13.1"
           # CPU builds
           - os: windows-latest
             cuda: false

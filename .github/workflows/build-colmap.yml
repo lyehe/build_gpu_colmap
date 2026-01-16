@@ -58,17 +58,48 @@ jobs:
             cuda_version: '12.8.1'
             cudss: false
             name: "Linux CUDA12.8"
-          # CUDA 13.0 builds (no cuDSS - not available for CUDA 13 yet)
+          # CUDA 13.0 builds
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.0.0'
+            cudss: true
+            name: "Windows CUDA13.0+cuDSS"
           - os: windows-latest
             cuda: true
             cuda_version: '13.0.0'
             cudss: false
-            name: "Windows CUDA13"
+            name: "Windows CUDA13.0"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.0.0'
+            cudss: true
+            name: "Linux CUDA13.0+cuDSS"
           - os: ubuntu-22.04
             cuda: true
             cuda_version: '13.0.0'
             cudss: false
-            name: "Linux CUDA13"
+            name: "Linux CUDA13.0"
+          # CUDA 13.1 builds
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.1.0'
+            cudss: true
+            name: "Windows CUDA13.1+cuDSS"
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.1.0'
+            cudss: false
+            name: "Windows CUDA13.1"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.1.0'
+            cudss: true
+            name: "Linux CUDA13.1+cuDSS"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.1.0'
+            cudss: false
+            name: "Linux CUDA13.1"
           # CPU builds
           - os: windows-latest
             cuda: false
@@ -118,7 +149,7 @@ jobs:
           $cudaMajor = $cudaVersion.Split('.')[0]
 
           Write-Host "Downloading cuDSS for CUDA $cudaMajor..."
-          $cudssUrl = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.4.0.2_cuda${cudaMajor}-archive.zip"
+          $cudssUrl = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.7.1.4_cuda${cudaMajor}-archive.zip"
 
           try {
             Invoke-WebRequest -Uri $cudssUrl -OutFile cudss.zip -UseBasicParsing
@@ -150,7 +181,7 @@ jobs:
           CUDA_MAJOR="${CUDA_VERSION%%.*}"
 
           echo "Downloading cuDSS for CUDA $CUDA_MAJOR..."
-          CUDSS_URL="https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.4.0.2_cuda${CUDA_MAJOR}-archive.tar.xz"
+          CUDSS_URL="https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.7.1.4_cuda${CUDA_MAJOR}-archive.tar.xz"
 
           if ! wget -nv "$CUDSS_URL" -O cudss.tar.xz; then
             echo "ERROR: Failed to download cuDSS"
