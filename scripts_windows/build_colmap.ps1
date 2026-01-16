@@ -129,6 +129,13 @@ Push-Location $BuildDir
 try {
     $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
 
+    # Set vcpkg manifest features based on CUDA
+    if ($CudaEnabled -eq "ON") {
+        $VcpkgFeatures = "cgal;cuda"
+    } else {
+        $VcpkgFeatures = "cgal"
+    }
+
     cmake .. `
         -G Ninja `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
@@ -137,7 +144,7 @@ try {
         -DBUILD_CERES=ON `
         -DBUILD_COLMAP=ON `
         -DBUILD_GLOMAP=OFF `
-        -DVCPKG_MANIFEST_FEATURES="cgal" `
+        -DVCPKG_MANIFEST_FEATURES="$VcpkgFeatures" `
         -DGFLAGS_USE_TARGET_NAMESPACE=ON
 
     if ($LASTEXITCODE -ne 0) {

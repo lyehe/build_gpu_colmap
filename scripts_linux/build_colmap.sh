@@ -201,6 +201,13 @@ mkdir -p "$BUILD_DIR"
 echo ""
 echo -e "${GREEN}Configuring CMake for COLMAP...${NC}"
 cd "$BUILD_DIR"
+# Set vcpkg manifest features based on CUDA
+if [ "$CUDA_ENABLED" = "ON" ]; then
+    VCPKG_FEATURES="cgal;cuda"
+else
+    VCPKG_FEATURES="cgal"
+fi
+
 cmake .. \
     -G "$CMAKE_GENERATOR" \
     -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
@@ -209,7 +216,7 @@ cmake .. \
     -DBUILD_CERES=ON \
     -DBUILD_COLMAP=ON \
     -DBUILD_GLOMAP=OFF \
-    -DVCPKG_MANIFEST_FEATURES="cgal"
+    -DVCPKG_MANIFEST_FEATURES="$VCPKG_FEATURES"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: CMake configuration failed${NC}"

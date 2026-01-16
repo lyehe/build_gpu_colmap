@@ -149,6 +149,13 @@ Push-Location $BuildDir
 try {
     $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
 
+    # Set vcpkg manifest features based on CUDA
+    if ($CudaEnabled -eq "ON") {
+        $VcpkgFeatures = "cuda"
+    } else {
+        $VcpkgFeatures = ""
+    }
+
     cmake .. `
         -G Ninja `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
@@ -156,7 +163,8 @@ try {
         -DCUDA_ENABLED="$CudaEnabled" `
         -DBUILD_CERES=ON `
         -DBUILD_COLMAP=OFF `
-        -DBUILD_GLOMAP=ON
+        -DBUILD_GLOMAP=ON `
+        -DVCPKG_MANIFEST_FEATURES="$VcpkgFeatures"
 
     if ($LASTEXITCODE -ne 0) {
         throw "CMake configuration failed"
