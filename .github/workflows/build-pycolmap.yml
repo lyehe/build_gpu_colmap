@@ -103,7 +103,8 @@ jobs:
             autoconf autoconf-archive automake libtool make \
             ninja-build ccache patchelf \
             libgl-dev libgl1-mesa-dev libglu1-mesa-dev libglew-dev \
-            libxmu-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
+            libxmu-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            libomp-dev
 
       # ==================== Compiler Caching ====================
       - name: Setup ccache

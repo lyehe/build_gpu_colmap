@@ -21,7 +21,7 @@
                          "lapack",
                          {
                              "name": "suitesparse",
-                             "features": ["gpl", "openmp"]
+                             "features": ["gpl"]
                          }
                      ],
     "features":  {
