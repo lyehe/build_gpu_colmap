@@ -116,13 +116,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "" } else { "-NoCuda" }
-
           Write-Host "Building GLOMAP with CUDA=${{ matrix.cuda }}"
-          if ($cudaFlag) {
-            .\scripts_windows\build_glomap.ps1 -Configuration Release $cudaFlag
-          } else {
+          if ("${{ matrix.cuda }}" -eq "true") {
             .\scripts_windows\build_glomap.ps1 -Configuration Release
+          } else {
+            .\scripts_windows\build_glomap.ps1 -Configuration Release -NoCuda
           }
 
       - name: Build GLOMAP (Linux)
