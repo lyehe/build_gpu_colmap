@@ -102,7 +102,7 @@ jobs:
             curl zip unzip tar pkg-config \
             autoconf autoconf-archive automake libtool make \
             ninja-build ccache patchelf \
-            libgl1-mesa-dev libglu1-mesa-dev \
+            libgl1-mesa-dev libglu1-mesa-dev libglew-dev \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 
       # ==================== Compiler Caching ====================
