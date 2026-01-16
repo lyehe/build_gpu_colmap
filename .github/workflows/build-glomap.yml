@@ -54,8 +54,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Fetch vcpkg history for baseline
-        run: git -C third_party/vcpkg fetch --unshallow || true
+      - name: Fetch submodule histories
+        run: |
+          # Fetch vcpkg history for baseline
+          git -C third_party/vcpkg fetch --unshallow || true
+          # Fetch colmap-for-glomap history for specific commit checkout
+          git -C third_party/colmap-for-glomap fetch --unshallow || true
         shell: bash
 
       # ==================== CUDA Setup ====================
