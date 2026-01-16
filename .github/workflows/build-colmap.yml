@@ -77,7 +77,7 @@ jobs:
         if: matrix.cuda && runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.9.1'
+          cuda: '12.8.1'
           method: 'network'
           sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
           log-file-suffix: '-${{ matrix.name }}.log'
@@ -86,7 +86,7 @@ jobs:
         if: matrix.cuda && runner.os == 'Linux'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.9.1'
+          cuda: '12.8.1'
           method: 'network'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '-${{ matrix.name }}.log'
