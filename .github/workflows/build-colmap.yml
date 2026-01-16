@@ -58,22 +58,12 @@ jobs:
             cuda_version: '12.8.1'
             cudss: false
             name: "Linux CUDA12.8"
-          # CUDA 13.0 builds
-          - os: windows-latest
-            cuda: true
-            cuda_version: '13.0.0'
-            cudss: true
-            name: "Windows CUDA13+cuDSS"
+          # CUDA 13.0 builds (no cuDSS - not available for CUDA 13 yet)
           - os: windows-latest
             cuda: true
             cuda_version: '13.0.0'
             cudss: false
             name: "Windows CUDA13"
-          - os: ubuntu-22.04
-            cuda: true
-            cuda_version: '13.0.0'
-            cudss: true
-            name: "Linux CUDA13+cuDSS"
           - os: ubuntu-22.04
             cuda: true
             cuda_version: '13.0.0'
