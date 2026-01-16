@@ -91,7 +91,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build ccache patchelf \
+          sudo apt-get install -y \
+            curl zip unzip tar pkg-config \
+            autoconf autoconf-archive automake libtool make \
+            ninja-build ccache patchelf \
             libgl1-mesa-dev libglu1-mesa-dev \
             libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 
@@ -258,6 +261,11 @@ jobs:
 
             # Set library paths for auditwheel
             export LD_LIBRARY_PATH="${{ github.workspace }}/build/vcpkg_installed/x64-linux/lib:${{ github.workspace }}/build/install/colmap-for-pycolmap/lib:$LD_LIBRARY_PATH"
+
+            # Add CUDA library paths if CUDA build
+            if [ "${{ matrix.cuda }}" = "true" ]; then
+              export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
+            fi
 
             # Try modern manylinux first, fall back to broader compatibility
             if auditwheel repair "$WHEEL" -w wheelhouse --plat manylinux_2_31_x86_64 2>/dev/null; then
