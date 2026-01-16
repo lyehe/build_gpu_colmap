@@ -46,6 +46,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fetch vcpkg history for baseline
+        run: git -C third_party/vcpkg fetch --unshallow || true
+        shell: bash
+
       # ==================== Python Setup ====================
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5

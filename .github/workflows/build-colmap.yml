@@ -68,6 +68,10 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Fetch vcpkg history for baseline
+        run: git -C third_party/vcpkg fetch --unshallow || true
+        shell: bash
+
       # ==================== CUDA Setup ====================
       - name: Install CUDA Toolkit (Windows)
         if: matrix.cuda && runner.os == 'Windows'
