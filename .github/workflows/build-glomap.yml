@@ -35,15 +35,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # CUDA 12.8.1 builds
           - os: windows-latest
             cuda: true
-            name: "Windows CUDA"
+            cuda_version: '12.8.1'
+            name: "Windows CUDA12.8"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '12.8.1'
+            name: "Linux CUDA12.8"
+          # CUDA 13.0 builds
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.0.0'
+            name: "Windows CUDA13"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.0.0'
+            name: "Linux CUDA13"
+          # CPU builds
           - os: windows-latest
             cuda: false
             name: "Windows CPU"
-          - os: ubuntu-22.04
-            cuda: true
-            name: "Linux CUDA"
           - os: ubuntu-22.04
             cuda: false
             name: "Linux CPU"
@@ -67,16 +80,16 @@ jobs:
         if: matrix.cuda && runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.8.1'
+          cuda: ${{ matrix.cuda_version }}
           method: 'network'
           sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
-          log-file-suffix: '-windows.log'
+          log-file-suffix: '-${{ matrix.name }}.log'
 
       - name: Install CUDA Toolkit (Linux)
         if: matrix.cuda && runner.os == 'Linux'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.8.1'
+          cuda: ${{ matrix.cuda_version }}
           method: 'network'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '-linux.log'

@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   build-wheels:
-    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && 'CUDA' || 'CPU' }}
+    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && format('CUDA{0}', matrix.cuda_version) || 'CPU' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -39,6 +39,11 @@ jobs:
         os: [windows-latest, ubuntu-22.04]
         python-version: ['3.10', '3.11', '3.12', '3.13']
         cuda: [true, false]
+        cuda_version: ['12.8.1', '13.0.0']
+        exclude:
+          # CPU builds don't need multiple CUDA versions
+          - cuda: false
+            cuda_version: '13.0.0'
 
     steps:
       - name: Checkout repository
@@ -66,19 +71,19 @@ jobs:
         if: matrix.cuda && runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.8.1'
+          cuda: ${{ matrix.cuda_version }}
           method: 'network'
           sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
-          log-file-suffix: '-windows-py${{ matrix.python-version }}.log'
+          log-file-suffix: '-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda_version }}.log'
 
       - name: Install CUDA Toolkit (Linux)
         if: matrix.cuda && runner.os == 'Linux'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.8.1'
+          cuda: ${{ matrix.cuda_version }}
           method: 'network'
           linux-local-args: '["--toolkit"]'
-          log-file-suffix: '-linux-py${{ matrix.python-version }}.log'
+          log-file-suffix: '-linux-py${{ matrix.python-version }}-cuda${{ matrix.cuda_version }}.log'
 
       # ==================== Build Tools ====================
       - name: Install Ninja (Windows)

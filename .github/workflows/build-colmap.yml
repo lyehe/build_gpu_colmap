@@ -37,26 +37,53 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # CUDA 12.8.1 builds
           - os: windows-latest
             cuda: true
+            cuda_version: '12.8.1'
             cudss: true
-            name: "Windows CUDA+cuDSS"
+            name: "Windows CUDA12.8+cuDSS"
           - os: windows-latest
             cuda: true
+            cuda_version: '12.8.1'
             cudss: false
-            name: "Windows CUDA"
+            name: "Windows CUDA12.8"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '12.8.1'
+            cudss: true
+            name: "Linux CUDA12.8+cuDSS"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '12.8.1'
+            cudss: false
+            name: "Linux CUDA12.8"
+          # CUDA 13.0 builds
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.0.0'
+            cudss: true
+            name: "Windows CUDA13+cuDSS"
+          - os: windows-latest
+            cuda: true
+            cuda_version: '13.0.0'
+            cudss: false
+            name: "Windows CUDA13"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.0.0'
+            cudss: true
+            name: "Linux CUDA13+cuDSS"
+          - os: ubuntu-22.04
+            cuda: true
+            cuda_version: '13.0.0'
+            cudss: false
+            name: "Linux CUDA13"
+          # CPU builds
           - os: windows-latest
             cuda: false
             cudss: false
             name: "Windows CPU"
-          - os: ubuntu-22.04
-            cuda: true
-            cudss: true
-            name: "Linux CUDA+cuDSS"
-          - os: ubuntu-22.04
-            cuda: true
-            cudss: false
-            name: "Linux CUDA"
           - os: ubuntu-22.04
             cuda: false
             cudss: false
@@ -77,7 +104,7 @@ jobs:
         if: matrix.cuda && runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.8.1'
+          cuda: ${{ matrix.cuda_version }}
           method: 'network'
           sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
           log-file-suffix: '-${{ matrix.name }}.log'
@@ -86,7 +113,7 @@ jobs:
         if: matrix.cuda && runner.os == 'Linux'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
-          cuda: '12.8.1'
+          cuda: ${{ matrix.cuda_version }}
           method: 'network'
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '-${{ matrix.name }}.log'
@@ -96,8 +123,12 @@ jobs:
         if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "Downloading cuDSS 0.4.0..."
-          $cudssUrl = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.4.0.2_cuda12-archive.zip"
+          # Determine CUDA major version for cuDSS URL
+          $cudaVersion = "${{ matrix.cuda_version }}"
+          $cudaMajor = $cudaVersion.Split('.')[0]
+
+          Write-Host "Downloading cuDSS for CUDA $cudaMajor..."
+          $cudssUrl = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.4.0.2_cuda${cudaMajor}-archive.zip"
 
           try {
             Invoke-WebRequest -Uri $cudssUrl -OutFile cudss.zip -UseBasicParsing
@@ -124,8 +155,12 @@ jobs:
       - name: Install cuDSS (Linux)
         if: matrix.cuda && matrix.cudss && runner.os == 'Linux'
         run: |
-          echo "Downloading cuDSS 0.4.0..."
-          CUDSS_URL="https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.4.0.2_cuda12-archive.tar.xz"
+          # Determine CUDA major version for cuDSS URL
+          CUDA_VERSION="${{ matrix.cuda_version }}"
+          CUDA_MAJOR="${CUDA_VERSION%%.*}"
+
+          echo "Downloading cuDSS for CUDA $CUDA_MAJOR..."
+          CUDSS_URL="https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.4.0.2_cuda${CUDA_MAJOR}-archive.tar.xz"
 
           if ! wget -nv "$CUDSS_URL" -O cudss.tar.xz; then
             echo "ERROR: Failed to download cuDSS"
