@@ -231,6 +231,8 @@ try {
         $ColmapDir = Join-Path $BuildDir "install\colmap-for-glomap"
 
         $VcpkgInstalledDir = Join-Path $BuildDir "vcpkg_installed"
+        $VcpkgInstalledTriplet = Join-Path $VcpkgInstalledDir "x64-windows"
+        $SuiteSparseDir = Join-Path $VcpkgInstalledTriplet "share\suitesparse"
 
         if ($UseNinja) {
             cmake "$GlomapSource" `
@@ -240,8 +242,9 @@ try {
                 -DVCPKG_MANIFEST_MODE=OFF `
                 -DCMAKE_BUILD_TYPE="$Configuration" `
                 -DCMAKE_INSTALL_PREFIX="$GlomapInstallDir" `
-                -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir" `
+                -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet" `
                 -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
+                -DSuiteSparse_DIR="$SuiteSparseDir" `
                 -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
                 -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
                 -DFETCH_COLMAP=OFF `
@@ -256,8 +259,9 @@ try {
                 -DVCPKG_MANIFEST_MODE=OFF `
                 -DCMAKE_BUILD_TYPE="$Configuration" `
                 -DCMAKE_INSTALL_PREFIX="$GlomapInstallDir" `
-                -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir" `
+                -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet" `
                 -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
+                -DSuiteSparse_DIR="$SuiteSparseDir" `
                 -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
                 -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
                 -DFETCH_COLMAP=OFF `

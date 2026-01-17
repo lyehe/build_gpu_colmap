@@ -263,6 +263,7 @@ GLOMAP_INSTALL_DIR="${PROJECT_ROOT}/build/install/glomap"
 CERES_DIR="${PROJECT_ROOT}/build/install/ceres"
 POSELIB_DIR="${PROJECT_ROOT}/build/install/poselib"
 COLMAP_DIR="${PROJECT_ROOT}/build/install/colmap-for-glomap"
+VCPKG_INSTALLED="${PROJECT_ROOT}/build/vcpkg_installed/x64-linux"
 
 cmake "$GLOMAP_SOURCE" \
     -G "$CMAKE_GENERATOR" \
@@ -271,8 +272,9 @@ cmake "$GLOMAP_SOURCE" \
     -DVCPKG_MANIFEST_MODE=OFF \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="$GLOMAP_INSTALL_DIR" \
-    -DCMAKE_PREFIX_PATH="${CERES_DIR};${POSELIB_DIR};${COLMAP_DIR}" \
+    -DCMAKE_PREFIX_PATH="${CERES_DIR};${POSELIB_DIR};${COLMAP_DIR};${VCPKG_INSTALLED}" \
     -DCeres_DIR="${CERES_DIR}/lib/cmake/Ceres" \
+    -DSuiteSparse_DIR="${VCPKG_INSTALLED}/share/suitesparse" \
     -DPoseLib_DIR="${POSELIB_DIR}/lib/cmake/PoseLib" \
     -DCOLMAP_DIR="${COLMAP_DIR}/lib/cmake/COLMAP" \
     -DFETCH_COLMAP=OFF \
