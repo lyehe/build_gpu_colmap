@@ -16,6 +16,7 @@
                          "glew",
                          "cgal",
                          "flann",
+                         "gklib",
                          "metis",
                          "blas",
                          "lapack",
