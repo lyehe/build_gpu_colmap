@@ -278,9 +278,12 @@ if(BUILD_CERES)
     # Note: Ceres uses USE_CUDA, not CUDA_ENABLED
     # VCPKG_OVERLAY_PORTS is handled by the toolchain, not needed as explicit arg
     # BUILD_TESTING=OFF to avoid linker issues with gklib in vcpkg METIS
+    # Disable vcpkg manifest mode for ExternalProjects - they use the shared vcpkg_installed
+    # directory where all dependencies have already been installed by the top-level CMake
     set(CERES_CMAKE_ARGS
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
+        -DVCPKG_MANIFEST_MODE=OFF
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/ceres
         -DBUILD_TESTING=OFF
@@ -332,6 +335,7 @@ if(BUILD_GLOMAP)
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
             -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
+            -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/poselib
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
@@ -363,6 +367,7 @@ if(BUILD_COLMAP)
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
             -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
+            -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
@@ -397,6 +402,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
             -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
+            -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-pycolmap
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
@@ -435,6 +441,7 @@ if(BUILD_GLOMAP)
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
             -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
+            -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-glomap
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
