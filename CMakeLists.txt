@@ -277,11 +277,15 @@ if(BUILD_CERES)
     # Build list of CMAKE_ARGS for Ceres
     # Note: Ceres uses USE_CUDA, not CUDA_ENABLED
     # VCPKG_OVERLAY_PORTS is handled by the toolchain, not needed as explicit arg
+    # BUILD_TESTING=OFF to avoid linker issues with gklib in vcpkg METIS
     set(CERES_CMAKE_ARGS
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/ceres
+        -DBUILD_TESTING=OFF
+        -DBUILD_EXAMPLES=OFF
+        -DBUILD_BENCHMARKS=OFF
     )
 
     # Add CUDA support if enabled
