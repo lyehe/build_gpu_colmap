@@ -267,9 +267,12 @@ COLMAP_DIR="${PROJECT_ROOT}/build/install/colmap-for-glomap"
 cmake "$GLOMAP_SOURCE" \
     -G "$CMAKE_GENERATOR" \
     -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+    -DVCPKG_INSTALLED_DIR="${PROJECT_ROOT}/build/vcpkg_installed" \
+    -DVCPKG_MANIFEST_MODE=OFF \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="$GLOMAP_INSTALL_DIR" \
     -DCMAKE_PREFIX_PATH="${CERES_DIR};${POSELIB_DIR};${COLMAP_DIR}" \
+    -DCeres_DIR="${CERES_DIR}/lib/cmake/Ceres" \
     -DPoseLib_DIR="${POSELIB_DIR}/lib/cmake/PoseLib" \
     -DCOLMAP_DIR="${COLMAP_DIR}/lib/cmake/COLMAP" \
     -DFETCH_COLMAP=OFF \

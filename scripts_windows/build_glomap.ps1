@@ -230,13 +230,18 @@ try {
         $PoseLibDir = Join-Path $BuildDir "install\poselib"
         $ColmapDir = Join-Path $BuildDir "install\colmap-for-glomap"
 
+        $VcpkgInstalledDir = Join-Path $BuildDir "vcpkg_installed"
+
         if ($UseNinja) {
             cmake "$GlomapSource" `
                 -G Ninja `
                 -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+                -DVCPKG_INSTALLED_DIR="$VcpkgInstalledDir" `
+                -DVCPKG_MANIFEST_MODE=OFF `
                 -DCMAKE_BUILD_TYPE="$Configuration" `
                 -DCMAKE_INSTALL_PREFIX="$GlomapInstallDir" `
                 -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir" `
+                -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
                 -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
                 -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
                 -DFETCH_COLMAP=OFF `
@@ -247,9 +252,12 @@ try {
         } else {
             cmake "$GlomapSource" `
                 -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+                -DVCPKG_INSTALLED_DIR="$VcpkgInstalledDir" `
+                -DVCPKG_MANIFEST_MODE=OFF `
                 -DCMAKE_BUILD_TYPE="$Configuration" `
                 -DCMAKE_INSTALL_PREFIX="$GlomapInstallDir" `
                 -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir" `
+                -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
                 -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
                 -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
                 -DFETCH_COLMAP=OFF `
