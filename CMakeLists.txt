@@ -310,6 +310,10 @@ if(BUILD_CERES)
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_arch.cmake
+        # Apply patch to handle ALIAS targets from vcpkg's SuiteSparse
+        COMMAND ${CMAKE_COMMAND}
+            -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_suitesparse.cmake
         CMAKE_ARGS ${CERES_CMAKE_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install

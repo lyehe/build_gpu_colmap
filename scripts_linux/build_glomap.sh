@@ -265,6 +265,9 @@ POSELIB_DIR="${PROJECT_ROOT}/build/install/poselib"
 COLMAP_DIR="${PROJECT_ROOT}/build/install/colmap-for-glomap"
 VCPKG_INSTALLED="${PROJECT_ROOT}/build/vcpkg_installed/x64-linux"
 
+# Pre-set SuiteSparse as found to prevent Ceres's FindSuiteSparse.cmake from conflicting
+# with vcpkg's ALIAS targets. GLOMAP doesn't use SuiteSparse directly - it's only used
+# transitively through Ceres and COLMAP which are already built.
 cmake "$GLOMAP_SOURCE" \
     -G "$CMAKE_GENERATOR" \
     -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
@@ -273,8 +276,9 @@ cmake "$GLOMAP_SOURCE" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_INSTALL_PREFIX="$GLOMAP_INSTALL_DIR" \
     -DCMAKE_PREFIX_PATH="${CERES_DIR};${POSELIB_DIR};${COLMAP_DIR};${VCPKG_INSTALLED}" \
-    -DCeres_DIR="${CERES_DIR}/lib/cmake/Ceres" \
+    -DCMAKE_FIND_PACKAGE_PREFER_CONFIG=ON \
     -DSuiteSparse_DIR="${VCPKG_INSTALLED}/share/suitesparse" \
+    -DCeres_DIR="${CERES_DIR}/lib/cmake/Ceres" \
     -DPoseLib_DIR="${POSELIB_DIR}/lib/cmake/PoseLib" \
     -DCOLMAP_DIR="${COLMAP_DIR}/lib/cmake/COLMAP" \
     -DFETCH_COLMAP=OFF \
