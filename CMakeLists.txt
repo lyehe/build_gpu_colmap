@@ -430,6 +430,14 @@ endif()
 if(BUILD_GLOMAP)
     message(STATUS "Configuring COLMAP for GLOMAP (v3.11 - commit 78f1eefa) as external project...")
 
+    # Determine vcpkg triplet for path hints (COLMAP 3.11's FindFLANN.cmake needs hints)
+    if(WIN32)
+        set(VCPKG_TRIPLET "x64-windows")
+    else()
+        set(VCPKG_TRIPLET "x64-linux")
+    endif()
+    set(VCPKG_INSTALLED_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TRIPLET}")
+
     ExternalProject_Add(colmap-for-glomap-external
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap"
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-g"
@@ -452,6 +460,8 @@ if(BUILD_GLOMAP)
             -DGUI_ENABLED=OFF
             -DCGAL_ENABLED=OFF
             -DTESTS_ENABLED=OFF
+            -DFLANN_INCLUDE_DIR_HINTS=${VCPKG_INSTALLED_PATH}/include
+            -DFLANN_LIBRARY_DIR_HINTS=${VCPKG_INSTALLED_PATH}/lib
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
