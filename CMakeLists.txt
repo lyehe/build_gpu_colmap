@@ -438,6 +438,9 @@ if(BUILD_GLOMAP)
     endif()
     set(VCPKG_INSTALLED_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TRIPLET}")
 
+    # Build CMAKE_PREFIX_PATH including both Ceres and vcpkg installed packages
+    set(COLMAP_G_PREFIX_PATH "${BASE_INSTALL_DIR}/ceres;${VCPKG_INSTALLED_PATH}")
+
     ExternalProject_Add(colmap-for-glomap-external
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap"
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-g"
@@ -454,7 +457,7 @@ if(BUILD_GLOMAP)
             -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-glomap
-            -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
+            -DCMAKE_PREFIX_PATH=${COLMAP_G_PREFIX_PATH}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
             -DGUI_ENABLED=OFF

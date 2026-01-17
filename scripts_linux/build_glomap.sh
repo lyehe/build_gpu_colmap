@@ -185,10 +185,11 @@ echo -e "${GREEN}Configuring CMake for GLOMAP...${NC}"
 cd "$BUILD_DIR"
 
 # Set vcpkg manifest features based on CUDA
+# Only pass VCPKG_MANIFEST_FEATURES when features are needed (empty value can cause issues)
 if [ "$CUDA_ENABLED" = "ON" ]; then
-    VCPKG_FEATURES="cuda"
+    VCPKG_FEATURES_ARG="-DVCPKG_MANIFEST_FEATURES=cuda"
 else
-    VCPKG_FEATURES=""
+    VCPKG_FEATURES_ARG=""
 fi
 
 cmake .. \
@@ -199,7 +200,7 @@ cmake .. \
     -DBUILD_CERES=ON \
     -DBUILD_COLMAP=OFF \
     -DBUILD_GLOMAP=ON \
-    -DVCPKG_MANIFEST_FEATURES="$VCPKG_FEATURES"
+    $VCPKG_FEATURES_ARG
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}CMake configuration failed${NC}"
