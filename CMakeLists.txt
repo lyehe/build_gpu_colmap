@@ -280,6 +280,13 @@ if(BUILD_CERES)
     # BUILD_TESTING=OFF to avoid linker issues with gklib in vcpkg METIS
     # Disable vcpkg manifest mode for ExternalProjects - they use the shared vcpkg_installed
     # directory where all dependencies have already been installed by the top-level CMake
+    # Determine vcpkg installed path for this platform
+    if(WIN32)
+        set(VCPKG_INSTALLED_TRIPLET_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-windows")
+    else()
+        set(VCPKG_INSTALLED_TRIPLET_DIR "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-linux")
+    endif()
+
     set(CERES_CMAKE_ARGS
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
         -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
@@ -289,6 +296,9 @@ if(BUILD_CERES)
         -DBUILD_TESTING=OFF
         -DBUILD_EXAMPLES=OFF
         -DBUILD_BENCHMARKS=OFF
+        # Use vcpkg's SuiteSparse config so Ceres links against the same targets as GLOMAP
+        -DSuiteSparse_DIR=${VCPKG_INSTALLED_TRIPLET_DIR}/share/suitesparse
+        -DMETIS_DIR=${VCPKG_INSTALLED_TRIPLET_DIR}/share/metis
     )
 
     # Add CUDA support if enabled
@@ -310,10 +320,6 @@ if(BUILD_CERES)
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_arch.cmake
-        # Apply patch to handle ALIAS targets from vcpkg's SuiteSparse
-        COMMAND ${CMAKE_COMMAND}
-            -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_suitesparse.cmake
         CMAKE_ARGS ${CERES_CMAKE_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
