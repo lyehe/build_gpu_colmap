@@ -7,6 +7,8 @@ on:
     paths:
       - 'CMakeLists.txt'
       - 'vcpkg.json'
+      - 'overlay-ports/**'
+      - 'cmake/**'
       - 'third_party/glomap/**'
       - 'third_party/colmap-for-glomap/**'
       - 'third_party/poselib/**'
