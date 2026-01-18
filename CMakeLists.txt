@@ -36,8 +36,9 @@ if(CUDA_ENABLED)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
     # Set CUDA architectures - use FORCE to override any cached values
-    # This ensures modern GPU architectures are always included
-    set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90;120" CACHE STRING "CUDA architectures" FORCE)
+    # Supports Turing (75), Ampere (80, 86), Ada Lovelace (89), Hopper (90)
+    # NOTE: Architecture 120 (Blackwell) requires CUDA 13+ and is excluded for CUDA 12.x compatibility
+    set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90" CACHE STRING "CUDA architectures" FORCE)
 
     # Determine CUDA major version for cuDSS compatibility
     # cuDSS libraries are organized by CUDA major version (11, 12, 13, etc.)
@@ -316,13 +317,9 @@ if(BUILD_CERES)
         BINARY_DIR "${CMAKE_BINARY_DIR}/ceres"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
-        # Apply patches using CMake scripts (robust, idempotent)
-        # 1. Add CUDA architecture 120 support
-        # 2. Patch FindSuiteSparse.cmake to handle vcpkg ALIAS targets
+        # Apply patch to handle vcpkg ALIAS targets in Ceres's FindSuiteSparse.cmake
+        # (CUDA architecture 120 patch removed - using consistent arch list 75;80;86;89;90)
         PATCH_COMMAND ${CMAKE_COMMAND}
-            -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_arch.cmake
-        COMMAND ${CMAKE_COMMAND}
             -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_suitesparse.cmake
         CMAKE_ARGS ${CERES_CMAKE_ARGS}
