@@ -149,6 +149,18 @@ Push-Location $BuildDir
 try {
     $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
 
+    # Find MSVC compiler (cl.exe) - required for Windows builds with Ninja
+    # This ensures we use MSVC instead of MinGW if both are in PATH
+    $ClCompiler = (Get-Command cl -ErrorAction SilentlyContinue).Source
+    if (-not $ClCompiler) {
+        Write-Host ""
+        Write-Host "WARNING: MSVC compiler (cl.exe) not found in PATH" -ForegroundColor Yellow
+        Write-Host "Ninja builds require MSVC. Please run from Visual Studio Developer Command Prompt" -ForegroundColor Yellow
+        Write-Host "Or install Visual Studio Build Tools and use 'Developer PowerShell for VS'" -ForegroundColor Yellow
+    } else {
+        Write-Host "Using MSVC compiler: $ClCompiler" -ForegroundColor Green
+    }
+
     # Build cmake args list
     $CmakeArgs = @(
         "..",
@@ -160,6 +172,12 @@ try {
         "-DBUILD_COLMAP=OFF",
         "-DBUILD_GLOMAP=ON"
     )
+
+    # Explicitly set compilers to MSVC if found (prevents MinGW from being used)
+    if ($ClCompiler) {
+        $CmakeArgs += "-DCMAKE_C_COMPILER=cl"
+        $CmakeArgs += "-DCMAKE_CXX_COMPILER=cl"
+    }
 
     # Only add VCPKG_MANIFEST_FEATURES when CUDA is enabled (empty value can cause issues)
     if ($CudaEnabled -eq "ON") {

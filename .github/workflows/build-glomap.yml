@@ -144,11 +144,23 @@ jobs:
           VCPKG_BINARY_SOURCES: 'clear;default,readwrite'
 
       # ==================== Build ====================
+      - name: Setup MSVC environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build GLOMAP (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Write-Host "Building GLOMAP with CUDA=${{ matrix.cuda }}"
+          # Verify MSVC is available
+          Write-Host "Checking for MSVC compiler..."
+          $clPath = (Get-Command cl -ErrorAction SilentlyContinue).Source
+          if ($clPath) {
+            Write-Host "  Found cl.exe at: $clPath"
+          } else {
+            Write-Host "  WARNING: cl.exe not found in PATH"
+          }
           if ("${{ matrix.cuda }}" -eq "true") {
             .\scripts_windows\build_glomap.ps1 -Configuration Release
           } else {

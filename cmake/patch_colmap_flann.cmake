@@ -21,12 +21,15 @@ if(CONTENT MATCHES "flann_cpp")
     return()
 endif()
 
+# First, normalize line endings to LF (handles both Windows CRLF and Unix LF)
+string(REPLACE "\r\n" "\n" CONTENT "${CONTENT}")
+string(REPLACE "\r" "\n" CONTENT "${CONTENT}")
+
 # Patch find_library to also search for flann_cpp (vcpkg names it this way)
+# vcpkg installs FLANN as flann_cpp or flann_cpp_s on some platforms
 string(REPLACE
-    "NAMES
-    flann"
-    "NAMES
-    flann flann_cpp flann_cpp_s"
+    "NAMES\n    flann"
+    "NAMES\n    flann flann_cpp flann_cpp_s"
     CONTENT "${CONTENT}")
 
 file(WRITE "${FIND_FLANN_FILE}" "${CONTENT}")
