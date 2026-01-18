@@ -484,6 +484,10 @@ if(BUILD_GLOMAP)
             -DFLANN_INCLUDE_DIR_HINTS=${VCPKG_INSTALLED_PATH}/include
             -DFLANN_LIBRARY_DIR_HINTS=${VCPKG_INSTALLED_PATH}/lib
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+            # Define glog version macros for COLMAP compatibility with vcpkg glog 0.7+
+            # vcpkg's glog doesn't define GLOG_VERSION_MAJOR in headers, causing COLMAP
+            # to use the wrong glog API
+            "-DCMAKE_CXX_FLAGS=-DGLOG_VERSION_MAJOR=0 -DGLOG_VERSION_MINOR=7"
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
         BUILD_ALWAYS OFF

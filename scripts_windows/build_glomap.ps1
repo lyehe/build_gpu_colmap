@@ -251,7 +251,8 @@ try {
                 -DFETCH_POSELIB=OFF `
                 -DCUDA_ENABLED="$CudaEnabled" `
                 -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" `
-                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
+                -DCMAKE_CXX_FLAGS="/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7"
         } else {
             cmake "$GlomapSource" `
                 -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
@@ -269,6 +270,7 @@ try {
                 -DCUDA_ENABLED="$CudaEnabled" `
                 -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" `
                 -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
+                -DCMAKE_CXX_FLAGS="/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7" `
                 -G "Visual Studio 17 2022" `
                 -A x64
         }
