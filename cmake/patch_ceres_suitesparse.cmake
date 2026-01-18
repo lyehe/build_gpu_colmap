@@ -53,11 +53,12 @@ endif (NOT SuiteSparse_NO_CMAKE)
 
 # VCPKG_ALIAS_PATCH: Detect vcpkg ALIAS targets and return early
 # vcpkg creates ALIAS targets that cannot have set_property called on them.
-if (NOT SuiteSparse_FOUND AND TARGET SuiteSparse::suitesparseconfig)
-  get_target_property(_ss_aliased SuiteSparse::suitesparseconfig ALIASED_TARGET)
+# Check for CHOLMOD which is commonly used and has the same target name in both Ceres and vcpkg.
+if (NOT SuiteSparse_FOUND AND TARGET SuiteSparse::CHOLMOD)
+  get_target_property(_ss_aliased SuiteSparse::CHOLMOD ALIASED_TARGET)
   if (_ss_aliased)
     set(SuiteSparse_FOUND TRUE)
-    message(STATUS \"SuiteSparse: Using vcpkg ALIAS targets\")
+    message(STATUS \"SuiteSparse: Using vcpkg ALIAS targets (detected via CHOLMOD)\")
   endif()
   unset(_ss_aliased)
 endif()
