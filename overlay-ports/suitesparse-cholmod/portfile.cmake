@@ -32,10 +32,11 @@ if(CHOLMOD_MATRIXOPS OR CHOLMOD_MODIFY OR CHOLMOD_SUPERNODAL OR CUDA_ENABLED)
     set(GPL_ENABLED ON)
 endif()
 
-# Fix for empty CUDA_ARCHITECTURES - use common architectures
+# Fix for empty CUDA_ARCHITECTURES - use common architectures supported by CUDA 12+
+# Avoids architecture 120 (Blackwell) which requires CUDA 13+
 if("cuda" IN_LIST FEATURES)
     if(NOT DEFINED CUDA_ARCHITECTURES OR CUDA_ARCHITECTURES STREQUAL "")
-        set(CUDA_ARCHITECTURES "75;80;86;89;90;120")  # Turing, Ampere, Ada, Hopper, Blackwell
+        set(CUDA_ARCHITECTURES "75;80;86;89;90")  # Turing, Ampere, Ada Lovelace, Hopper
     endif()
 endif()
 
@@ -59,11 +60,13 @@ vcpkg_cmake_install()
 # When CUDA is enabled, CHOLMOD builds SuiteSparse_GPURuntime which provides
 # the Workspace class needed by SPQR GPU kernels
 if("cuda" IN_LIST FEATURES)
-    vcpkg_cmake_config_fixup(
-        PACKAGE_NAME SuiteSparse_GPURuntime
-        CONFIG_PATH lib/cmake/SuiteSparse_GPURuntime
-        DO_NOT_DELETE_PARENT_CONFIG_PATH
-    )
+    if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/SuiteSparse_GPURuntime")
+        vcpkg_cmake_config_fixup(
+            PACKAGE_NAME SuiteSparse_GPURuntime
+            CONFIG_PATH lib/cmake/SuiteSparse_GPURuntime
+            DO_NOT_DELETE_PARENT_CONFIG_PATH
+        )
+    endif()
 endif()
 
 vcpkg_cmake_config_fixup(

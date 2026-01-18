@@ -24,10 +24,11 @@ vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
         cuda  SUITESPARSE_USE_CUDA
 )
 
-# Fix for empty CUDA_ARCHITECTURES - use common architectures or OFF for auto-detection
+# Fix for empty CUDA_ARCHITECTURES - use common architectures supported by CUDA 12+
+# Avoids architecture 120 (Blackwell) which requires CUDA 13+
 if("cuda" IN_LIST FEATURES)
     if(NOT CUDA_ARCHITECTURES)
-        set(CUDA_ARCHITECTURES "75;80;86;89;90;120")  # Turing, Ampere, Ada, Hopper, Blackwell
+        set(CUDA_ARCHITECTURES "75;80;86;89;90")  # Turing, Ampere, Ada Lovelace, Hopper
     endif()
 endif()
 
@@ -46,16 +47,20 @@ vcpkg_cmake_configure(
 vcpkg_cmake_install()
 
 if("cuda" IN_LIST FEATURES)
-    vcpkg_cmake_config_fixup(
-        PACKAGE_NAME SuiteSparse_GPURuntime
-        CONFIG_PATH lib/cmake/SuiteSparse_GPURuntime
-        DO_NOT_DELETE_PARENT_CONFIG_PATH
-    )
-    vcpkg_cmake_config_fixup(
-        PACKAGE_NAME GPUQREngine
-        CONFIG_PATH lib/cmake/GPUQREngine
-        DO_NOT_DELETE_PARENT_CONFIG_PATH
-    )
+    if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/SuiteSparse_GPURuntime")
+        vcpkg_cmake_config_fixup(
+            PACKAGE_NAME SuiteSparse_GPURuntime
+            CONFIG_PATH lib/cmake/SuiteSparse_GPURuntime
+            DO_NOT_DELETE_PARENT_CONFIG_PATH
+        )
+    endif()
+    if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/cmake/GPUQREngine")
+        vcpkg_cmake_config_fixup(
+            PACKAGE_NAME GPUQREngine
+            CONFIG_PATH lib/cmake/GPUQREngine
+            DO_NOT_DELETE_PARENT_CONFIG_PATH
+        )
+    endif()
 endif()
 vcpkg_cmake_config_fixup(
     PACKAGE_NAME ${PACKAGE_NAME}
