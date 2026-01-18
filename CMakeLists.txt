@@ -316,10 +316,15 @@ if(BUILD_CERES)
         BINARY_DIR "${CMAKE_BINARY_DIR}/ceres"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
-        # Apply patch to add CUDA architecture 120 support using CMake script (robust, idempotent)
+        # Apply patches using CMake scripts (robust, idempotent)
+        # 1. Add CUDA architecture 120 support
+        # 2. Patch FindSuiteSparse.cmake to handle vcpkg ALIAS targets
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_arch.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_suitesparse.cmake
         CMAKE_ARGS ${CERES_CMAKE_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
