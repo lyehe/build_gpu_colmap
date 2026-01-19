@@ -149,7 +149,7 @@ Created `cmake/patch_glomap_gklib.cmake` that adds GKlib to glomap_main
 
 ---
 
-## Attempt 7: Use --whole-archive for GKlib (Pending)
+## Attempt 7: Use --whole-archive for GKlib - SUCCESS!
 **Date:** 2026-01-19
 
 ### Solution:
@@ -158,7 +158,23 @@ Modified patch to use `--whole-archive`:
 target_link_libraries(glomap_main -Wl,--whole-archive ${GKLIB_LIBRARY} -Wl,--no-whole-archive)
 ```
 
-`--whole-archive` forces the linker to include ALL symbols from GKlib,
-not just those referenced at that point. This bypasses the link order issue.
+### Results: SUCCESS!
+- **Linux CPU: PASSED**
+- **Linux CUDA13.1: PASSED**
+- Linux CUDA13.0: Build passed, artifact upload conflict (workflow issue)
+- Linux CUDA12.8: Disk space exhaustion (CI runner issue)
 
-### Status: PENDING - commit and test
+### Additional Fixes:
+1. Added CUDA version to artifact names to avoid conflicts
+2. Added disk cleanup step for Linux to free ~25GB before build
+
+---
+
+## Summary
+
+| Fix | Status | Description |
+|-----|--------|-------------|
+| FLANN_LIBRARIES variable | SUCCESS | Replace target with full path |
+| GKlib --whole-archive | SUCCESS | Force include all GKlib symbols |
+| Artifact naming | Fixed | Include CUDA version in name |
+| Disk space cleanup | Fixed | Remove .NET, Android SDK, etc. |

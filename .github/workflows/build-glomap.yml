@@ -149,6 +149,20 @@ jobs:
         run: |
           choco install ninja -y
 
+      - name: Free disk space (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Remove unnecessary packages to free disk space
+          echo "Disk space before cleanup:"
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+          echo "Disk space after cleanup:"
+          df -h
+
       - name: Install build dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -223,7 +237,12 @@ jobs:
         id: artifact-name
         shell: bash
         run: |
-          CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
+          if [ "${{ matrix.cuda }}" = "true" ]; then
+            # Include CUDA version in artifact name to avoid conflicts
+            CUDA_SUFFIX="CUDA${{ matrix.cuda_version }}"
+          else
+            CUDA_SUFFIX="CPU"
+          fi
           echo "name=GLOMAP-${{ matrix.os }}-${CUDA_SUFFIX}" >> $GITHUB_OUTPUT
 
       - name: Upload GLOMAP artifacts
