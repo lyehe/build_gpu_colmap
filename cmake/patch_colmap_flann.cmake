@@ -44,25 +44,45 @@ unset(FLANN_INCLUDE_DIRS)
 unset(FLANN_LIBRARIES)
 
 # Helper function to extract library path from an imported target
+# On Windows with shared libraries, we need the import library (.lib), not the DLL
 function(_get_imported_library_path TARGET_NAME OUT_VAR)
     set(${OUT_VAR} "" PARENT_SCOPE)
     if(NOT TARGET ${TARGET_NAME})
         return()
     endif()
 
-    # Try to get the library location (check multiple properties)
-    get_target_property(_loc ${TARGET_NAME} IMPORTED_LOCATION_RELEASE)
+    set(_loc "")
+
+    # On Windows, prefer IMPORTED_IMPLIB (import library) over IMPORTED_LOCATION (DLL)
+    # because we need to link against the .lib, not the .dll
+    if(WIN32)
+        get_target_property(_loc ${TARGET_NAME} IMPORTED_IMPLIB_RELEASE)
+        if(NOT _loc)
+            get_target_property(_loc ${TARGET_NAME} IMPORTED_IMPLIB_RELWITHDEBINFO)
+        endif()
+        if(NOT _loc)
+            get_target_property(_loc ${TARGET_NAME} IMPORTED_IMPLIB)
+        endif()
+    endif()
+
+    # Fall back to IMPORTED_LOCATION (works for static libs and on non-Windows)
+    if(NOT _loc)
+        get_target_property(_loc ${TARGET_NAME} IMPORTED_LOCATION_RELEASE)
+    endif()
     if(NOT _loc)
         get_target_property(_loc ${TARGET_NAME} IMPORTED_LOCATION_RELWITHDEBINFO)
     endif()
     if(NOT _loc)
         get_target_property(_loc ${TARGET_NAME} IMPORTED_LOCATION)
     endif()
-    if(NOT _loc)
-        get_target_property(_loc ${TARGET_NAME} IMPORTED_IMPLIB_RELEASE)
-    endif()
-    if(NOT _loc)
-        get_target_property(_loc ${TARGET_NAME} IMPORTED_IMPLIB)
+
+    # On Windows, if we got a DLL path, try to find the corresponding import lib
+    if(_loc AND WIN32 AND _loc MATCHES "\\.dll$")
+        # Convert bin/foo.dll to lib/foo.lib
+        string(REGEX REPLACE "/bin/([^/]+)\\.dll$" "/lib/\\1.lib" _implib "${_loc}")
+        if(EXISTS "${_implib}")
+            set(_loc "${_implib}")
+        endif()
     endif()
 
     if(_loc)

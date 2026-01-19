@@ -213,6 +213,33 @@ Add `-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT` to CMAKE_CUDA_FLAGS for CUDA 13.x bui
 
 ---
 
+---
+
+## Attempt 9: Windows FLANN DLL vs Import Library Issue
+**Date:** 2026-01-19
+
+### Issue:
+Windows builds fail with:
+```
+flann_cpp.dll : fatal error LNK1107: invalid or corrupt file: cannot read at 0x2F0
+```
+
+### Root Cause Analysis:
+1. The FindFLANN.cmake patch extracts library path from vcpkg targets
+2. On Windows shared libs, `IMPORTED_LOCATION` returns the DLL path (`.dll`)
+3. But the linker needs the import library (`.lib`), not the DLL
+4. The DLL was being passed to the linker, causing LNK1107 error
+
+### Solution:
+Update `patch_colmap_flann.cmake` to:
+1. On Windows, prefer `IMPORTED_IMPLIB` over `IMPORTED_LOCATION`
+2. Add fallback: convert `bin/foo.dll` to `lib/foo.lib` path
+
+### Results: PENDING
+- Waiting for CI run to complete
+
+---
+
 ## Current CI Status
 
 ### Passing:
@@ -222,4 +249,4 @@ Add `-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT` to CMAKE_CUDA_FLAGS for CUDA 13.x bui
 - Linux CUDA13.1
 
 ### Failing:
-- Windows CUDA13.x: Thrust C++17 deprecation (fix in progress)
+- Windows: FLANN DLL linking issue (fix in progress)
