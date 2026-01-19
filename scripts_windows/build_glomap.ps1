@@ -292,6 +292,9 @@ try {
                 "-DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON",
                 "-DCMAKE_CXX_FLAGS=/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7"
             )
+            if ($CudaEnabled -eq "ON") {
+                $cmakeArgs += "-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared"
+            }
             if ($CudaStandard) {
                 $cmakeArgs += "-DCMAKE_CUDA_STANDARD=$CudaStandard"
             }
@@ -322,6 +325,9 @@ try {
                 "-G", "Visual Studio 17 2022",
                 "-A", "x64"
             )
+            if ($CudaEnabled -eq "ON") {
+                $cmakeArgs += "-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared"
+            }
             if ($CudaStandard) {
                 $cmakeArgs += "-DCMAKE_CUDA_STANDARD=$CudaStandard"
             }

@@ -64,6 +64,12 @@ if(CUDA_ENABLED)
         set(CUDA13_THRUST_FLAGS "")
     endif()
 
+    # Force consistent CUDA runtime linkage to avoid static/dynamic conflicts on Windows
+    # Without this, some components may link cudart_static.lib while others use cudart.lib
+    # causing duplicate symbol errors (LNK2005)
+    set(CMAKE_CUDA_RUNTIME_LIBRARY "Shared")
+    message(STATUS "Setting CMAKE_CUDA_RUNTIME_LIBRARY=Shared for consistent CUDA runtime linkage")
+
     message(STATUS "CUDA Toolkit Version: ${CUDAToolkit_VERSION}")
     message(STATUS "Looking for cuDSS for CUDA ${CUDSS_CUDA_VERSION}")
 
@@ -317,6 +323,8 @@ if(BUILD_CERES)
     # Add CUDA support if enabled
     if(CUDA_ENABLED)
         list(APPEND CERES_CMAKE_ARGS -DUSE_CUDA=default)
+        # Force shared CUDA runtime to avoid static/dynamic linkage conflicts
+        list(APPEND CERES_CMAKE_ARGS "-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared")
         # CUDA 13.x requires C++17 for CCCL headers
         if(CUDA13_CUDA_STANDARD)
             list(APPEND CERES_CMAKE_ARGS "-DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}")
@@ -405,6 +413,7 @@ if(BUILD_COLMAP)
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
@@ -444,6 +453,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
@@ -507,6 +517,7 @@ if(BUILD_GLOMAP)
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DCGAL_ENABLED=OFF

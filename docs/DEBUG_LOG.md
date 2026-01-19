@@ -266,6 +266,36 @@ Set `CMAKE_CUDA_STANDARD=17` for all CUDA 13.x builds in addition to the depreca
 2. `scripts_windows/build_glomap.ps1`: Add `$CudaStandard=17` and pass `-DCMAKE_CUDA_STANDARD`
 3. `scripts_linux/build_glomap.sh`: Add `CUDA_STANDARD=17` and pass `-DCMAKE_CUDA_STANDARD`
 
+### Results: PARTIAL SUCCESS
+- C++17 compilation fix worked (no more "qualified name is not allowed" error)
+- NEW ERROR: CUDA runtime linkage conflict (see Attempt 11)
+
+---
+
+## Attempt 11: Windows CUDA Runtime Linkage Conflict
+**Date:** 2026-01-19
+
+### Issue:
+All Windows CUDA builds fail with:
+```
+cudart_static.lib(cudart_cuda_runtime_api.obj) : error LNK2005: cudaGetExportTable already defined in cudart.lib(generated_cuda_runtime_api_loader.obj)
+LINK : fatal error LNK1149: output filename matches input filename 'glomap.lib'
+```
+
+### Root Cause Analysis:
+1. Both static (`cudart_static.lib`) and dynamic (`cudart.lib`) CUDA runtimes are being linked
+2. Some components link against static CUDA runtime
+3. Other components (likely from vcpkg) link against dynamic CUDA runtime
+4. When linking the final GLOMAP executable, both are pulled in, causing duplicate symbols
+
+### Solution:
+Force consistent CUDA runtime linkage by setting `CUDA_RUNTIME_LIBRARY=Shared` for all builds.
+
+### Changes:
+1. `CMakeLists.txt`: Set `CMAKE_CUDA_RUNTIME_LIBRARY=Shared` for all ExternalProject calls
+2. `scripts_windows/build_glomap.ps1`: Add `-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared` to GLOMAP cmake
+3. `scripts_linux/build_glomap.sh`: Add `-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared` to GLOMAP cmake
+
 ### Results: PENDING
 - Waiting for CI run to complete
 
@@ -281,4 +311,4 @@ Set `CMAKE_CUDA_STANDARD=17` for all CUDA 13.x builds in addition to the depreca
 - Windows CPU
 
 ### Failing:
-- Windows CUDA 12.8, 13.0, 13.1: CCCL C++17 syntax error (fix in progress)
+- Windows CUDA 12.8, 13.0, 13.1: CUDA runtime linkage conflict (fix in progress)
