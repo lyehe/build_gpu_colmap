@@ -52,12 +52,15 @@ if(CUDA_ENABLED)
         message(WARNING "CUDA version ${CUDAToolkit_VERSION} is older than 11.0 - cuDSS requires CUDA 11.0+")
     endif()
 
-    # CUDA 13.x Thrust requires C++17 - suppress deprecation warning
-    # CCCL_IGNORE_DEPRECATED_CPP_DIALECT suppresses "Thrust requires at least C++17" errors
+    # CUDA 13.x CCCL headers require C++17 (nested namespace syntax like "namespace cuda::std")
+    # 1. CMAKE_CUDA_STANDARD=17 enables C++17 for NVCC device code
+    # 2. CCCL_IGNORE_DEPRECATED_CPP_DIALECT suppresses the Thrust deprecation warning
     if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+        set(CUDA13_CUDA_STANDARD "17")
         set(CUDA13_THRUST_FLAGS "-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT")
-        message(STATUS "CUDA 13+ detected: Adding Thrust C++ dialect suppression flag")
+        message(STATUS "CUDA 13+ detected: Setting CMAKE_CUDA_STANDARD=17 and adding Thrust C++ dialect suppression flag")
     else()
+        set(CUDA13_CUDA_STANDARD "")
         set(CUDA13_THRUST_FLAGS "")
     endif()
 
@@ -314,7 +317,10 @@ if(BUILD_CERES)
     # Add CUDA support if enabled
     if(CUDA_ENABLED)
         list(APPEND CERES_CMAKE_ARGS -DUSE_CUDA=default)
-        # CUDA 13.x Thrust deprecation flag
+        # CUDA 13.x requires C++17 for CCCL headers
+        if(CUDA13_CUDA_STANDARD)
+            list(APPEND CERES_CMAKE_ARGS "-DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}")
+        endif()
         if(CUDA13_THRUST_FLAGS)
             list(APPEND CERES_CMAKE_ARGS "-DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}")
         endif()
@@ -398,6 +404,7 @@ if(BUILD_COLMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
@@ -436,6 +443,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
@@ -498,6 +506,7 @@ if(BUILD_GLOMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres|${VCPKG_INSTALLED_PATH}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DCGAL_ENABLED=OFF

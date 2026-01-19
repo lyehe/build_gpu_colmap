@@ -235,6 +235,37 @@ Update `patch_colmap_flann.cmake` to:
 1. On Windows, prefer `IMPORTED_IMPLIB` over `IMPORTED_LOCATION`
 2. Add fallback: convert `bin/foo.dll` to `lib/foo.lib` path
 
+### Results: PARTIAL SUCCESS
+- Windows FLANN import library fix worked (no more LNK1107 error)
+- Windows CPU: PASSED
+- Windows CUDA 13.x: NEW ERROR (see Attempt 10)
+
+---
+
+## Attempt 10: Windows CUDA 13.x C++17 Requirement
+**Date:** 2026-01-19
+
+### Issue:
+Windows CUDA 13.x builds fail with:
+```
+error: qualified name is not allowed
+   namespace cuda::std { inline namespace __4 {
+```
+
+### Root Cause Analysis:
+1. CUDA 13.x's CCCL (CUDA Core Compute Libraries) headers use C++17 nested namespace syntax
+2. The `namespace cuda::std {}` syntax requires C++17 support in NVCC
+3. Previously added `CCCL_IGNORE_DEPRECATED_CPP_DIALECT` only suppresses the deprecation warning
+4. The actual CCCL headers still need C++17 syntax support from the CUDA compiler
+
+### Solution:
+Set `CMAKE_CUDA_STANDARD=17` for all CUDA 13.x builds in addition to the deprecation flag.
+
+### Changes:
+1. `CMakeLists.txt`: Add `CUDA13_CUDA_STANDARD=17` variable and pass to all ExternalProject calls
+2. `scripts_windows/build_glomap.ps1`: Add `$CudaStandard=17` and pass `-DCMAKE_CUDA_STANDARD`
+3. `scripts_linux/build_glomap.sh`: Add `CUDA_STANDARD=17` and pass `-DCMAKE_CUDA_STANDARD`
+
 ### Results: PENDING
 - Waiting for CI run to complete
 
@@ -247,6 +278,7 @@ Update `patch_colmap_flann.cmake` to:
 - Linux CUDA12.8
 - Linux CUDA13.0
 - Linux CUDA13.1
+- Windows CPU
 
 ### Failing:
-- Windows: FLANN DLL linking issue (fix in progress)
+- Windows CUDA 12.8, 13.0, 13.1: CCCL C++17 syntax error (fix in progress)

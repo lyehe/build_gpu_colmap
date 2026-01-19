@@ -49,8 +49,9 @@ $BuildDir = Join-Path $ProjectRoot "build"
 $VcpkgRoot = Join-Path $ProjectRoot "third_party\vcpkg"
 $CudaEnabled = if ($NoCuda) { "OFF" } else { "ON" }
 
-# Detect CUDA version and set flags for CUDA 13+ Thrust compatibility
+# Detect CUDA version and set flags for CUDA 13+ (requires C++17 for CCCL headers)
 $CudaFlags = ""
+$CudaStandard = ""
 if (-not $NoCuda -and $env:CUDA_PATH) {
     $nvccPath = Join-Path $env:CUDA_PATH "bin\nvcc.exe"
     if (Test-Path $nvccPath) {
@@ -58,8 +59,9 @@ if (-not $NoCuda -and $env:CUDA_PATH) {
         if ($nvccOutput -match "release (\d+)\.") {
             $cudaMajorVersion = [int]$Matches[1]
             if ($cudaMajorVersion -ge 13) {
+                $CudaStandard = "17"
                 $CudaFlags = "-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT"
-                Write-Host "  CUDA $cudaMajorVersion detected: Adding Thrust C++ dialect suppression flag" -ForegroundColor Yellow
+                Write-Host "  CUDA $cudaMajorVersion detected: Setting CMAKE_CUDA_STANDARD=17 and adding Thrust C++ dialect suppression flag" -ForegroundColor Yellow
             }
         }
     }
@@ -290,6 +292,9 @@ try {
                 "-DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON",
                 "-DCMAKE_CXX_FLAGS=/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7"
             )
+            if ($CudaStandard) {
+                $cmakeArgs += "-DCMAKE_CUDA_STANDARD=$CudaStandard"
+            }
             if ($CudaFlags) {
                 $cmakeArgs += "-DCMAKE_CUDA_FLAGS=$CudaFlags"
             }
@@ -317,6 +322,9 @@ try {
                 "-G", "Visual Studio 17 2022",
                 "-A", "x64"
             )
+            if ($CudaStandard) {
+                $cmakeArgs += "-DCMAKE_CUDA_STANDARD=$CudaStandard"
+            }
             if ($CudaFlags) {
                 $cmakeArgs += "-DCMAKE_CUDA_FLAGS=$CudaFlags"
             }
