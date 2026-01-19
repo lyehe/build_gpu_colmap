@@ -32,10 +32,6 @@
                                                        {
                                                            "name":  "cuda",
                                                            "platform":  "windows | linux"
-                                                       },
-                                                       {
-                                                           "name": "suitesparse",
-                                                           "features": ["cuda"]
                                                        }
                                                    ]
                               },
