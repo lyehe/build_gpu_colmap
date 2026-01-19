@@ -87,14 +87,51 @@ jobs:
         shell: bash
 
       # ==================== CUDA Setup ====================
+      # Note: CUDA 13.x network installer on Windows may be incomplete
+      # Using 'local' method for more complete installation
       - name: Install CUDA Toolkit (Windows)
         if: matrix.cuda && runner.os == 'Windows'
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
           cuda: ${{ matrix.cuda_version }}
-          method: 'network'
-          sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          method: 'local'
           log-file-suffix: '-${{ matrix.name }}.log'
+
+      - name: Verify CUDA Installation (Windows)
+        if: matrix.cuda && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "CUDA_PATH: $env:CUDA_PATH"
+          Write-Host "Checking for required CUDA headers..."
+          $cudaInclude = "$env:CUDA_PATH\include"
+          $requiredHeaders = @(
+            "cuda_runtime.h",
+            "crt/host_config.h",
+            "cuda.h"
+          )
+          $missing = @()
+          foreach ($header in $requiredHeaders) {
+            $path = Join-Path $cudaInclude $header
+            if (Test-Path $path) {
+              Write-Host "  [OK] $header"
+            } else {
+              Write-Host "  [MISSING] $header"
+              $missing += $header
+            }
+          }
+          if ($missing.Count -gt 0) {
+            Write-Host ""
+            Write-Host "ERROR: Missing CUDA headers detected!"
+            Write-Host "This may indicate an incomplete CUDA Toolkit installation."
+            Write-Host "CUDA version: ${{ matrix.cuda_version }}"
+            # List what's actually in the include directory
+            Write-Host ""
+            Write-Host "Contents of $cudaInclude (first 20 items):"
+            Get-ChildItem $cudaInclude -ErrorAction SilentlyContinue | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" }
+            exit 1
+          }
+          Write-Host ""
+          Write-Host "CUDA installation verified successfully."
 
       - name: Install CUDA Toolkit (Linux)
         if: matrix.cuda && runner.os == 'Linux'

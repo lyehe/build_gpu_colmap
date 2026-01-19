@@ -70,4 +70,38 @@ vcpkg_fixup_pkgconfig()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
 
+# When CUDA is enabled, SPQR requires GPUQREngine and SuiteSparse_GPURuntime at link time
+# Modify the SPQR CMake config to automatically find and link these dependencies
+if("cuda" IN_LIST FEATURES)
+    set(SPQR_CONFIG_FILE "${CURRENT_PACKAGES_DIR}/share/${PACKAGE_NAME}/${PACKAGE_NAME}Config.cmake")
+    if(EXISTS "${SPQR_CONFIG_FILE}")
+        file(READ "${SPQR_CONFIG_FILE}" SPQR_CONFIG_CONTENT)
+
+        # Check if already patched
+        if(NOT SPQR_CONFIG_CONTENT MATCHES "GPUQREngine")
+            # Add GPU dependency discovery after the existing content
+            string(APPEND SPQR_CONFIG_CONTENT "
+# CUDA GPU support - SPQR GPU kernels require GPUQREngine and SuiteSparse_GPURuntime
+# These libraries provide the Workspace class and GPU QR factorization kernels
+find_package(SuiteSparse_GPURuntime CONFIG QUIET)
+find_package(GPUQREngine CONFIG QUIET)
+
+# Add GPU libraries to SPQR target if available
+if(TARGET SPQR::SPQR)
+    if(TARGET SuiteSparse_GPURuntime::SuiteSparse_GPURuntime)
+        set_property(TARGET SPQR::SPQR APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES SuiteSparse_GPURuntime::SuiteSparse_GPURuntime)
+    endif()
+    if(TARGET GPUQREngine::GPUQREngine)
+        set_property(TARGET SPQR::SPQR APPEND PROPERTY
+            INTERFACE_LINK_LIBRARIES GPUQREngine::GPUQREngine)
+    endif()
+endif()
+")
+            file(WRITE "${SPQR_CONFIG_FILE}" "${SPQR_CONFIG_CONTENT}")
+            message(STATUS "Patched SPQRConfig.cmake to include GPU runtime dependencies")
+        endif()
+    endif()
+endif()
+
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/${PACKAGE_NAME}/Doc/License.txt")
