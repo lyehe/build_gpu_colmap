@@ -254,6 +254,12 @@ if [ ! -d "$GLOMAP_BUILD_DIR" ]; then
     mkdir -p "$GLOMAP_BUILD_DIR"
 fi
 
+# Patch GLOMAP to add GKlib (fixes METIS linking)
+echo -e "${CYAN}  Applying GLOMAP patches...${NC}"
+cmake -DGLOMAP_SOURCE_DIR="${PROJECT_ROOT}/third_party/glomap" \
+      -DVCPKG_INSTALLED_PATH="${PROJECT_ROOT}/build/vcpkg_installed/x64-linux" \
+      -P "${PROJECT_ROOT}/cmake/patch_glomap_gklib.cmake"
+
 # Configure GLOMAP separately now that dependencies are installed
 echo -e "${CYAN}  Configuring GLOMAP...${NC}"
 cd "$GLOMAP_BUILD_DIR"
@@ -287,8 +293,7 @@ cmake "$GLOMAP_SOURCE" \
     -DCUDA_ENABLED="$CUDA_ENABLED" \
     -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" \
     -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON \
-    -DCMAKE_CXX_FLAGS="-DGLOG_VERSION_MAJOR=0 -DGLOG_VERSION_MINOR=7" \
-    -DCMAKE_EXE_LINKER_FLAGS="-L${VCPKG_INSTALLED}/lib -lGKlib"
+    -DCMAKE_CXX_FLAGS="-DGLOG_VERSION_MAJOR=0 -DGLOG_VERSION_MINOR=7"
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}GLOMAP configuration failed${NC}"

@@ -123,18 +123,28 @@ The `${FLANN_LIBRARIES}` variable contains the full library path set by FindFLAN
 
 ---
 
-## Attempt 5: Fix METIS/GKlib linking (Pending)
+## Attempt 5: Fix METIS/GKlib linking - CMAKE_EXE_LINKER_FLAGS
 **Date:** 2026-01-19
 
-### Analysis:
-Need to ensure GKlib is linked after ALL occurrences of METIS.
+### Solution attempted:
+Add `-lGKlib` to CMAKE_EXE_LINKER_FLAGS
+
+### Result: FAILED
+- The flag was added but at the BEGINNING of the linker command
+- CMake puts CMAKE_EXE_LINKER_FLAGS before object files
+- GKlib symbols not resolved because METIS comes after in link order
+
+---
+
+## Attempt 6: Patch GLOMAP to add GKlib to target_link_libraries (Pending)
+**Date:** 2026-01-19
 
 ### Solution:
-Add `-lGKlib` to CMAKE_EXE_LINKER_FLAGS in build_glomap.sh:
-```bash
--DCMAKE_EXE_LINKER_FLAGS="-L${VCPKG_INSTALLED}/lib -lGKlib"
-```
+Created `cmake/patch_glomap_gklib.cmake` that:
+1. Patches GLOMAP's glomap/CMakeLists.txt
+2. Adds `find_library(GKLIB_LIBRARY...)` after glomap_main definition
+3. Adds `target_link_libraries(glomap_main ${GKLIB_LIBRARY})` at the end
 
-This ensures GKlib is linked at the end, resolving undefined references.
+This ensures GKlib is linked AFTER glomap (and its transitive deps).
 
 ### Status: PENDING - commit and test
