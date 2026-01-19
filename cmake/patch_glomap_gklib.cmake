@@ -29,18 +29,25 @@ if(CONTENT MATCHES "GKlib.*METIS fix")
     return()
 endif()
 
-# Add GKlib to glomap_main after the existing target_link_libraries
-# Pattern: target_link_libraries(glomap_main glomap)
+# Add GKlib with --whole-archive to force all symbols to be included
+# This resolves the circular dependency with METIS regardless of link order
 string(REPLACE
     "target_link_libraries(glomap_main glomap)"
     "target_link_libraries(glomap_main glomap)
 
-# GKlib - METIS fix: Add GKlib explicitly to resolve circular dependency
-# METIS depends on GKlib, but vcpkg's transitive dependency isn't properly ordered
+# GKlib - METIS fix: Use --whole-archive to include all GKlib symbols
+# METIS depends on GKlib, but static linking with circular deps needs all symbols
 find_library(GKLIB_LIBRARY NAMES GKlib gklib PATHS \${CMAKE_PREFIX_PATH} PATH_SUFFIXES lib NO_DEFAULT_PATH)
 if(GKLIB_LIBRARY)
-    target_link_libraries(glomap_main \${GKLIB_LIBRARY})
-    message(STATUS \"Added GKlib to glomap_main: \${GKLIB_LIBRARY}\")
+    if(CMAKE_SYSTEM_NAME STREQUAL \"Linux\")
+        # Linux: use --whole-archive to include all GKlib symbols
+        target_link_libraries(glomap_main -Wl,--whole-archive \${GKLIB_LIBRARY} -Wl,--no-whole-archive)
+        message(STATUS \"Added GKlib with --whole-archive to glomap_main\")
+    else()
+        # Other platforms: just add GKlib
+        target_link_libraries(glomap_main \${GKLIB_LIBRARY})
+        message(STATUS \"Added GKlib to glomap_main: \${GKLIB_LIBRARY}\")
+    endif()
 endif()"
     CONTENT "${CONTENT}")
 

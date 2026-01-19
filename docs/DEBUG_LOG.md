@@ -136,15 +136,29 @@ Add `-lGKlib` to CMAKE_EXE_LINKER_FLAGS
 
 ---
 
-## Attempt 6: Patch GLOMAP to add GKlib to target_link_libraries (Pending)
+## Attempt 6: Patch GLOMAP to add GKlib to target_link_libraries
 **Date:** 2026-01-19
 
 ### Solution:
-Created `cmake/patch_glomap_gklib.cmake` that:
-1. Patches GLOMAP's glomap/CMakeLists.txt
-2. Adds `find_library(GKLIB_LIBRARY...)` after glomap_main definition
-3. Adds `target_link_libraries(glomap_main ${GKLIB_LIBRARY})` at the end
+Created `cmake/patch_glomap_gklib.cmake` that adds GKlib to glomap_main
 
-This ensures GKlib is linked AFTER glomap (and its transitive deps).
+### Result: FAILED
+- GKlib was added but still in wrong position
+- CMake adds libraries in order they're specified, but transitive deps still come after
+- GKlib needs to be linked BEFORE METIS in the resolve order
+
+---
+
+## Attempt 7: Use --whole-archive for GKlib (Pending)
+**Date:** 2026-01-19
+
+### Solution:
+Modified patch to use `--whole-archive`:
+```cmake
+target_link_libraries(glomap_main -Wl,--whole-archive ${GKLIB_LIBRARY} -Wl,--no-whole-archive)
+```
+
+`--whole-archive` forces the linker to include ALL symbols from GKlib,
+not just those referenced at that point. This bypasses the link order issue.
 
 ### Status: PENDING - commit and test
