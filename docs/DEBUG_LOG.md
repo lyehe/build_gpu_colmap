@@ -296,19 +296,34 @@ Force consistent CUDA runtime linkage by setting `CUDA_RUNTIME_LIBRARY=Shared` f
 2. `scripts_windows/build_glomap.ps1`: Add `-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared` to GLOMAP cmake
 3. `scripts_linux/build_glomap.sh`: Add `-DCMAKE_CUDA_RUNTIME_LIBRARY=Shared` to GLOMAP cmake
 
-### Results: PENDING
-- Waiting for CI run to complete
+### Results: SUCCESS!
+- All Windows CUDA builds now pass
+- CI run 21150696323: All 8 jobs passed
 
 ---
 
-## Current CI Status
+## Current CI Status - ALL PASSING
 
-### Passing:
-- Linux CPU
-- Linux CUDA12.8
-- Linux CUDA13.0
-- Linux CUDA13.1
-- Windows CPU
+### Linux:
+- Linux CPU: PASSED (11m23s)
+- Linux CUDA12.8: PASSED (15m40s)
+- Linux CUDA13.0: PASSED (16m10s)
+- Linux CUDA13.1: PASSED (17m58s)
 
-### Failing:
-- Windows CUDA 12.8, 13.0, 13.1: CUDA runtime linkage conflict (fix in progress)
+### Windows:
+- Windows CPU: PASSED (1h26m49s)
+- Windows CUDA12.8: PASSED (1h39m1s)
+- Windows CUDA13.0: PASSED (1h37m3s)
+- Windows CUDA13.1: PASSED (1h43m45s)
+
+---
+
+## Summary of Fixes Applied
+
+| Fix | Issue | Solution |
+|-----|-------|----------|
+| FLANN_LIBRARIES variable | `-lflann` linker error | Replace target name with full library path |
+| GKlib --whole-archive | METIS/GKlib linking order | Force include all GKlib symbols |
+| CMAKE_CUDA_STANDARD=17 | CUDA 13.x CCCL C++17 syntax | Enable C++17 for NVCC device code |
+| CMAKE_CUDA_RUNTIME_LIBRARY=Shared | cudart static/dynamic conflict | Force consistent shared CUDA runtime |
+| FLANN import library | Windows DLL vs .lib | Prefer IMPORTED_IMPLIB on Windows |
