@@ -103,4 +103,38 @@ But when COLMAP exports targets via `install(EXPORT ...)`, the `flann` target re
 Using a CMake variable instead of a target avoids the export serialization issue.
 The `${FLANN_LIBRARIES}` variable contains the full library path set by FindFLANN.cmake.
 
+### Results: PARTIAL SUCCESS
+- **FIXED**: The `-lflann` error is gone
+- **NEW ERROR**: METIS/GKlib linking order issue
+
+### New Error:
+```
+/usr/bin/ld: libmetis.a(ometis.c.o): undefined reference to `gk_CPUSeconds'
+/usr/bin/ld: libmetis.a(ometis.c.o): undefined reference to `gk_malloc'
+/usr/bin/ld: libmetis.a(ometis.c.o): undefined reference to `gk_sigtrap'
+```
+
+### Root Cause:
+1. METIS depends on GKlib
+2. Linker command has `libmetis.a` appearing twice
+3. First occurrence: `libmetis.a libGKlib.a` (correct)
+4. Second occurrence (from SuiteSparse/CHOLMOD): `libmetis.a libcholmod.a` (missing GKlib)
+5. The second occurrence causes undefined reference errors
+
+---
+
+## Attempt 5: Fix METIS/GKlib linking (Pending)
+**Date:** 2026-01-19
+
+### Analysis:
+Need to ensure GKlib is linked after ALL occurrences of METIS.
+
+### Solution:
+Add `-lGKlib` to CMAKE_EXE_LINKER_FLAGS in build_glomap.sh:
+```bash
+-DCMAKE_EXE_LINKER_FLAGS="-L${VCPKG_INSTALLED}/lib -lGKlib"
+```
+
+This ensures GKlib is linked at the end, resolving undefined references.
+
 ### Status: PENDING - commit and test
