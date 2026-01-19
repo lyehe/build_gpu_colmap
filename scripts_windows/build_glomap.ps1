@@ -49,6 +49,22 @@ $BuildDir = Join-Path $ProjectRoot "build"
 $VcpkgRoot = Join-Path $ProjectRoot "third_party\vcpkg"
 $CudaEnabled = if ($NoCuda) { "OFF" } else { "ON" }
 
+# Detect CUDA version and set flags for CUDA 13+ Thrust compatibility
+$CudaFlags = ""
+if (-not $NoCuda -and $env:CUDA_PATH) {
+    $nvccPath = Join-Path $env:CUDA_PATH "bin\nvcc.exe"
+    if (Test-Path $nvccPath) {
+        $nvccOutput = & $nvccPath --version 2>&1 | Out-String
+        if ($nvccOutput -match "release (\d+)\.") {
+            $cudaMajorVersion = [int]$Matches[1]
+            if ($cudaMajorVersion -ge 13) {
+                $CudaFlags = "-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT"
+                Write-Host "  CUDA $cudaMajorVersion detected: Adding Thrust C++ dialect suppression flag" -ForegroundColor Yellow
+            }
+        }
+    }
+}
+
 # Calculate optimal job count (75% of cores)
 $CpuCores = [int]$env:NUMBER_OF_PROCESSORS
 $OptimalJobs = [int][Math]::Max(1, [Math]::Floor($CpuCores * 0.75))
@@ -253,46 +269,58 @@ try {
         $SuiteSparseDir = Join-Path $VcpkgInstalledTriplet "share\suitesparse"
 
         if ($UseNinja) {
-            cmake "$GlomapSource" `
-                -G Ninja `
-                -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
-                -DVCPKG_INSTALLED_DIR="$VcpkgInstalledDir" `
-                -DVCPKG_MANIFEST_MODE=OFF `
-                -DCMAKE_BUILD_TYPE="$Configuration" `
-                -DCMAKE_INSTALL_PREFIX="$GlomapInstallDir" `
-                -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet" `
-                -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
-                -DSuiteSparse_DIR="$SuiteSparseDir" `
-                -Dflann_DIR="$VcpkgInstalledTriplet\share\flann" `
-                -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
-                -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
-                -DFETCH_COLMAP=OFF `
-                -DFETCH_POSELIB=OFF `
-                -DCUDA_ENABLED="$CudaEnabled" `
-                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" `
-                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
-                -DCMAKE_CXX_FLAGS="/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7"
+            $cmakeArgs = @(
+                "$GlomapSource",
+                "-G", "Ninja",
+                "-DCMAKE_TOOLCHAIN_FILE=$VcpkgToolchain",
+                "-DVCPKG_INSTALLED_DIR=$VcpkgInstalledDir",
+                "-DVCPKG_MANIFEST_MODE=OFF",
+                "-DCMAKE_BUILD_TYPE=$Configuration",
+                "-DCMAKE_INSTALL_PREFIX=$GlomapInstallDir",
+                "-DCMAKE_PREFIX_PATH=$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet",
+                "-DCeres_DIR=$CeresDir\lib\cmake\Ceres",
+                "-DSuiteSparse_DIR=$SuiteSparseDir",
+                "-Dflann_DIR=$VcpkgInstalledTriplet\share\flann",
+                "-DPoseLib_DIR=$PoseLibDir\lib\cmake\PoseLib",
+                "-DCOLMAP_DIR=$ColmapDir\lib\cmake\COLMAP",
+                "-DFETCH_COLMAP=OFF",
+                "-DFETCH_POSELIB=OFF",
+                "-DCUDA_ENABLED=$CudaEnabled",
+                "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90",
+                "-DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON",
+                "-DCMAKE_CXX_FLAGS=/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7"
+            )
+            if ($CudaFlags) {
+                $cmakeArgs += "-DCMAKE_CUDA_FLAGS=$CudaFlags"
+            }
+            cmake @cmakeArgs
         } else {
-            cmake "$GlomapSource" `
-                -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
-                -DVCPKG_INSTALLED_DIR="$VcpkgInstalledDir" `
-                -DVCPKG_MANIFEST_MODE=OFF `
-                -DCMAKE_BUILD_TYPE="$Configuration" `
-                -DCMAKE_INSTALL_PREFIX="$GlomapInstallDir" `
-                -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet" `
-                -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
-                -DSuiteSparse_DIR="$SuiteSparseDir" `
-                -Dflann_DIR="$VcpkgInstalledTriplet\share\flann" `
-                -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
-                -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
-                -DFETCH_COLMAP=OFF `
-                -DFETCH_POSELIB=OFF `
-                -DCUDA_ENABLED="$CudaEnabled" `
-                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" `
-                -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
-                -DCMAKE_CXX_FLAGS="/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7" `
-                -G "Visual Studio 17 2022" `
-                -A x64
+            $cmakeArgs = @(
+                "$GlomapSource",
+                "-DCMAKE_TOOLCHAIN_FILE=$VcpkgToolchain",
+                "-DVCPKG_INSTALLED_DIR=$VcpkgInstalledDir",
+                "-DVCPKG_MANIFEST_MODE=OFF",
+                "-DCMAKE_BUILD_TYPE=$Configuration",
+                "-DCMAKE_INSTALL_PREFIX=$GlomapInstallDir",
+                "-DCMAKE_PREFIX_PATH=$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet",
+                "-DCeres_DIR=$CeresDir\lib\cmake\Ceres",
+                "-DSuiteSparse_DIR=$SuiteSparseDir",
+                "-Dflann_DIR=$VcpkgInstalledTriplet\share\flann",
+                "-DPoseLib_DIR=$PoseLibDir\lib\cmake\PoseLib",
+                "-DCOLMAP_DIR=$ColmapDir\lib\cmake\COLMAP",
+                "-DFETCH_COLMAP=OFF",
+                "-DFETCH_POSELIB=OFF",
+                "-DCUDA_ENABLED=$CudaEnabled",
+                "-DCMAKE_CUDA_ARCHITECTURES=75;80;86;89;90",
+                "-DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON",
+                "-DCMAKE_CXX_FLAGS=/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7",
+                "-G", "Visual Studio 17 2022",
+                "-A", "x64"
+            )
+            if ($CudaFlags) {
+                $cmakeArgs += "-DCMAKE_CUDA_FLAGS=$CudaFlags"
+            }
+            cmake @cmakeArgs
         }
 
         if ($LASTEXITCODE -ne 0) {

@@ -170,6 +170,37 @@ target_link_libraries(glomap_main -Wl,--whole-archive ${GKLIB_LIBRARY} -Wl,--no-
 
 ---
 
+---
+
+## Attempt 8: CUDA 13.x Thrust C++17 Compatibility
+**Date:** 2026-01-19
+
+### Issue:
+Windows CUDA 13.x builds fail with:
+```
+Thrust requires at least C++17. Define CCCL_IGNORE_DEPRECATED_CPP_DIALECT to suppress this message.
+```
+
+### Root Cause Analysis:
+1. CUDA 13.x's Thrust library requires C++17 minimum
+2. COLMAP-for-GLOMAP has `CMAKE_CUDA_STANDARD 14` hardcoded
+3. GLOMAP doesn't explicitly set `CMAKE_CUDA_STANDARD`
+4. The Thrust deprecation warning becomes a fatal error
+
+### Solution:
+Add `-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT` to CMAKE_CUDA_FLAGS for CUDA 13.x builds.
+
+### Changes:
+1. `CMakeLists.txt`: Add CUDA13_THRUST_FLAGS variable after CUDA version detection
+2. `CMakeLists.txt`: Pass CMAKE_CUDA_FLAGS to all ExternalProject calls (Ceres, COLMAP, COLMAP-for-GLOMAP)
+3. `scripts_windows/build_glomap.ps1`: Detect CUDA version and add flag for GLOMAP build
+4. `scripts_linux/build_glomap.sh`: Detect CUDA version and add flag for GLOMAP build
+
+### Results: PENDING
+- Waiting for CI run to complete
+
+---
+
 ## Summary
 
 | Fix | Status | Description |
@@ -178,3 +209,17 @@ target_link_libraries(glomap_main -Wl,--whole-archive ${GKLIB_LIBRARY} -Wl,--no-
 | GKlib --whole-archive | SUCCESS | Force include all GKlib symbols |
 | Artifact naming | Fixed | Include CUDA version in name |
 | Disk space cleanup | Fixed | Remove .NET, Android SDK, etc. |
+| CUDA 13.x Thrust C++17 | PENDING | Add CCCL_IGNORE_DEPRECATED_CPP_DIALECT flag |
+
+---
+
+## Current CI Status
+
+### Passing:
+- Linux CPU
+- Linux CUDA12.8
+- Linux CUDA13.0
+- Linux CUDA13.1
+
+### Failing:
+- Windows CUDA13.x: Thrust C++17 deprecation (fix in progress)

@@ -52,6 +52,15 @@ if(CUDA_ENABLED)
         message(WARNING "CUDA version ${CUDAToolkit_VERSION} is older than 11.0 - cuDSS requires CUDA 11.0+")
     endif()
 
+    # CUDA 13.x Thrust requires C++17 - suppress deprecation warning
+    # CCCL_IGNORE_DEPRECATED_CPP_DIALECT suppresses "Thrust requires at least C++17" errors
+    if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+        set(CUDA13_THRUST_FLAGS "-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT")
+        message(STATUS "CUDA 13+ detected: Adding Thrust C++ dialect suppression flag")
+    else()
+        set(CUDA13_THRUST_FLAGS "")
+    endif()
+
     message(STATUS "CUDA Toolkit Version: ${CUDAToolkit_VERSION}")
     message(STATUS "Looking for cuDSS for CUDA ${CUDSS_CUDA_VERSION}")
 
@@ -305,6 +314,10 @@ if(BUILD_CERES)
     # Add CUDA support if enabled
     if(CUDA_ENABLED)
         list(APPEND CERES_CMAKE_ARGS -DUSE_CUDA=default)
+        # CUDA 13.x Thrust deprecation flag
+        if(CUDA13_THRUST_FLAGS)
+            list(APPEND CERES_CMAKE_ARGS "-DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}")
+        endif()
     endif()
 
     # Add cuDSS configuration if found
@@ -385,6 +398,7 @@ if(BUILD_COLMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
@@ -422,6 +436,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
             -DCGAL_ENABLED=ON
@@ -483,6 +498,7 @@ if(BUILD_GLOMAP)
             -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres|${VCPKG_INSTALLED_PATH}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=OFF
             -DCGAL_ENABLED=OFF
             -DTESTS_ENABLED=OFF

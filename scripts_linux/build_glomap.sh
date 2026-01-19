@@ -87,6 +87,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Detect CUDA version and set flags for CUDA 13+ Thrust compatibility
+CUDA_FLAGS=""
+if [ "$CUDA_ENABLED" = "ON" ]; then
+    if command -v nvcc &> /dev/null; then
+        CUDA_VERSION=$(nvcc --version | grep -oP 'release \K[0-9]+' | head -1)
+        if [ -n "$CUDA_VERSION" ] && [ "$CUDA_VERSION" -ge 13 ]; then
+            CUDA_FLAGS="-DCCCL_IGNORE_DEPRECATED_CPP_DIALECT"
+            echo -e "${YELLOW}CUDA $CUDA_VERSION detected: Adding Thrust C++ dialect suppression flag${NC}"
+        fi
+    fi
+fi
+
 # Helper function to initialize submodules if not already done
 initialize_submodule() {
     local submodule_path=$1
@@ -292,6 +304,7 @@ cmake "$GLOMAP_SOURCE" \
     -DFETCH_POSELIB=OFF \
     -DCUDA_ENABLED="$CUDA_ENABLED" \
     -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" \
+    ${CUDA_FLAGS:+-DCMAKE_CUDA_FLAGS="$CUDA_FLAGS"} \
     -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON \
     -DCMAKE_CXX_FLAGS="-DGLOG_VERSION_MAJOR=0 -DGLOG_VERSION_MINOR=7"
 
