@@ -263,12 +263,13 @@ try {
                 -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet" `
                 -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
                 -DSuiteSparse_DIR="$SuiteSparseDir" `
+                -Dflann_DIR="$VcpkgInstalledTriplet\share\flann" `
                 -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
                 -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
                 -DFETCH_COLMAP=OFF `
                 -DFETCH_POSELIB=OFF `
                 -DCUDA_ENABLED="$CudaEnabled" `
-                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" `
+                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" `
                 -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
                 -DCMAKE_CXX_FLAGS="/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7"
         } else {
@@ -281,12 +282,13 @@ try {
                 -DCMAKE_PREFIX_PATH="$CeresDir;$PoseLibDir;$ColmapDir;$VcpkgInstalledTriplet" `
                 -DCeres_DIR="$CeresDir\lib\cmake\Ceres" `
                 -DSuiteSparse_DIR="$SuiteSparseDir" `
+                -Dflann_DIR="$VcpkgInstalledTriplet\share\flann" `
                 -DPoseLib_DIR="$PoseLibDir\lib\cmake\PoseLib" `
                 -DCOLMAP_DIR="$ColmapDir\lib\cmake\COLMAP" `
                 -DFETCH_COLMAP=OFF `
                 -DFETCH_POSELIB=OFF `
                 -DCUDA_ENABLED="$CudaEnabled" `
-                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" `
+                -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" `
                 -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON `
                 -DCMAKE_CXX_FLAGS="/DGLOG_VERSION_MAJOR=0 /DGLOG_VERSION_MINOR=7" `
                 -G "Visual Studio 17 2022" `

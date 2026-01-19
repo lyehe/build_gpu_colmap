@@ -455,14 +455,19 @@ if(BUILD_GLOMAP)
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-g"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
-        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
-        # and patch FindFLANN.cmake to search for flann_cpp (vcpkg naming)
+        # Patch COLMAP for vcpkg compatibility:
+        # 1. Set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
+        # 2. Replace FindFLANN.cmake with vcpkg-compatible version
+        # 3. Fix colmap-config.cmake.in to load dependencies before targets
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_flann.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_config.cmake
         # Use LIST_SEPARATOR to handle semicolons in CMAKE_PREFIX_PATH correctly
         LIST_SEPARATOR |
         CMAKE_ARGS
