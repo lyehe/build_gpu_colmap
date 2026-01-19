@@ -467,6 +467,9 @@ if(BUILD_GLOMAP)
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_flann.cmake
         COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_flann_link.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_config.cmake
         # Use LIST_SEPARATOR to handle semicolons in CMAKE_PREFIX_PATH correctly
         LIST_SEPARATOR |
