@@ -191,9 +191,10 @@ jobs:
           $vcpkgToolchain = "${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake".Replace('\', '/')
           $vcpkgInstalled = "${{ github.workspace }}/build/vcpkg_installed".Replace('\', '/')
           $colmapInstall = "${{ github.workspace }}/build/install/colmap-for-pycolmap".Replace('\', '/')
+          $ceresInstall = "${{ github.workspace }}/build/install/ceres".Replace('\', '/')
           $pybind11Dir = (python -c "import pybind11; print(pybind11.get_cmake_dir())").Replace('\', '/')
 
-          $cmakePrefixPath = "${colmapInstall};${pybind11Dir}"
+          $cmakePrefixPath = "${colmapInstall};${ceresInstall};${pybind11Dir}"
 
           Write-Host "CMAKE_TOOLCHAIN_FILE: $vcpkgToolchain"
           Write-Host "VCPKG_INSTALLED_DIR: $vcpkgInstalled"
@@ -214,9 +215,10 @@ jobs:
           VCPKG_TOOLCHAIN="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
           VCPKG_INSTALLED="${{ github.workspace }}/build/vcpkg_installed"
           COLMAP_INSTALL="${{ github.workspace }}/build/install/colmap-for-pycolmap"
+          CERES_INSTALL="${{ github.workspace }}/build/install/ceres"
           PYBIND11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
 
-          CMAKE_PREFIX_PATH="${COLMAP_INSTALL}:${PYBIND11_DIR}"
+          CMAKE_PREFIX_PATH="${COLMAP_INSTALL}:${CERES_INSTALL}:${PYBIND11_DIR}"
 
           echo "CMAKE_TOOLCHAIN_FILE: $VCPKG_TOOLCHAIN"
           echo "VCPKG_INSTALLED_DIR: $VCPKG_INSTALLED"
