@@ -39,13 +39,7 @@ jobs:
         os: [windows-latest, ubuntu-22.04]
         python-version: ['3.10', '3.11', '3.12', '3.13']
         cuda: [true, false]
-        cuda_version: ['12.8.1', '13.0.0', '13.1.0']
-        exclude:
-          # CPU builds don't need multiple CUDA versions
-          - cuda: false
-            cuda_version: '13.0.0'
-          - cuda: false
-            cuda_version: '13.1.0'
+        cuda_version: ['12.8.1']  # CUDA 13.x removed - detection issues in CI
 
     steps:
       - name: Checkout repository
@@ -93,6 +87,11 @@ jobs:
         shell: pwsh
         run: |
           choco install ninja -y
+
+      # Setup MSVC environment so cl.exe is in PATH for CUDA/vcpkg builds
+      - name: Setup MSVC Developer Command Prompt
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install build dependencies (Linux)
         if: runner.os == 'Linux'

@@ -344,11 +344,8 @@ if(BUILD_CERES)
         BINARY_DIR "${CMAKE_BINARY_DIR}/ceres"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
-        # Apply patch to handle vcpkg ALIAS targets in Ceres's FindSuiteSparse.cmake
-        # (CUDA architecture 120 patch removed - using consistent arch list 75;80;86;89;90)
-        PATCH_COMMAND ${CMAKE_COMMAND}
-            -DCERES_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/ceres-solver
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_ceres_suitesparse.cmake
+        # No patch needed - using SuiteSparse_DIR to point to vcpkg's SuiteSparse config
+        # This ensures Ceres and GLOMAP use the same SuiteSparse targets
         CMAKE_ARGS ${CERES_CMAKE_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install

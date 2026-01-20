@@ -37,7 +37,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # CUDA 12.8.1 builds
+          # CUDA 12.8.1 builds (stable)
           - os: windows-latest
             cuda: true
             cuda_version: '12.8.1'
@@ -46,24 +46,6 @@ jobs:
             cuda: true
             cuda_version: '12.8.1'
             name: "Linux CUDA12.8"
-          # CUDA 13.0 builds
-          - os: windows-latest
-            cuda: true
-            cuda_version: '13.0.0'
-            name: "Windows CUDA13.0"
-          - os: ubuntu-22.04
-            cuda: true
-            cuda_version: '13.0.0'
-            name: "Linux CUDA13.0"
-          # CUDA 13.1 builds
-          - os: windows-latest
-            cuda: true
-            cuda_version: '13.1.0'
-            name: "Windows CUDA13.1"
-          - os: ubuntu-22.04
-            cuda: true
-            cuda_version: '13.1.0'
-            name: "Linux CUDA13.1"
           # CPU builds
           - os: windows-latest
             cuda: false
