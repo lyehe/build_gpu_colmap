@@ -216,7 +216,8 @@ cmake .. \
     -DBUILD_CERES=ON \
     -DBUILD_COLMAP=ON \
     -DBUILD_GLOMAP=OFF \
-    -DVCPKG_MANIFEST_FEATURES="$VCPKG_FEATURES"
+    -DVCPKG_MANIFEST_FEATURES="$VCPKG_FEATURES" \
+    -DGFLAGS_USE_TARGET_NAMESPACE=ON
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}ERROR: CMake configuration failed${NC}"

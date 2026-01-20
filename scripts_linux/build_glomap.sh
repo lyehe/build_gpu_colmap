@@ -214,6 +214,7 @@ cmake .. \
     -DBUILD_CERES=ON \
     -DBUILD_COLMAP=OFF \
     -DBUILD_GLOMAP=ON \
+    -DGFLAGS_USE_TARGET_NAMESPACE=ON \
     $VCPKG_FEATURES_ARG
 
 if [ $? -ne 0 ]; then

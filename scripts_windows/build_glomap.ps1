@@ -188,7 +188,8 @@ try {
         "-DCUDA_ENABLED=$CudaEnabled",
         "-DBUILD_CERES=ON",
         "-DBUILD_COLMAP=OFF",
-        "-DBUILD_GLOMAP=ON"
+        "-DBUILD_GLOMAP=ON",
+        "-DGFLAGS_USE_TARGET_NAMESPACE=ON"
     )
 
     # Explicitly set compilers to MSVC if found (prevents MinGW from being used)
