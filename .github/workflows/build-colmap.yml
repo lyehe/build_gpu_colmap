@@ -78,6 +78,22 @@ jobs:
         run: git -C third_party/vcpkg fetch --unshallow || true
         shell: bash
 
+      # ==================== Disk Space Cleanup ====================
+      - name: Free disk space (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          # Remove unnecessary large packages
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/share/swift
+          # Clean apt cache
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h
+
       # ==================== CUDA Setup ====================
       - name: Install CUDA Toolkit (Windows)
         if: matrix.cuda && runner.os == 'Windows'
