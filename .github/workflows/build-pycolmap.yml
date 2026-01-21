@@ -195,17 +195,20 @@ jobs:
           $pybind11Dir = (python -c "import pybind11; print(pybind11.get_cmake_dir())").Replace('\', '/')
 
           $cmakePrefixPath = "${colmapInstall};${ceresInstall};${pybind11Dir}"
+          $cudaEnabled = if ("${{ matrix.cuda }}" -eq "true") { "ON" } else { "OFF" }
 
           Write-Host "CMAKE_TOOLCHAIN_FILE: $vcpkgToolchain"
           Write-Host "VCPKG_INSTALLED_DIR: $vcpkgInstalled"
           Write-Host "CMAKE_PREFIX_PATH: $cmakePrefixPath"
+          Write-Host "CUDA_ENABLED: $cudaEnabled"
 
           # Build wheel
           python -m pip wheel . --no-deps -w wheelhouse `
             --config-settings="cmake.define.CMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}" `
             --config-settings="cmake.define.VCPKG_INSTALLED_DIR=${vcpkgInstalled}" `
             --config-settings="cmake.define.CMAKE_PREFIX_PATH=${cmakePrefixPath}" `
-            --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-windows"
+            --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-windows" `
+            --config-settings="cmake.define.CUDA_ENABLED=${cudaEnabled}"
 
       - name: Build wheel (Linux)
         if: runner.os == 'Linux'
@@ -218,18 +221,28 @@ jobs:
           CERES_INSTALL="${{ github.workspace }}/build/install/ceres"
           PYBIND11_DIR=$(python -c "import pybind11; print(pybind11.get_cmake_dir())")
 
-          CMAKE_PREFIX_PATH="${COLMAP_INSTALL}:${CERES_INSTALL}:${PYBIND11_DIR}"
+          # CMake expects semicolons as list separators (not colons)
+          CMAKE_PREFIX_PATH="${COLMAP_INSTALL};${CERES_INSTALL};${PYBIND11_DIR}"
 
           echo "CMAKE_TOOLCHAIN_FILE: $VCPKG_TOOLCHAIN"
           echo "VCPKG_INSTALLED_DIR: $VCPKG_INSTALLED"
           echo "CMAKE_PREFIX_PATH: $CMAKE_PREFIX_PATH"
+
+          # Build wheel with CUDA disabled for CPU builds, enabled for CUDA builds
+          CUDA_FLAG=""
+          if [ "${{ matrix.cuda }}" = "true" ]; then
+            CUDA_FLAG="-DCUDA_ENABLED=ON"
+          else
+            CUDA_FLAG="-DCUDA_ENABLED=OFF"
+          fi
 
           # Build wheel
           python -m pip wheel . --no-deps -w wheelhouse \
             --config-settings="cmake.define.CMAKE_TOOLCHAIN_FILE=${VCPKG_TOOLCHAIN}" \
             --config-settings="cmake.define.VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED}" \
             --config-settings="cmake.define.CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}" \
-            --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-linux"
+            --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-linux" \
+            --config-settings="cmake.define.CUDA_ENABLED=${{ matrix.cuda && 'ON' || 'OFF' }}"
 
       # ==================== Repair Wheel ====================
       - name: Repair wheel with delvewheel (Windows)
