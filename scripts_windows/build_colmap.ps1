@@ -234,21 +234,57 @@ try {
         $cuDSSFound = $false
         $cuDSSBinDir = $null
 
-        # Check standard cuDSS installation locations
-        $cuDSSSearchPaths = @(
-            "$env:ProgramW6432\NVIDIA cuDSS",
-            "$env:ProgramFiles\NVIDIA cuDSS",
-            "C:\Program Files\NVIDIA cuDSS"
-        )
-
-        foreach ($searchPath in $cuDSSSearchPaths) {
-            if (Test-Path $searchPath) {
-                $cuDSSVersions = Get-ChildItem "$searchPath\v*" -ErrorAction SilentlyContinue | Sort-Object -Descending
-                if ($cuDSSVersions) {
-                    $cuDSSBinDir = Join-Path $cuDSSVersions[0].FullName "bin"
-                    if (Test-Path $cuDSSBinDir) {
+        # First check CUDSS_ROOT environment variable (used in CI)
+        if ($env:CUDSS_ROOT -and (Test-Path $env:CUDSS_ROOT)) {
+            Write-Host "  Found CUDSS_ROOT: $env:CUDSS_ROOT" -ForegroundColor DarkGray
+            # Check for bin directory structure (cuDSS uses bin/12 for CUDA 12.x)
+            $possibleBinDirs = @(
+                (Join-Path $env:CUDSS_ROOT "bin\12"),   # CUDA 12.x DLLs
+                (Join-Path $env:CUDSS_ROOT "bin\13"),   # CUDA 13.x DLLs
+                (Join-Path $env:CUDSS_ROOT "bin"),
+                (Join-Path $env:CUDSS_ROOT "lib\12"),   # Alternative structure
+                (Join-Path $env:CUDSS_ROOT "lib")
+            )
+            foreach ($binDir in $possibleBinDirs) {
+                if (Test-Path $binDir) {
+                    $dlls = Get-ChildItem "$binDir\cudss*.dll" -ErrorAction SilentlyContinue
+                    if ($dlls) {
+                        $cuDSSBinDir = $binDir
                         $cuDSSFound = $true
+                        Write-Host "  Found cuDSS DLLs in: $binDir" -ForegroundColor DarkGray
                         break
+                    }
+                }
+            }
+        }
+
+        # If not found via CUDSS_ROOT, check standard installation locations
+        if (-not $cuDSSFound) {
+            $cuDSSSearchPaths = @(
+                "$env:ProgramW6432\NVIDIA cuDSS",
+                "$env:ProgramFiles\NVIDIA cuDSS",
+                "C:\Program Files\NVIDIA cuDSS"
+            )
+
+            foreach ($searchPath in $cuDSSSearchPaths) {
+                if (Test-Path $searchPath) {
+                    $cuDSSVersions = Get-ChildItem "$searchPath\v*" -ErrorAction SilentlyContinue | Sort-Object -Descending
+                    if ($cuDSSVersions) {
+                        # Check for CUDA version specific subdirectory (e.g., bin/12)
+                        $cuDSSBaseBin = Join-Path $cuDSSVersions[0].FullName "bin"
+                        $cudaVersionDirs = @("12", "13")  # Try CUDA 12, then 13
+                        foreach ($cudaVer in $cudaVersionDirs) {
+                            $cuDSSBinDir = Join-Path $cuDSSBaseBin $cudaVer
+                            if (Test-Path $cuDSSBinDir) {
+                                $dlls = Get-ChildItem "$cuDSSBinDir\cudss*.dll" -ErrorAction SilentlyContinue
+                                if ($dlls) {
+                                    $cuDSSFound = $true
+                                    Write-Host "  Found cuDSS DLLs in: $cuDSSBinDir" -ForegroundColor DarkGray
+                                    break
+                                }
+                            }
+                        }
+                        if ($cuDSSFound) { break }
                     }
                 }
             }
@@ -258,6 +294,7 @@ try {
             $InstallBin = Join-Path $BuildDir "install\colmap\bin"
             if (Test-Path $InstallBin) {
                 Write-Host "  Copying cuDSS DLLs from: $cuDSSBinDir" -ForegroundColor Yellow
+                Copy-Item "$cuDSSBinDir\cudss*.dll" $InstallBin -Force -ErrorAction SilentlyContinue
                 Copy-Item "$cuDSSBinDir\*.dll" $InstallBin -Force -ErrorAction SilentlyContinue
                 Write-Host "  cuDSS DLLs copied successfully" -ForegroundColor Green
             } else {

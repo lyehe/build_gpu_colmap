@@ -1,301 +1,181 @@
-# COLMAP GPU Builder
+# Point Cloud Tools
 
-**Automated build scripts for COLMAP and GLOMAP with full GPU support and optimizations.**
+Pre-built COLMAP, GLOMAP, and pycolmap binaries with CUDA support for Windows and Linux.
 
-This repository provides a complete, self-contained build environment for COLMAP, GLOMAP, and related computer vision tools, with a focus on **maximum GPU performance** for 3D reconstruction workflows.
+## Downloads
 
-## Purpose
+Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/build_gpu_colmap/releases).
 
-This project simplifies building COLMAP and GLOMAP with:
-- ✅ **Full CUDA GPU acceleration** - Optimized for modern NVIDIA GPUs (RTX 20/30/40 series, H100)
-- ✅ **cuDSS integration** - Optional sparse solver for 2-5x faster bundle adjustment
-- ✅ **Automated build process** - One-command builds with dependency management
-- ✅ **Python wheel generation** - Build redistributable pycolmap packages
-- ✅ **Cross-platform support** - Works on Windows and Linux
+### Available Packages
 
-Perfect for researchers and developers who need high-performance 3D reconstruction tools without manual dependency configuration.
+| Package | Description |
+|---------|-------------|
+| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v3.13 dev) |
+| **GLOMAP** | Fast global Structure-from-Motion |
+| **pycolmap** | Python bindings for COLMAP |
 
-## What's Included
+### Release Variants
 
-- **COLMAP 3.13 dev** - Latest Structure-from-Motion and Multi-View Stereo
-- **COLMAP 3.13 dev for pycolmap** - Python-optimized build configuration
-- **GLOMAP** - Fast global Structure-from-Motion (uses COLMAP 3.11 for compatibility)
-- **Ceres Solver** - Nonlinear optimization library with CUDA support
-- **PoseLib** - Camera pose estimation library
-- Automated vcpkg dependency management
-- GPU architecture targeting (RTX 20/30/40, H100, etc.)
-- Optional cuDSS sparse solver integration
+| Variant | Description | Use Case |
+|---------|-------------|----------|
+| `CPU` | CPU-only build | Systems without NVIDIA GPU |
+| `CUDA` | GPU-accelerated with CUDA | NVIDIA GPU (CUDA Toolkit not required) |
+| `CUDA-cuDSS` | CUDA + cuDSS sparse solver | Best performance (2-5x faster sparse solving) |
 
-## Quick Start
+## Installation
 
-### Prerequisites
-
-#### Required Downloads
+### COLMAP
 
 **Windows:**
-- **[Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)** (Community/Professional/Enterprise) with "Desktop development with C++" workload (includes CMake and Ninja) **OR** **[Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)** with "Desktop development with C++" workload (includes Ninja)
-- **[Git](https://git-scm.com/download/win)**
-- **[Python 3.8+](https://www.python.org/downloads/)** (for pycolmap)
+```powershell
+# Extract the archive
+Expand-Archive COLMAP-windows-latest-CUDA.zip -DestinationPath C:\Tools\COLMAP
+
+# Add to PATH (optional)
+$env:PATH = "C:\Tools\COLMAP\bin;$env:PATH"
+
+# Run COLMAP
+colmap gui
+colmap automatic_reconstructor --workspace_path ./project --image_path ./images
+```
 
 **Linux:**
-- GCC 9+, CMake 3.28+, Git, Python 3.8+ (install via package manager)
-
-#### GPU Acceleration (Optional but Recommended)
-
-- **[CUDA Toolkit 11.0+](https://developer.nvidia.com/cuda-downloads)** - Required for GPU-accelerated processing
-- **[cuDSS](https://developer.nvidia.com/cudss-downloads)** - Optional sparse solver acceleration (see [installation guide](docs/INSTALL_CUDSS.md))
-
-> **Note**: GPU acceleration significantly improves performance for large-scale 3D reconstruction. CUDA 12.x is recommended for latest GPU support.
-
-Check your environment:
 ```bash
-# Windows
-.\scripts_windows\verify_build_environment.ps1
+# Extract the archive
+unzip COLMAP-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
 
-# Linux
-./scripts_linux/verify_build_environment.sh
+# Add to PATH (optional)
+export PATH="$HOME/tools/colmap/bin:$PATH"
+
+# Run COLMAP
+colmap gui
+colmap automatic_reconstructor --workspace_path ./project --image_path ./images
 ```
 
-### Build
+### GLOMAP
 
-```bash
-# Clone repository
-git clone <repository-url>
-cd colmap-gpu-builder
+GLOMAP packages are self-contained and include their own COLMAP 3.11 for compatibility.
 
-# Build everything (automatically initializes submodules and bootstraps vcpkg)
-.\scripts_windows\build.ps1              # Windows
-./scripts_linux/build.sh                  # Linux
-```
-
-**Note:** Build scripts automatically:
-- Initialize required submodules and bootstrap vcpkg
-- Copy all dependency DLLs/libraries (including cuDSS if installed) to installation directories
-- Create self-contained builds that run without PATH configuration
-
-Build outputs are in `build/install/`.
-
-### Build Options
-
-```bash
-# Windows examples
-.\scripts_windows\build.ps1 -Clean                    # Clean rebuild
-.\scripts_windows\build.ps1 -NoCuda                   # Build without CUDA
-.\scripts_windows\build.ps1 -SkipGlomap               # Build only COLMAP
-.\scripts_windows\build_colmap.ps1                    # Build COLMAP only
-.\scripts_windows\build_glomap.ps1                    # Build GLOMAP only
-
-# Linux examples
-./scripts_linux/build.sh --clean                      # Clean rebuild
-./scripts_linux/build.sh --no-cuda                    # Build without CUDA
-./scripts_linux/build.sh --no-glomap                  # Build only COLMAP
-```
-
-## Building Python Wheels
-
-After building COLMAP, you can create redistributable Python wheels for pycolmap:
-
-### Windows
-
+**Windows:**
 ```powershell
-# Build COLMAP-for-pycolmap and wheels for ALL installed Python 3.9+ versions
-# (Automatically initializes submodules and builds COLMAP-for-pycolmap)
-.\scripts_windows\build_pycolmap_wheels.ps1
+# Extract the archive
+Expand-Archive GLOMAP-windows-latest-CUDA12.8.1.zip -DestinationPath C:\Tools\GLOMAP
 
-# Install wheel for your Python version
-pip install third_party\colmap-for-pycolmap\wheelhouse\pycolmap-*.whl
+# Add to PATH (optional)
+$env:PATH = "C:\Tools\GLOMAP\bin;$env:PATH"
+
+# Run GLOMAP
+glomap mapper --database_path ./database.db --image_path ./images --output_path ./sparse
 ```
 
-### Linux
-
+**Linux:**
 ```bash
-# Build COLMAP-for-pycolmap and wheels for ALL installed Python 3.9+ versions
-./scripts_linux/build_pycolmap_wheels.sh
+# Extract the archive
+unzip GLOMAP-ubuntu-22.04-CUDA12.8.1.zip -d ~/tools/glomap
 
-# Install wheel for your Python version
-pip install third_party/colmap-for-pycolmap/wheelhouse/pycolmap-*.whl
+# Add to PATH (optional)
+export PATH="$HOME/tools/glomap/bin:$PATH"
+
+# Run GLOMAP
+glomap mapper --database_path ./database.db --image_path ./images --output_path ./sparse
 ```
 
-**Features:**
-- Self-contained wheels with all dependencies bundled
-- No need for separate COLMAP installation
-- Redistributable to other machines
-- Multi-version script automatically detects all Python installations
-- Wheels are platform-specific (built for your OS/architecture)
+### pycolmap (Python Wheels)
 
-See [BUILD_PYTHON_WHEELS.md](docs/BUILD_PYTHON_WHEELS.md) for detailed documentation.
-
-## Advanced Configuration
-
-### CMake Options
-
-```cmake
--DCUDA_ENABLED=ON/OFF                # Enable CUDA (default: ON)
--DBUILD_COLMAP=ON/OFF                # Build COLMAP (default: ON)
--DBUILD_COLMAP_FOR_PYCOLMAP=ON/OFF   # Build COLMAP for pycolmap (default: OFF)
--DBUILD_GLOMAP=ON/OFF                # Build GLOMAP (default: ON)
--DBUILD_CERES=ON/OFF                 # Build Ceres (default: ON)
--DGFLAGS_USE_TARGET_NAMESPACE=ON     # Fix gflags/glog linking (required)
--DCMAKE_CUDA_ARCHITECTURES           # CUDA arch targets (default: 75;80;86;89;90;120)
--DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON   # Copy DLLs to install directory (auto-set)
-```
-
-### Manual Build
-
+**Install from wheel file:**
 ```bash
-mkdir build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../third_party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-  -DGFLAGS_USE_TARGET_NAMESPACE=ON
-cmake --build . --config Release
+# Download the wheel for your Python version (e.g., cp312 = Python 3.12)
+pip install pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl      # Windows
+pip install pycolmap-3.13.0.dev0-cp312-cp312-linux_x86_64.whl   # Linux
+
+# Verify installation
+python -c "import pycolmap; print(pycolmap.__version__)"
 ```
 
-## COLMAP Version Management
+**Available Python versions:** 3.10, 3.11, 3.12, 3.13
 
-This repository can build **three** COLMAP versions:
-- **COLMAP 3.13 dev** (`third_party/colmap`) → `build/install/colmap/` - Latest development version for general use
-- **COLMAP 3.13 dev for pycolmap** (`third_party/colmap-for-pycolmap`) → `build/install/colmap-for-pycolmap/` - Latest development version optimized for Python wheels (GUI/tests disabled)
-- **COLMAP 3.11** (`third_party/colmap-for-glomap`) → `build/install/colmap-for-glomap/` - Pinned to commit 78f1eefa for GLOMAP compatibility
+**Usage example:**
+```python
+import pycolmap
 
-The build system automatically manages version compatibility and submodule initialization.
+# Run automatic reconstruction
+pycolmap.automatic_reconstructor(
+    workspace_path="./project",
+    image_path="./images"
+)
 
-## Troubleshooting
+# Or use individual components
+database_path = "./database.db"
+pycolmap.extract_features(database_path, "./images")
+pycolmap.match_exhaustive(database_path)
+maps = pycolmap.incremental_mapping(database_path, "./images", "./sparse")
+```
 
-### CUDA Not Found
+## Package Size Differences
+
+Linux packages are significantly smaller than Windows packages:
+
+| Package | Linux | Windows | Reason |
+|---------|-------|---------|--------|
+| COLMAP CUDA | ~45 MB | ~1.3 GB | CUDA runtime bundling |
+| GLOMAP CUDA | ~10 MB | ~1.2 GB | CUDA runtime bundling |
+| pycolmap | ~26 MB | ~1 GB | CUDA runtime bundling |
+
+**Why?**
+- **Linux:** Dynamically links to system CUDA libraries. Requires CUDA Toolkit installed separately for GPU features.
+- **Windows:** Bundles all CUDA runtime DLLs for self-contained operation. No separate CUDA installation needed.
+
+### Linux CUDA Requirements
+
+For GPU acceleration on Linux, install the CUDA Toolkit:
 ```bash
-# Windows
-$env:CUDA_PATH = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0"
-
-# Linux
-export CUDA_HOME=/usr/local/cuda
-export PATH=/usr/local/cuda/bin:$PATH
-```
-
-### Visual Studio Not Found (Windows)
-Launch Developer PowerShell:
-```powershell
-.\scripts_windows\launch_dev_environment.ps1
-```
-
-### vcpkg Conflicts
-Ensure no system vcpkg interferes:
-```bash
-# Windows
-$env:VCPKG_ROOT = $null
-
-# Linux
-unset VCPKG_ROOT
-```
-
-### gflags/glog Linking Errors
-If you encounter `cannot open input file 'gflags.lib'` errors, this is already fixed in the build scripts with `-DGFLAGS_USE_TARGET_NAMESPACE=ON`. If using manual CMake, add this flag:
-```bash
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../third_party/vcpkg/scripts/buildsystems/vcpkg.cmake \
-  -DGFLAGS_USE_TARGET_NAMESPACE=ON
-```
-
-### Speed Up Builds
-Enable vcpkg binary caching:
-```bash
-# Windows
-$env:VCPKG_DEFAULT_BINARY_CACHE = "C:\vcpkg-cache"
-
-# Linux
-export VCPKG_DEFAULT_BINARY_CACHE=$HOME/vcpkg-cache
-```
-
-## Documentation
-
-- [Building Python Wheels](docs/BUILD_PYTHON_WHEELS.md)
-- [cuDSS Installation Guide](docs/INSTALL_CUDSS.md)
-
-## Requirements Details
-
-<details>
-<summary>Windows</summary>
-
-**Required:**
-- **[Visual Studio 2022](https://visualstudio.microsoft.com/downloads/)** with "Desktop development with C++" workload (includes CMake) **OR** **[Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)** with "Desktop development with C++" workload + **[CMake 3.28+](https://cmake.org/download/)** separately
-- **[Git](https://git-scm.com/download/win)**
-- **[Python 3.8+](https://www.python.org/downloads/)**
-
-**Optional (GPU Acceleration):**
-- **[CUDA Toolkit 11.0+](https://developer.nvidia.com/cuda-downloads)** - GPU acceleration for reconstruction
-- **[cuDSS](https://developer.nvidia.com/cudss-downloads)** - Sparse solver acceleration (see [installation guide](docs/INSTALL_CUDSS.md))
-
-**Note:** Ninja build system is included with Visual Studio 2022 "Desktop development with C++" workload. If using a custom setup, install separately: `winget install Ninja-build.Ninja`
-
-</details>
-
-<details>
-<summary>Linux (Ubuntu/Debian)</summary>
-
-**Required:**
-```bash
-sudo apt-get update
-sudo apt-get install build-essential cmake git python3 python3-dev
-```
-
-**Optional (GPU Acceleration):**
-```bash
-# Install NVIDIA drivers
-sudo apt-get install nvidia-driver-535
-
-# Install CUDA Toolkit
+# Ubuntu/Debian
 sudo apt-get install nvidia-cuda-toolkit
-# Or download from: https://developer.nvidia.com/cuda-downloads
 
-# cuDSS (manual installation required)
-# Download from: https://developer.nvidia.com/cudss-downloads
-# See installation guide: docs/INSTALL_CUDSS.md
+# Or download from NVIDIA
+# https://developer.nvidia.com/cuda-downloads
 ```
 
-**Optional (Performance):**
-```bash
-sudo apt-get install ninja-build
-```
+## System Requirements
 
-</details>
+### Minimum
+- **OS:** Windows 10/11 x64 or Ubuntu 22.04+ x64
+- **RAM:** 8 GB (16 GB+ recommended for large datasets)
+- **Storage:** 2 GB for COLMAP, 1.5 GB for GLOMAP
 
-## Project Structure
+### For CUDA builds
+- **GPU:** NVIDIA GPU with Compute Capability 7.5+ (RTX 20 series or newer)
+- **Driver:** NVIDIA driver 520+ (Windows), 525+ (Linux)
+- **CUDA:** Not required on Windows (bundled). Required on Linux (CUDA 11.0+)
 
-```
-colmap-gpu-builder/
-├── build/                       # Build output (gitignored)
-│   └── install/                # Executables and libraries
-│       ├── colmap/             # COLMAP (latest)
-│       ├── colmap-for-pycolmap/# COLMAP for Python wheels
-│       ├── colmap-for-glomap/  # COLMAP 3.11
-│       ├── glomap/             # GLOMAP
-│       ├── ceres/              # Ceres Solver
-│       └── poselib/            # PoseLib
-├── cmake/                      # CMake helper scripts
-├── docs/                       # Documentation
-├── overlay-ports/              # vcpkg custom patches
-├── scripts_windows/            # Windows build scripts
-├── scripts_linux/              # Linux build scripts
-├── third_party/                # Git submodules (auto-initialized)
-│   ├── vcpkg/                 # Package manager
-│   ├── colmap/                # COLMAP (latest)
-│   ├── colmap-for-pycolmap/   # COLMAP for pycolmap
-│   ├── colmap-for-glomap/     # COLMAP 3.11
-│   ├── glomap/                # GLOMAP
-│   ├── ceres-solver/          # Ceres Solver
-│   └── poselib/               # PoseLib
-├── CMakeLists.txt             # Root build config
-└── vcpkg.json                 # Dependency manifest
+### Supported GPU Architectures
+- Turing (RTX 20 series, GTX 16 series) - SM 7.5
+- Ampere (RTX 30 series, A100) - SM 8.0, 8.6
+- Ada Lovelace (RTX 40 series) - SM 8.9
+- Hopper (H100) - SM 9.0
+- Blackwell (RTX 50 series) - SM 12.0
+
+## Building from Source
+
+See [CLAUDE.md](.claude/CLAUDE.md) for detailed build instructions.
+
+**Quick start:**
+```powershell
+# Windows
+.\scripts_windows\build.ps1 -Configuration Release
+
+# Linux
+./scripts_linux/build.sh --config Release
 ```
 
 ## License
 
-Each component has its own license:
-- COLMAP: BSD 3-Clause
-- GLOMAP: BSD 3-Clause
-- Ceres Solver: BSD 3-Clause
-- PoseLib: BSD 3-Clause
+- **COLMAP:** BSD-3-Clause
+- **GLOMAP:** BSD-3-Clause
+- **This build system:** MIT
 
-## References
+## Links
 
 - [COLMAP Documentation](https://colmap.github.io/)
 - [GLOMAP Repository](https://github.com/colmap/glomap)
-- [Ceres Solver](http://ceres-solver.org/)
-- [vcpkg](https://vcpkg.io/)
+- [pycolmap Documentation](https://colmap.github.io/pycolmap.html)

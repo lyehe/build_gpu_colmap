@@ -307,24 +307,39 @@ if [ "$CUDA_ENABLED" = "ON" ]; then
     CUDSS_FOUND=false
     CUDSS_LIB_DIR=""
 
-    # Check standard cuDSS installation locations on Linux
-    CUDSS_SEARCH_PATHS=(
-        "$CUDSS_ROOT"
-        "/usr/local/cuda/lib64"
-        "/usr/local/cuda/lib"
-        "/opt/nvidia/cudss/lib64"
-        "/opt/nvidia/cudss/lib"
-    )
-
-    for search_path in "${CUDSS_SEARCH_PATHS[@]}"; do
-        if [ -n "$search_path" ] && [ -d "$search_path" ]; then
-            if [ -f "$search_path/libcudss.so" ]; then
-                CUDSS_LIB_DIR="$search_path"
+    # Check CUDSS_ROOT first (used in CI)
+    if [ -n "$CUDSS_ROOT" ] && [ -d "$CUDSS_ROOT" ]; then
+        echo -e "  Found CUDSS_ROOT: $CUDSS_ROOT"
+        # Check various subdirectory structures
+        for subdir in "lib/12" "lib64/12" "lib" "lib64" "."; do
+            check_path="$CUDSS_ROOT/$subdir"
+            if [ -d "$check_path" ] && ls "$check_path"/libcudss*.so* 1>/dev/null 2>&1; then
+                CUDSS_LIB_DIR="$check_path"
                 CUDSS_FOUND=true
                 break
             fi
-        fi
-    done
+        done
+    fi
+
+    # If not found via CUDSS_ROOT, check standard installation locations
+    if [ "$CUDSS_FOUND" = false ]; then
+        CUDSS_SEARCH_PATHS=(
+            "/usr/local/cuda/lib64"
+            "/usr/local/cuda/lib"
+            "/opt/nvidia/cudss/lib64"
+            "/opt/nvidia/cudss/lib"
+        )
+
+        for search_path in "${CUDSS_SEARCH_PATHS[@]}"; do
+            if [ -n "$search_path" ] && [ -d "$search_path" ]; then
+                if [ -f "$search_path/libcudss.so" ]; then
+                    CUDSS_LIB_DIR="$search_path"
+                    CUDSS_FOUND=true
+                    break
+                fi
+            fi
+        done
+    fi
 
     # Also check for versioned installations in /opt/nvidia/cudss
     if [ "$CUDSS_FOUND" = false ] && [ -d "/opt/nvidia/cudss" ]; then

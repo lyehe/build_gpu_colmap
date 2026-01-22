@@ -245,6 +245,45 @@ jobs:
           chmod +x ./scripts_linux/build_colmap.sh
           ./scripts_linux/build_colmap.sh Release $CUDA_FLAG
 
+      # ==================== Verify Build ====================
+      - name: Verify cuDSS DLLs bundled (Windows)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cudssDlls = Get-ChildItem "build/install/colmap/bin/cudss*.dll" -ErrorAction SilentlyContinue
+          if (-not $cudssDlls) {
+            Write-Host "ERROR: cuDSS DLLs not found in build/install/colmap/bin/" -ForegroundColor Red
+            Write-Host "Contents of bin directory:" -ForegroundColor Yellow
+            Get-ChildItem "build/install/colmap/bin/*.dll" | Select-Object Name
+            Write-Host ""
+            Write-Host "CUDSS_ROOT was: $env:CUDSS_ROOT" -ForegroundColor Yellow
+            if ($env:CUDSS_ROOT) {
+              Write-Host "Contents of CUDSS_ROOT:" -ForegroundColor Yellow
+              Get-ChildItem $env:CUDSS_ROOT -Recurse -Name | Select-Object -First 30
+            }
+            exit 1
+          }
+          Write-Host "cuDSS DLLs found:" -ForegroundColor Green
+          $cudssDlls | ForEach-Object { Write-Host "  - $($_.Name)" }
+
+      - name: Verify cuDSS libs bundled (Linux)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Linux'
+        run: |
+          if ! ls build/install/colmap/lib/libcudss*.so* 1>/dev/null 2>&1; then
+            echo "ERROR: cuDSS libraries not found in build/install/colmap/lib/"
+            echo "Contents of lib directory:"
+            ls -la build/install/colmap/lib/ | head -30
+            echo ""
+            echo "CUDSS_ROOT was: $CUDSS_ROOT"
+            if [ -n "$CUDSS_ROOT" ]; then
+              echo "Contents of CUDSS_ROOT:"
+              find "$CUDSS_ROOT" -type f | head -30
+            fi
+            exit 1
+          fi
+          echo "cuDSS libraries found:"
+          ls -la build/install/colmap/lib/libcudss*.so*
+
       # ==================== Artifacts ====================
       - name: Prepare artifact name
         id: artifact-name

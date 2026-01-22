@@ -130,25 +130,84 @@ jobs:
             echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload COLMAP to release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: packages/COLMAP-*.zip
-          fail_on_unmatched_files: false
+      # ==================== Generate release notes ====================
+      - name: Generate release notes
+        run: |
+          cat > release_notes.md << 'RELEASE_EOF'
+          Pre-built COLMAP, GLOMAP, and pycolmap binaries with CUDA support.
 
-      - name: Upload GLOMAP to release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: packages/GLOMAP-*.zip
-          fail_on_unmatched_files: false
+          ## Installation
 
-      - name: Upload pycolmap wheels to release
+          ### COLMAP
+
+          **Windows:**
+          ```powershell
+          Expand-Archive COLMAP-windows-latest-CUDA.zip -DestinationPath C:\Tools\COLMAP
+          C:\Tools\COLMAP\bin\colmap.exe gui
+          ```
+
+          **Linux:**
+          ```bash
+          unzip COLMAP-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
+          ~/tools/colmap/bin/colmap gui
+          ```
+
+          ### GLOMAP
+
+          **Windows:**
+          ```powershell
+          Expand-Archive GLOMAP-windows-latest-CUDA12.8.1.zip -DestinationPath C:\Tools\GLOMAP
+          C:\Tools\GLOMAP\bin\glomap.exe mapper --database_path db.db --image_path images --output_path sparse
+          ```
+
+          **Linux:**
+          ```bash
+          unzip GLOMAP-ubuntu-22.04-CUDA12.8.1.zip -d ~/tools/glomap
+          ~/tools/glomap/bin/glomap mapper --database_path db.db --image_path images --output_path sparse
+          ```
+
+          ### pycolmap
+
+          ```bash
+          # Download wheel for your Python version (cp312 = Python 3.12)
+          pip install pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl   # Windows
+          pip install pycolmap-3.13.0.dev0-cp312-cp312-linux_x86_64.whl  # Linux
+
+          python -c "import pycolmap; print(pycolmap.__version__)"
+          ```
+
+          ## Package Variants
+
+          | Variant | Description |
+          |---------|-------------|
+          | `CPU` | CPU-only (no NVIDIA GPU required) |
+          | `CUDA` | GPU-accelerated (Windows: self-contained, Linux: requires CUDA Toolkit) |
+          | `CUDA-cuDSS` | CUDA + cuDSS sparse solver (2-5x faster) |
+
+          ## Why are Linux packages smaller?
+
+          - **Windows (~1 GB):** Bundles all CUDA runtime DLLs for self-contained operation
+          - **Linux (~25-45 MB):** Dynamically links to system CUDA libraries
+
+          Linux CUDA builds require CUDA Toolkit installed: `sudo apt-get install nvidia-cuda-toolkit`
+
+          ## System Requirements
+
+          - **GPU:** NVIDIA RTX 20 series or newer (Compute Capability 7.5+)
+          - **Driver:** 520+ (Windows), 525+ (Linux)
+          - **Python:** 3.10, 3.11, 3.12, or 3.13 (for pycolmap)
+          RELEASE_EOF
+
+      - name: Upload assets and update release notes
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: packages/wheels/*.whl
+          body_path: release_notes.md
+          append_body: true
+          files: |
+            packages/COLMAP-*.zip
+            packages/GLOMAP-*.zip
+            packages/wheels/*.whl
           fail_on_unmatched_files: false
 
       # ==================== Manual dispatch: create draft release ====================
@@ -159,7 +218,7 @@ jobs:
           tag_name: ${{ steps.release-tag.outputs.tag }}
           name: Release ${{ steps.release-tag.outputs.tag }}
           draft: true
-          generate_release_notes: true
+          body_path: release_notes.md
           files: |
             packages/COLMAP-*.zip
             packages/GLOMAP-*.zip
