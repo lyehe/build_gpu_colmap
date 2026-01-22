@@ -277,15 +277,25 @@ jobs:
           $vcpkgBin = "${{ github.workspace }}/build/vcpkg_installed/x64-windows/bin"
           $colmapBin = "${{ github.workspace }}/build/install/colmap-for-pycolmap/bin"
 
+          # Build list of paths for delvewheel
+          $addPaths = @(
+            "--add-path", "$vcpkgBin",
+            "--add-path", "$colmapBin"
+          )
+
+          # Add CUDA bin path for CUDA builds (contains nvjitlink, cudart, etc.)
+          if ("${{ matrix.cuda }}" -eq "true" -and $env:CUDA_PATH) {
+            $cudaBin = "$env:CUDA_PATH\bin"
+            Write-Host "Adding CUDA bin path: $cudaBin"
+            $addPaths += @("--add-path", "$cudaBin")
+          }
+
           $wheel = Get-ChildItem -Path wheelhouse -Filter "pycolmap-*.whl" | Select-Object -First 1
 
           if ($wheel) {
             Write-Host "Repairing wheel: $($wheel.Name)"
-            python -m delvewheel repair -v `
-              --add-path "$vcpkgBin" `
-              --add-path "$colmapBin" `
-              -w wheelhouse `
-              $wheel.FullName
+            Write-Host "Search paths: $($addPaths -join ' ')"
+            python -m delvewheel repair -v @addPaths -w wheelhouse $wheel.FullName
 
             # Remove original wheel, keep repaired one
             # delvewheel creates a new wheel with the same name
