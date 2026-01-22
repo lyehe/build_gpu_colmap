@@ -219,12 +219,22 @@ jobs:
 
           # Build wheel - CUDA_ENABLED=OFF because we link against pre-built COLMAP
           # The COLMAP library already has CUDA support, wheel doesn't compile CUDA code
+          # If COLMAP was built with CUDA, we need CMAKE_CUDA_COMPILER set for find_package(COLMAP)
+          # to work, even though we don't compile CUDA code in the wheel
+          $cudaArgs = @()
+          if ("${{ matrix.cuda }}" -eq "true") {
+            $cudaCompiler = "$env:CUDA_PATH/bin/nvcc.exe".Replace('\', '/')
+            Write-Host "Setting CMAKE_CUDA_COMPILER: $cudaCompiler"
+            $cudaArgs = @("--config-settings=cmake.define.CMAKE_CUDA_COMPILER=${cudaCompiler}")
+          }
+
           python -m pip wheel . --no-deps -w wheelhouse `
             --config-settings="cmake.define.CMAKE_TOOLCHAIN_FILE=${vcpkgToolchain}" `
             --config-settings="cmake.define.VCPKG_INSTALLED_DIR=${vcpkgInstalled}" `
             --config-settings="cmake.define.CMAKE_PREFIX_PATH=${cmakePrefixPath}" `
             --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-windows" `
-            --config-settings="cmake.define.CUDA_ENABLED=OFF"
+            --config-settings="cmake.define.CUDA_ENABLED=OFF" `
+            @cudaArgs
 
       - name: Build wheel (Linux)
         if: runner.os == 'Linux'

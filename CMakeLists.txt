@@ -393,6 +393,18 @@ endif()
 if(BUILD_COLMAP)
     message(STATUS "Configuring COLMAP (latest) as external project...")
 
+    # Build CMAKE_PREFIX_PATH for COLMAP: Ceres + cuDSS (if found)
+    set(COLMAP_PREFIX_PATH "${BASE_INSTALL_DIR}/ceres")
+    if(CUDSS_FOUND AND CUDSS_INSTALL_PATH)
+        set(COLMAP_PREFIX_PATH "${COLMAP_PREFIX_PATH};${CUDSS_INSTALL_PATH}")
+    endif()
+
+    # Prepare additional cuDSS args if available
+    set(COLMAP_CUDSS_ARGS "")
+    if(CUDSS_FOUND AND cudss_DIR)
+        set(COLMAP_CUDSS_ARGS "-Dcudss_DIR=${cudss_DIR}")
+    endif()
+
     ExternalProject_Add(colmap-external
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap"
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap"
@@ -409,7 +421,7 @@ if(BUILD_COLMAP)
             -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap
-            -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
+            -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
@@ -418,6 +430,7 @@ if(BUILD_COLMAP)
             -DGUI_ENABLED=OFF
             -DTESTS_ENABLED=OFF
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+            ${COLMAP_CUDSS_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
         BUILD_ALWAYS OFF
@@ -432,6 +445,20 @@ endif()
 # Configuration based on COLMAP's official pycolmap GitHub Actions workflow
 if(BUILD_COLMAP_FOR_PYCOLMAP)
     message(STATUS "Configuring COLMAP for pycolmap (Python wheels) as external project...")
+
+    # Reuse COLMAP_PREFIX_PATH and COLMAP_CUDSS_ARGS from above (or redefine if BUILD_COLMAP=OFF)
+    if(NOT DEFINED COLMAP_PREFIX_PATH)
+        set(COLMAP_PREFIX_PATH "${BASE_INSTALL_DIR}/ceres")
+        if(CUDSS_FOUND AND CUDSS_INSTALL_PATH)
+            set(COLMAP_PREFIX_PATH "${COLMAP_PREFIX_PATH};${CUDSS_INSTALL_PATH}")
+        endif()
+    endif()
+    if(NOT DEFINED COLMAP_CUDSS_ARGS)
+        set(COLMAP_CUDSS_ARGS "")
+        if(CUDSS_FOUND AND cudss_DIR)
+            set(COLMAP_CUDSS_ARGS "-Dcudss_DIR=${cudss_DIR}")
+        endif()
+    endif()
 
     ExternalProject_Add(colmap-for-pycolmap-external
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap"
@@ -449,7 +476,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-pycolmap
-            -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
+            -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
@@ -461,6 +488,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DOPENGL_ENABLED=OFF
             -DGFLAGS_USE_TARGET_NAMESPACE=ON
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+            ${COLMAP_CUDSS_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
         BUILD_ALWAYS OFF
