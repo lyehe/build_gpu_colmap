@@ -138,7 +138,7 @@ try {
         $VcpkgFeatures += ";cuda"
     }
     if ($GuiEnabled -eq "ON") {
-        $VcpkgFeatures += ";qt5"
+        $VcpkgFeatures += ";qt6"
     }
 
     cmake .. `

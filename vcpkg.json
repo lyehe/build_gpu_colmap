@@ -1,4 +1,4 @@
-﻿{
+{
     "name":  "point-cloud-tools",
     "version":  "0.1.0",
     "description":  "Point cloud processing tools with COLMAP, GLOMAP, Ceres, and GPU support",
@@ -41,6 +41,13 @@
                                  "dependencies":  [
                                                       "qt5-base",
                                                       "qt5-3d"
+                                                  ]
+                             },
+                     "qt6":  {
+                                 "description":  "Enable Qt6 GUI support for COLMAP",
+                                 "dependencies":  [
+                                                      "qtbase",
+                                                      "qt3d"
                                                   ]
                              },
                      "opencv":  {
