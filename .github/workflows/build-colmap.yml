@@ -246,14 +246,16 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Building COLMAP with CUDA=${{ matrix.cuda }} GUI=${{ matrix.gui }}"
-          $args = @("-Configuration", "Release")
+          $params = @{
+            Configuration = "Release"
+          }
           if ("${{ matrix.cuda }}" -ne "true") {
-            $args += "-NoCuda"
+            $params.NoCuda = $true
           }
           if ("${{ matrix.gui }}" -eq "true") {
-            $args += "-Gui"
+            $params.Gui = $true
           }
-          & .\scripts_windows\build_colmap.ps1 @args
+          .\scripts_windows\build_colmap.ps1 @params
 
       - name: Build COLMAP (Linux)
         if: runner.os == 'Linux'
