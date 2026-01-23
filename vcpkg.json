@@ -10,6 +10,7 @@
                          "boost-filesystem",
                          "boost-serialization",
                          "freeimage",
+                         "openimageio",
                          "glog",
                          "gflags",
                          "sqlite3",
