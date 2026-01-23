@@ -132,11 +132,13 @@ Push-Location $BuildDir
 try {
     $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
 
-    # Set vcpkg manifest features based on CUDA
+    # Set vcpkg manifest features based on CUDA and GUI
+    $VcpkgFeatures = "cgal"
     if ($CudaEnabled -eq "ON") {
-        $VcpkgFeatures = "cgal;cuda"
-    } else {
-        $VcpkgFeatures = "cgal"
+        $VcpkgFeatures += ";cuda"
+    }
+    if ($GuiEnabled -eq "ON") {
+        $VcpkgFeatures += ";qt5"
     }
 
     cmake .. `
