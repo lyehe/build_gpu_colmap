@@ -245,6 +245,43 @@ jobs:
           chmod +x ./scripts_linux/build_colmap.sh
           ./scripts_linux/build_colmap.sh Release $CUDA_FLAG
 
+      # ==================== Bundle cuDSS ====================
+      - name: Bundle cuDSS DLLs (Windows)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installBin = "build/install/colmap/bin"
+
+          # Find cuDSS DLLs in CUDSS_ROOT
+          $searchDirs = @(
+            "$env:CUDSS_ROOT/bin/12",
+            "$env:CUDSS_ROOT/bin/13",
+            "$env:CUDSS_ROOT/bin"
+          )
+
+          foreach ($dir in $searchDirs) {
+            if (Test-Path "$dir/cudss*.dll") {
+              Write-Host "Copying cuDSS DLLs from: $dir"
+              Copy-Item "$dir/*.dll" $installBin -Force
+              Get-ChildItem "$installBin/cudss*.dll" | ForEach-Object { Write-Host "  - $($_.Name)" }
+              break
+            }
+          }
+
+      - name: Bundle cuDSS libs (Linux)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Linux'
+        run: |
+          INSTALL_LIB="build/install/colmap/lib"
+
+          for dir in "$CUDSS_ROOT/lib/12" "$CUDSS_ROOT/lib64/12" "$CUDSS_ROOT/lib" "$CUDSS_ROOT/lib64"; do
+            if ls "$dir"/libcudss*.so* 1>/dev/null 2>&1; then
+              echo "Copying cuDSS libs from: $dir"
+              cp -f "$dir"/libcudss*.so* "$INSTALL_LIB/"
+              ls -la "$INSTALL_LIB"/libcudss*.so*
+              break
+            fi
+          done
+
       # ==================== Verify Build ====================
       - name: Verify cuDSS DLLs bundled (Windows)
         if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
