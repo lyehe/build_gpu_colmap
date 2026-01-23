@@ -37,36 +37,55 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # CUDA 12.8.1 builds (stable)
+          # CUDA 12.8.1 builds (no GUI - for pycolmap/automation)
           - os: windows-latest
             cuda: true
             cuda_version: '12.8.1'
             cudss: true
+            gui: false
             name: "Windows CUDA12.8+cuDSS"
           - os: windows-latest
             cuda: true
             cuda_version: '12.8.1'
             cudss: false
+            gui: false
             name: "Windows CUDA12.8"
           - os: ubuntu-22.04
             cuda: true
             cuda_version: '12.8.1'
             cudss: true
+            gui: false
             name: "Linux CUDA12.8+cuDSS"
           - os: ubuntu-22.04
             cuda: true
             cuda_version: '12.8.1'
             cudss: false
+            gui: false
             name: "Linux CUDA12.8"
-          # CPU builds
+          # CPU builds (no GUI)
           - os: windows-latest
             cuda: false
             cudss: false
+            gui: false
             name: "Windows CPU"
           - os: ubuntu-22.04
             cuda: false
             cudss: false
+            gui: false
             name: "Linux CPU"
+          # GUI builds (Windows only - for interactive use)
+          - os: windows-latest
+            cuda: true
+            cuda_version: '12.8.1'
+            cudss: true
+            gui: true
+            name: "Windows CUDA12.8+cuDSS+GUI"
+          - os: windows-latest
+            cuda: true
+            cuda_version: '12.8.1'
+            cudss: false
+            gui: true
+            name: "Windows CUDA12.8+GUI"
 
     steps:
       - name: Checkout repository
@@ -226,12 +245,15 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "Building COLMAP with CUDA=${{ matrix.cuda }}"
-          if ("${{ matrix.cuda }}" -eq "true") {
-            .\scripts_windows\build_colmap.ps1 -Configuration Release
-          } else {
-            .\scripts_windows\build_colmap.ps1 -Configuration Release -NoCuda
+          Write-Host "Building COLMAP with CUDA=${{ matrix.cuda }} GUI=${{ matrix.gui }}"
+          $args = @("-Configuration", "Release")
+          if ("${{ matrix.cuda }}" -ne "true") {
+            $args += "-NoCuda"
           }
+          if ("${{ matrix.gui }}" -eq "true") {
+            $args += "-Gui"
+          }
+          & .\scripts_windows\build_colmap.ps1 @args
 
       - name: Build COLMAP (Linux)
         if: runner.os == 'Linux'
@@ -328,7 +350,8 @@ jobs:
         run: |
           CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
           CUDSS_SUFFIX="${{ matrix.cudss && '-cuDSS' || '' }}"
-          echo "name=COLMAP-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}" >> $GITHUB_OUTPUT
+          GUI_SUFFIX="${{ matrix.gui && '-GUI' || '' }}"
+          echo "name=COLMAP-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}${GUI_SUFFIX}" >> $GITHUB_OUTPUT
 
       - name: Upload COLMAP artifacts
         uses: actions/upload-artifact@v4
