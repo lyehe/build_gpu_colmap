@@ -1,0 +1,5 @@
+*
+!index.html
+!pycolmap/
+!pycolmap/index.html
+!.gitignore
