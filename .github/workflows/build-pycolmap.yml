@@ -27,7 +27,7 @@ on:
 
 jobs:
   build-wheels:
-    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && format('CUDA{0}', matrix.cuda_version) || 'CPU' }}
+    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && matrix.cudss && format('CUDA{0}+cuDSS', matrix.cuda_version) || matrix.cuda && format('CUDA{0}', matrix.cuda_version) || 'CPU' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -35,7 +35,30 @@ jobs:
         os: [windows-latest, ubuntu-22.04]
         python-version: ['3.10', '3.11', '3.12', '3.13']
         cuda: [true, false]
-        cuda_version: ['12.8.1']  # CUDA 13.x removed - detection issues in CI
+        cudss: [false]  # Default: no cuDSS
+        cuda_version: ['12.8.1']
+        include:
+          # Add cuDSS variants for CUDA builds (Windows only for now - smaller matrix)
+          - os: windows-latest
+            python-version: '3.10'
+            cuda: true
+            cudss: true
+            cuda_version: '12.8.1'
+          - os: windows-latest
+            python-version: '3.11'
+            cuda: true
+            cudss: true
+            cuda_version: '12.8.1'
+          - os: windows-latest
+            python-version: '3.12'
+            cuda: true
+            cudss: true
+            cuda_version: '12.8.1'
+          - os: windows-latest
+            python-version: '3.13'
+            cuda: true
+            cudss: true
+            cuda_version: '12.8.1'
 
     steps:
       - name: Checkout repository
@@ -93,6 +116,40 @@ jobs:
           linux-local-args: '["--toolkit"]'
           log-file-suffix: '-linux-py${{ matrix.python-version }}-cuda${{ matrix.cuda_version }}.log'
 
+      # ==================== cuDSS Setup ====================
+      - name: Install cuDSS (Windows)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cudaVersion = "${{ matrix.cuda_version }}"
+          $cudaMajor = $cudaVersion.Split('.')[0]
+
+          Write-Host "Downloading cuDSS for CUDA $cudaMajor..."
+          $cudssUrl = "https://developer.download.nvidia.com/compute/cudss/redist/libcudss/windows-x86_64/libcudss-windows-x86_64-0.7.1.4_cuda${cudaMajor}-archive.zip"
+
+          Invoke-WebRequest -Uri $cudssUrl -OutFile cudss.zip -UseBasicParsing
+          Expand-Archive cudss.zip -DestinationPath "C:/cudss"
+
+          $cudssPath = Get-ChildItem -Path "C:/cudss" -Directory | Select-Object -First 1
+          Write-Host "cuDSS installed at: $($cudssPath.FullName)"
+          echo "CUDSS_ROOT=$($cudssPath.FullName)" >> $env:GITHUB_ENV
+
+      - name: Install cuDSS (Linux)
+        if: matrix.cuda && matrix.cudss && runner.os == 'Linux'
+        run: |
+          CUDA_VERSION="${{ matrix.cuda_version }}"
+          CUDA_MAJOR="${CUDA_VERSION%%.*}"
+
+          echo "Downloading cuDSS for CUDA $CUDA_MAJOR..."
+          CUDSS_URL="https://developer.download.nvidia.com/compute/cudss/redist/libcudss/linux-x86_64/libcudss-linux-x86_64-0.7.1.4_cuda${CUDA_MAJOR}-archive.tar.xz"
+
+          wget -nv "$CUDSS_URL" -O cudss.tar.xz
+          sudo mkdir -p /opt/nvidia/cudss
+          sudo tar -xf cudss.tar.xz -C /opt/nvidia/cudss --strip-components=1
+
+          echo "cuDSS installed at: /opt/nvidia/cudss"
+          echo "CUDSS_ROOT=/opt/nvidia/cudss" >> $GITHUB_ENV
+
       # ==================== Build Tools ====================
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
@@ -144,8 +201,9 @@ jobs:
         shell: pwsh
         run: |
           $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "ON" } else { "OFF" }
+          $cudssFlag = if ("${{ matrix.cudss }}" -eq "true") { "ON" } else { "OFF" }
 
-          Write-Host "Building COLMAP-for-pycolmap with CUDA=$cudaFlag"
+          Write-Host "Building COLMAP-for-pycolmap with CUDA=$cudaFlag cuDSS=$cudssFlag"
 
           # Create build directory
           New-Item -ItemType Directory -Force -Path build | Out-Null
@@ -153,13 +211,24 @@ jobs:
 
           # Configure
           $vcpkgToolchain = "${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
-          cmake .. `
-            -G Ninja `
-            -DCMAKE_TOOLCHAIN_FILE="$vcpkgToolchain" `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCUDA_ENABLED="$cudaFlag" `
-            -DBUILD_COLMAP=OFF `
-            -DBUILD_COLMAP_FOR_PYCOLMAP=ON `
+
+          # Build cmake args
+          $cmakeArgs = @(
+            "-G", "Ninja",
+            "-DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain",
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCUDA_ENABLED=$cudaFlag",
+            "-DBUILD_COLMAP=OFF",
+            "-DBUILD_COLMAP_FOR_PYCOLMAP=ON"
+          )
+
+          # Add cuDSS paths if enabled
+          if ("${{ matrix.cudss }}" -eq "true" -and $env:CUDSS_ROOT) {
+            Write-Host "Adding cuDSS from: $env:CUDSS_ROOT"
+            $cmakeArgs += "-DCUDSS_ROOT=$env:CUDSS_ROOT"
+          }
+
+          cmake .. @cmakeArgs `
             -DBUILD_GLOMAP=OFF `
             -DBUILD_CERES=ON `
             -DGFLAGS_USE_TARGET_NAMESPACE=ON
@@ -171,23 +240,34 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           CUDA_FLAG="${{ matrix.cuda && 'ON' || 'OFF' }}"
+          CUDSS_FLAG="${{ matrix.cudss && 'true' || 'false' }}"
 
-          echo "Building COLMAP-for-pycolmap with CUDA=$CUDA_FLAG"
+          echo "Building COLMAP-for-pycolmap with CUDA=$CUDA_FLAG cuDSS=$CUDSS_FLAG"
 
           # Create build directory
           mkdir -p build
           cd build
 
+          # Build cmake args
+          CMAKE_ARGS=(
+            -G Ninja
+            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_BUILD_TYPE=Release
+            -DCUDA_ENABLED="$CUDA_FLAG"
+            -DBUILD_COLMAP=OFF
+            -DBUILD_COLMAP_FOR_PYCOLMAP=ON
+            -DBUILD_GLOMAP=OFF
+            -DBUILD_CERES=ON
+          )
+
+          # Add cuDSS paths if enabled
+          if [ "$CUDSS_FLAG" = "true" ] && [ -n "$CUDSS_ROOT" ]; then
+            echo "Adding cuDSS from: $CUDSS_ROOT"
+            CMAKE_ARGS+=(-DCUDSS_ROOT="$CUDSS_ROOT")
+          fi
+
           # Configure
-          cmake .. \
-            -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCUDA_ENABLED="$CUDA_FLAG" \
-            -DBUILD_COLMAP=OFF \
-            -DBUILD_COLMAP_FOR_PYCOLMAP=ON \
-            -DBUILD_GLOMAP=OFF \
-            -DBUILD_CERES=ON \
+          cmake .. "${CMAKE_ARGS[@]}" \
             -DGFLAGS_USE_TARGET_NAMESPACE=ON
 
           # Build
@@ -286,6 +366,23 @@ jobs:
             $addPaths += @("--add-path", "$cudaBin")
           }
 
+          # Add cuDSS bin path for cuDSS builds
+          if ("${{ matrix.cudss }}" -eq "true" -and $env:CUDSS_ROOT) {
+            # cuDSS DLLs are in bin/12 or bin/13 subdirectory
+            $cudssSearchDirs = @(
+              "$env:CUDSS_ROOT\bin\12",
+              "$env:CUDSS_ROOT\bin\13",
+              "$env:CUDSS_ROOT\bin"
+            )
+            foreach ($dir in $cudssSearchDirs) {
+              if (Test-Path "$dir\cudss*.dll") {
+                Write-Host "Adding cuDSS bin path: $dir"
+                $addPaths += @("--add-path", "$dir")
+                break
+              }
+            }
+          }
+
           $wheel = Get-ChildItem -Path wheelhouse -Filter "pycolmap-*.whl" | Select-Object -First 1
 
           if ($wheel) {
@@ -319,6 +416,17 @@ jobs:
               export LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH"
             fi
 
+            # Add cuDSS library paths if cuDSS build
+            if [ "${{ matrix.cudss }}" = "true" ] && [ -n "$CUDSS_ROOT" ]; then
+              for dir in "$CUDSS_ROOT/lib/12" "$CUDSS_ROOT/lib64/12" "$CUDSS_ROOT/lib" "$CUDSS_ROOT/lib64"; do
+                if [ -d "$dir" ]; then
+                  echo "Adding cuDSS lib path: $dir"
+                  export LD_LIBRARY_PATH="$dir:$LD_LIBRARY_PATH"
+                  break
+                fi
+              done
+            fi
+
             echo "LD_LIBRARY_PATH: $LD_LIBRARY_PATH"
 
             # Show wheel info first
@@ -350,7 +458,13 @@ jobs:
         id: artifact-name
         shell: bash
         run: |
-          CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
+          if [ "${{ matrix.cudss }}" = "true" ]; then
+            CUDA_SUFFIX="CUDA-cuDSS"
+          elif [ "${{ matrix.cuda }}" = "true" ]; then
+            CUDA_SUFFIX="CUDA"
+          else
+            CUDA_SUFFIX="CPU"
+          fi
           PYVER=$(echo "${{ matrix.python-version }}" | tr -d '.')
           echo "name=pycolmap-py${PYVER}-${{ matrix.os }}-${CUDA_SUFFIX}" >> $GITHUB_OUTPUT
 
