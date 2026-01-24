@@ -25,10 +25,6 @@ on:
         type: string
         default: ''
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
-  cancel-in-progress: false
-
 jobs:
   build-wheels:
     name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && format('CUDA{0}', matrix.cuda_version) || 'CPU' }}
