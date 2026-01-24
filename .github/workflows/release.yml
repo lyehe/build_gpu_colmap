@@ -239,13 +239,20 @@ jobs:
           ~/tools/glomap/bin/glomap mapper --database_path db.db --image_path images --output_path sparse
           ```
 
-          ### pycolmap
+          ### pycolmap (pip install)
 
+          **GPU/CUDA version (recommended):**
           ```bash
-          # Download wheel for your Python version (cp312 = Python 3.12)
-          pip install pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl   # Windows
-          pip install pycolmap-3.13.0.dev0-cp312-cp312-linux_x86_64.whl  # Linux
+          pip install pycolmap --extra-index-url https://${{ github.repository_owner }}.github.io/build_gpu_colmap/
+          ```
 
+          **CPU version (from PyPI):**
+          ```bash
+          pip install pycolmap
+          ```
+
+          **Verify installation:**
+          ```bash
           python -c "import pycolmap; print(pycolmap.__version__)"
           ```
 

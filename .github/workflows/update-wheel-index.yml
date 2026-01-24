@@ -1,0 +1,130 @@
+name: Update Wheel Index
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  update-index:
+    name: Update pip wheel index
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+        continue-on-error: true
+
+      - name: Initialize gh-pages if needed
+        run: |
+          if [ ! -f "index.html" ]; then
+            echo "Initializing gh-pages branch..."
+            git checkout --orphan gh-pages 2>/dev/null || git checkout gh-pages
+            git reset --hard
+            mkdir -p pycolmap
+          fi
+
+      - name: Download wheel list from releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Fetching all releases..."
+
+          # Get all wheel URLs from all releases
+          gh release list --limit 100 --json tagName -q '.[].tagName' | while read tag; do
+            echo "Processing release: $tag"
+            gh release view "$tag" --json assets -q '.assets[].url' | grep '\.whl$' >> all_wheels.txt || true
+          done
+
+          # Also get download URLs
+          > wheel_urls.txt
+          gh release list --limit 100 --json tagName -q '.[].tagName' | while read tag; do
+            gh release view "$tag" --json assets -q '.assets[] | select(.name | endswith(".whl")) | .url' >> wheel_urls.txt || true
+          done
+
+          echo "Found wheels:"
+          cat wheel_urls.txt || echo "No wheels found yet"
+
+      - name: Generate PEP 503 index
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          mkdir -p pycolmap
+
+          # Create root index
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Simple Package Index</title>
+            </head>
+            <body>
+              <h1>Simple Package Index</h1>
+              <a href="pycolmap/">pycolmap</a><br/>
+            </body>
+          </html>
+          EOF
+
+          # Create package index header
+          cat > pycolmap/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Links for pycolmap</title>
+            </head>
+            <body>
+              <h1>Links for pycolmap</h1>
+          EOF
+
+          # Add wheel links from all releases
+          gh release list --limit 100 --json tagName -q '.[].tagName' | while read tag; do
+            gh release view "$tag" --json assets -q '.assets[] | select(.name | endswith(".whl")) | "\(.name) \(.url)"' 2>/dev/null | while read name url; do
+              if [ -n "$name" ] && [ -n "$url" ]; then
+                echo "    <a href=\"$url\">$name</a><br/>" >> pycolmap/index.html
+              fi
+            done
+          done
+
+          # Close HTML
+          cat >> pycolmap/index.html << 'EOF'
+            </body>
+          </html>
+          EOF
+
+          echo "Generated index:"
+          cat pycolmap/index.html
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push
+        run: |
+          git add index.html pycolmap/
+          git commit -m "Update wheel index for release" || echo "No changes to commit"
+          git push origin gh-pages --force-with-lease || git push origin gh-pages --force
+
+      - name: Summary
+        run: |
+          echo "## Wheel Index Updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Install pycolmap with:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "pip install pycolmap --extra-index-url https://${{ github.repository_owner }}.github.io/$(echo ${{ github.repository }} | cut -d'/' -f2)/" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Available Wheels" >> $GITHUB_STEP_SUMMARY
+          grep -o 'pycolmap-[^<]*\.whl' pycolmap/index.html | sort -u | while read whl; do
+            echo "- \`$whl\`" >> $GITHUB_STEP_SUMMARY
+          done
