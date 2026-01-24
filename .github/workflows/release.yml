@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  push:
+    tags:
+      - 'v*'  # Auto-release on version tags
   release:
     types: [published]
   workflow_dispatch:
@@ -120,12 +123,82 @@ jobs:
           echo "pycolmap wheels:"
           ls -la packages/wheels/*.whl || echo "No wheels found"
 
+      # ==================== Organize Wheels by Variant ====================
+      - name: Organize wheels by variant
+        run: |
+          mkdir -p packages/wheels-cpu packages/wheels-cuda
+
+          # CPU wheels (artifact name contains "-CPU")
+          for dir in artifacts/pycolmap-*-CPU; do
+            if [ -d "$dir" ]; then
+              echo "Copying CPU wheels from $dir..."
+              cp "$dir"/*.whl packages/wheels-cpu/ 2>/dev/null || true
+            fi
+          done
+
+          # CUDA wheels (artifact name contains "-CUDA")
+          for dir in artifacts/pycolmap-*-CUDA; do
+            if [ -d "$dir" ]; then
+              echo "Copying CUDA wheels from $dir..."
+              cp "$dir"/*.whl packages/wheels-cuda/ 2>/dev/null || true
+            fi
+          done
+
+          echo "CPU wheels:"
+          ls -la packages/wheels-cpu/*.whl 2>/dev/null || echo "No CPU wheels"
+
+          echo "CUDA wheels:"
+          ls -la packages/wheels-cuda/*.whl 2>/dev/null || echo "No CUDA wheels"
+
+      # ==================== Generate Checksums ====================
+      - name: Generate SHA256 checksums
+        run: |
+          cd packages
+
+          # Create checksums file
+          echo "# SHA256 Checksums" > SHA256SUMS.txt
+          echo "# Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> SHA256SUMS.txt
+          echo "" >> SHA256SUMS.txt
+
+          # COLMAP packages
+          if ls COLMAP-*.zip 1>/dev/null 2>&1; then
+            echo "## COLMAP" >> SHA256SUMS.txt
+            sha256sum COLMAP-*.zip >> SHA256SUMS.txt
+            echo "" >> SHA256SUMS.txt
+          fi
+
+          # GLOMAP packages
+          if ls GLOMAP-*.zip 1>/dev/null 2>&1; then
+            echo "## GLOMAP" >> SHA256SUMS.txt
+            sha256sum GLOMAP-*.zip >> SHA256SUMS.txt
+            echo "" >> SHA256SUMS.txt
+          fi
+
+          # CPU wheels
+          if ls wheels-cpu/*.whl 1>/dev/null 2>&1; then
+            echo "## pycolmap CPU wheels" >> SHA256SUMS.txt
+            (cd wheels-cpu && sha256sum *.whl) >> SHA256SUMS.txt
+            echo "" >> SHA256SUMS.txt
+          fi
+
+          # CUDA wheels
+          if ls wheels-cuda/*.whl 1>/dev/null 2>&1; then
+            echo "## pycolmap CUDA wheels" >> SHA256SUMS.txt
+            (cd wheels-cuda && sha256sum *.whl) >> SHA256SUMS.txt
+          fi
+
+          echo "Generated checksums:"
+          cat SHA256SUMS.txt
+
       # ==================== Upload Release Assets ====================
       - name: Get release tag
         id: release-tag
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
             echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # Extract tag from ref (refs/tags/v1.0.0 -> v1.0.0)
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
           fi
@@ -208,6 +281,27 @@ jobs:
             packages/COLMAP-*.zip
             packages/GLOMAP-*.zip
             packages/wheels/*.whl
+            packages/wheels-cpu/*.whl
+            packages/wheels-cuda/*.whl
+            packages/SHA256SUMS.txt
+          fail_on_unmatched_files: false
+
+      # ==================== Tag push: create draft release ====================
+      - name: Create draft release (tag push)
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release-tag.outputs.tag }}
+          name: Release ${{ steps.release-tag.outputs.tag }}
+          draft: true
+          body_path: release_notes.md
+          files: |
+            packages/COLMAP-*.zip
+            packages/GLOMAP-*.zip
+            packages/wheels/*.whl
+            packages/wheels-cpu/*.whl
+            packages/wheels-cuda/*.whl
+            packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
 
       # ==================== Manual dispatch: create draft release ====================
@@ -223,6 +317,9 @@ jobs:
             packages/COLMAP-*.zip
             packages/GLOMAP-*.zip
             packages/wheels/*.whl
+            packages/wheels-cpu/*.whl
+            packages/wheels-cuda/*.whl
+            packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
 
       # ==================== Summary ====================
@@ -251,14 +348,28 @@ jobs:
           done
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          echo "### pycolmap Wheels" >> $GITHUB_STEP_SUMMARY
-          for f in packages/wheels/*.whl; do
+          echo "### pycolmap CPU Wheels" >> $GITHUB_STEP_SUMMARY
+          for f in packages/wheels-cpu/*.whl; do
             if [ -f "$f" ]; then
               size=$(du -h "$f" | cut -f1)
               name=$(basename "$f")
               echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
             fi
           done
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### pycolmap CUDA Wheels" >> $GITHUB_STEP_SUMMARY
+          for f in packages/wheels-cuda/*.whl; do
+            if [ -f "$f" ]; then
+              size=$(du -h "$f" | cut -f1)
+              name=$(basename "$f")
+              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Checksums" >> $GITHUB_STEP_SUMMARY
+          echo "SHA256SUMS.txt included in release for verification" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload all packages as artifact
         uses: actions/upload-artifact@v4

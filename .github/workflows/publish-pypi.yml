@@ -1,0 +1,165 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      test_pypi:
+        description: 'Publish to TestPyPI instead of PyPI'
+        type: boolean
+        default: true
+      tag:
+        description: 'Release tag to download artifacts from (e.g., v2.0.0)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write  # Required for trusted publisher
+
+jobs:
+  publish:
+    name: Publish CPU wheels to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi  # For trusted publisher
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get release tag
+        id: release-tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ inputs.tag }}" ]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "ERROR: No tag specified for workflow_dispatch"
+            exit 1
+          fi
+
+      # Try to download artifacts from the current workflow run first
+      - name: Download artifacts from workflow
+        id: download-workflow
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      # If no artifacts from workflow, download from release assets
+      - name: Download release assets
+        if: steps.download-workflow.outcome == 'failure' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release-tag.outputs.tag }}"
+          echo "Downloading release assets for tag: $TAG"
+
+          mkdir -p artifacts/cpu-wheels
+
+          # Download all CPU wheel files from the release
+          # CPU wheels have smaller file sizes compared to CUDA wheels
+          gh release download "$TAG" \
+            --pattern "pycolmap-*-cp*-cp*-*.whl" \
+            --dir artifacts/cpu-wheels \
+            --skip-existing || true
+
+          echo "Downloaded wheels:"
+          ls -la artifacts/cpu-wheels/ || echo "No wheels downloaded"
+
+      - name: Filter CPU-only wheels
+        run: |
+          mkdir -p dist
+
+          # Collect CPU wheels from artifact directories
+          # CPU artifacts are named like: pycolmap-py312-windows-latest-CPU
+          for dir in artifacts/pycolmap-*-CPU artifacts/cpu-wheels; do
+            if [ -d "$dir" ]; then
+              echo "Collecting wheels from $dir..."
+              find "$dir" -name "*.whl" -exec cp {} dist/ \; 2>/dev/null || true
+            fi
+          done
+
+          # Also check the wheels subdirectory structure
+          if [ -d "artifacts/wheels-cpu" ]; then
+            echo "Collecting wheels from artifacts/wheels-cpu..."
+            cp artifacts/wheels-cpu/*.whl dist/ 2>/dev/null || true
+          fi
+
+          echo ""
+          echo "Wheels to publish:"
+          ls -la dist/*.whl || { echo "ERROR: No CPU wheels found!"; exit 1; }
+
+          # Verify file sizes are under PyPI limit (100MB)
+          echo ""
+          echo "Checking file sizes (PyPI limit: 100MB)..."
+          for whl in dist/*.whl; do
+            size=$(stat -c%s "$whl")
+            size_mb=$((size / 1024 / 1024))
+            if [ $size_mb -gt 100 ]; then
+              echo "ERROR: $whl is ${size_mb}MB (exceeds 100MB limit)"
+              rm "$whl"
+            else
+              echo "OK: $(basename "$whl") - ${size_mb}MB"
+            fi
+          done
+
+          # Final check
+          wheel_count=$(ls dist/*.whl 2>/dev/null | wc -l)
+          if [ "$wheel_count" -eq 0 ]; then
+            echo "ERROR: No valid wheels remain after filtering!"
+            exit 1
+          fi
+          echo ""
+          echo "Total wheels to publish: $wheel_count"
+
+      - name: Publish to TestPyPI
+        if: inputs.test_pypi == true || (github.event_name == 'workflow_dispatch' && inputs.test_pypi != false)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          verbose: true
+          skip-existing: true
+
+      - name: Publish to PyPI
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.test_pypi == false)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          skip-existing: true
+
+      - name: Generate publish summary
+        run: |
+          echo "## PyPI Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.test_pypi }}" = "true" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "**Target:** TestPyPI" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Install with:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "pip install --index-url https://test.pypi.org/simple/ pycolmap" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Target:** PyPI" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Install with:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "pip install pycolmap" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published Wheels" >> $GITHUB_STEP_SUMMARY
+          for whl in dist/*.whl; do
+            if [ -f "$whl" ]; then
+              name=$(basename "$whl")
+              size=$(du -h "$whl" | cut -f1)
+              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** Only CPU wheels are published to PyPI. CUDA wheels are available on [GitHub Releases](https://github.com/${{ github.repository }}/releases)." >> $GITHUB_STEP_SUMMARY
