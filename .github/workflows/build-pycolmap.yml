@@ -134,6 +134,14 @@ jobs:
           Write-Host "cuDSS installed at: $($cudssPath.FullName)"
           echo "CUDSS_ROOT=$($cudssPath.FullName)" >> $env:GITHUB_ENV
 
+          # Find cudss_DIR (CMake config location)
+          $cudssDir = "$($cudssPath.FullName)/lib/$cudaMajor/cmake/cudss"
+          if (-not (Test-Path $cudssDir)) {
+            $cudssDir = "$($cudssPath.FullName)/lib/cmake/cudss"
+          }
+          Write-Host "cudss_DIR: $cudssDir"
+          echo "cudss_DIR=$cudssDir" >> $env:GITHUB_ENV
+
       - name: Install cuDSS (Linux)
         if: matrix.cuda && matrix.cudss && runner.os == 'Linux'
         run: |
@@ -149,6 +157,15 @@ jobs:
 
           echo "cuDSS installed at: /opt/nvidia/cudss"
           echo "CUDSS_ROOT=/opt/nvidia/cudss" >> $GITHUB_ENV
+
+          # Find cudss_DIR (CMake config location)
+          if [ -d "/opt/nvidia/cudss/lib/$CUDA_MAJOR/cmake/cudss" ]; then
+            CUDSS_DIR="/opt/nvidia/cudss/lib/$CUDA_MAJOR/cmake/cudss"
+          else
+            CUDSS_DIR="/opt/nvidia/cudss/lib/cmake/cudss"
+          fi
+          echo "cudss_DIR: $CUDSS_DIR"
+          echo "cudss_DIR=$CUDSS_DIR" >> $GITHUB_ENV
 
       # ==================== Build Tools ====================
       - name: Install Ninja (Windows)
@@ -223,9 +240,9 @@ jobs:
           )
 
           # Add cuDSS paths if enabled
-          if ("${{ matrix.cudss }}" -eq "true" -and $env:CUDSS_ROOT) {
-            Write-Host "Adding cuDSS from: $env:CUDSS_ROOT"
-            $cmakeArgs += "-DCUDSS_ROOT=$env:CUDSS_ROOT"
+          if ("${{ matrix.cudss }}" -eq "true" -and $env:cudss_DIR) {
+            Write-Host "Adding cuDSS from: $env:cudss_DIR"
+            $cmakeArgs += "-Dcudss_DIR=$env:cudss_DIR"
           }
 
           cmake .. @cmakeArgs `
@@ -261,9 +278,9 @@ jobs:
           )
 
           # Add cuDSS paths if enabled
-          if [ "$CUDSS_FLAG" = "true" ] && [ -n "$CUDSS_ROOT" ]; then
-            echo "Adding cuDSS from: $CUDSS_ROOT"
-            CMAKE_ARGS+=(-DCUDSS_ROOT="$CUDSS_ROOT")
+          if [ "$CUDSS_FLAG" = "true" ] && [ -n "$cudss_DIR" ]; then
+            echo "Adding cuDSS from: $cudss_DIR"
+            CMAKE_ARGS+=(-Dcudss_DIR="$cudss_DIR")
           fi
 
           # Configure
