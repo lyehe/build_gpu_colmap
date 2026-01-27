@@ -127,53 +127,23 @@ jobs:
           ls -la packages/GLOMAP-* || echo "No GLOMAP packages"
 
       # ==================== Collect pycolmap wheels ====================
+      # Wheels now have unique names with variant suffix (+cpu, +cuda, +cuda.cudss)
+      # so we just collect them all into one folder
       - name: Collect pycolmap wheels
         run: |
           mkdir -p packages/wheels
 
-          # Find and copy all wheel files
+          # Find and copy all wheel files (they have unique names now)
           find artifacts/ -name "*.whl" -exec cp {} packages/wheels/ \;
 
-          echo "pycolmap wheels:"
+          echo "All pycolmap wheels:"
           ls -la packages/wheels/*.whl || echo "No wheels found"
 
-      # ==================== Organize Wheels by Variant ====================
-      - name: Organize wheels by variant
-        run: |
-          mkdir -p packages/wheels-cpu packages/wheels-cuda packages/wheels-cuda-cudss
-
-          # CPU wheels (artifact name contains "-CPU")
-          for dir in artifacts/pycolmap-*-CPU; do
-            if [ -d "$dir" ]; then
-              echo "Copying CPU wheels from $dir..."
-              cp "$dir"/*.whl packages/wheels-cpu/ 2>/dev/null || true
-            fi
-          done
-
-          # CUDA wheels (artifact name ends with "-CUDA", not "-CUDA-cuDSS")
-          for dir in artifacts/pycolmap-*-CUDA; do
-            if [ -d "$dir" ]; then
-              echo "Copying CUDA wheels from $dir..."
-              cp "$dir"/*.whl packages/wheels-cuda/ 2>/dev/null || true
-            fi
-          done
-
-          # CUDA+cuDSS wheels (artifact name contains "-CUDA-cuDSS")
-          for dir in artifacts/pycolmap-*-CUDA-cuDSS; do
-            if [ -d "$dir" ]; then
-              echo "Copying CUDA+cuDSS wheels from $dir..."
-              cp "$dir"/*.whl packages/wheels-cuda-cudss/ 2>/dev/null || true
-            fi
-          done
-
-          echo "CPU wheels:"
-          ls -la packages/wheels-cpu/*.whl 2>/dev/null || echo "No CPU wheels"
-
-          echo "CUDA wheels:"
-          ls -la packages/wheels-cuda/*.whl 2>/dev/null || echo "No CUDA wheels"
-
-          echo "CUDA+cuDSS wheels:"
-          ls -la packages/wheels-cuda-cudss/*.whl 2>/dev/null || echo "No CUDA+cuDSS wheels"
+          echo ""
+          echo "Wheel count by variant:"
+          echo "  CPU:        $(ls packages/wheels/*+cpu*.whl 2>/dev/null | wc -l)"
+          echo "  CUDA:       $(ls packages/wheels/*+cuda-*.whl 2>/dev/null | wc -l)"
+          echo "  CUDA+cuDSS: $(ls packages/wheels/*+cuda.cudss*.whl 2>/dev/null | wc -l)"
 
       # ==================== Generate Checksums ====================
       - name: Generate SHA256 checksums
@@ -199,24 +169,10 @@ jobs:
             echo "" >> SHA256SUMS.txt
           fi
 
-          # CPU wheels
-          if ls wheels-cpu/*.whl 1>/dev/null 2>&1; then
-            echo "## pycolmap CPU wheels" >> SHA256SUMS.txt
-            (cd wheels-cpu && sha256sum *.whl) >> SHA256SUMS.txt
-            echo "" >> SHA256SUMS.txt
-          fi
-
-          # CUDA wheels
-          if ls wheels-cuda/*.whl 1>/dev/null 2>&1; then
-            echo "## pycolmap CUDA wheels" >> SHA256SUMS.txt
-            (cd wheels-cuda && sha256sum *.whl) >> SHA256SUMS.txt
-            echo "" >> SHA256SUMS.txt
-          fi
-
-          # CUDA+cuDSS wheels
-          if ls wheels-cuda-cudss/*.whl 1>/dev/null 2>&1; then
-            echo "## pycolmap CUDA+cuDSS wheels" >> SHA256SUMS.txt
-            (cd wheels-cuda-cudss && sha256sum *.whl) >> SHA256SUMS.txt
+          # pycolmap wheels (all variants in one folder with unique names)
+          if ls wheels/*.whl 1>/dev/null 2>&1; then
+            echo "## pycolmap wheels" >> SHA256SUMS.txt
+            (cd wheels && sha256sum *.whl) >> SHA256SUMS.txt
           fi
 
           echo "Generated checksums:"
@@ -320,9 +276,6 @@ jobs:
             packages/COLMAP-*.zip
             packages/GLOMAP-*.zip
             packages/wheels/*.whl
-            packages/wheels-cpu/*.whl
-            packages/wheels-cuda/*.whl
-            packages/wheels-cuda-cudss/*.whl
             packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
 
@@ -339,9 +292,6 @@ jobs:
             packages/COLMAP-*.zip
             packages/GLOMAP-*.zip
             packages/wheels/*.whl
-            packages/wheels-cpu/*.whl
-            packages/wheels-cuda/*.whl
-            packages/wheels-cuda-cudss/*.whl
             packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
 
@@ -358,9 +308,6 @@ jobs:
             packages/COLMAP-*.zip
             packages/GLOMAP-*.zip
             packages/wheels/*.whl
-            packages/wheels-cpu/*.whl
-            packages/wheels-cuda/*.whl
-            packages/wheels-cuda-cudss/*.whl
             packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
 
@@ -390,28 +337,8 @@ jobs:
           done
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          echo "### pycolmap CPU Wheels" >> $GITHUB_STEP_SUMMARY
-          for f in packages/wheels-cpu/*.whl; do
-            if [ -f "$f" ]; then
-              size=$(du -h "$f" | cut -f1)
-              name=$(basename "$f")
-              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### pycolmap CUDA Wheels" >> $GITHUB_STEP_SUMMARY
-          for f in packages/wheels-cuda/*.whl; do
-            if [ -f "$f" ]; then
-              size=$(du -h "$f" | cut -f1)
-              name=$(basename "$f")
-              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### pycolmap CUDA+cuDSS Wheels" >> $GITHUB_STEP_SUMMARY
-          for f in packages/wheels-cuda-cudss/*.whl; do
+          echo "### pycolmap Wheels" >> $GITHUB_STEP_SUMMARY
+          for f in packages/wheels/*.whl; do
             if [ -f "$f" ]; then
               size=$(du -h "$f" | cut -f1)
               name=$(basename "$f")
