@@ -464,11 +464,38 @@ jobs:
           fi
 
       # ==================== Artifacts ====================
-      - name: List built wheels
+      - name: Rename wheels with variant suffix
         shell: bash
         working-directory: third_party/colmap-for-pycolmap
         run: |
-          echo "Built wheels:"
+          # Determine variant suffix for wheel filename
+          if [ "${{ matrix.cudss }}" = "true" ]; then
+            VARIANT="+cuda.cudss"
+          elif [ "${{ matrix.cuda }}" = "true" ]; then
+            VARIANT="+cuda"
+          else
+            VARIANT="+cpu"
+          fi
+
+          echo "Renaming wheels with variant: $VARIANT"
+
+          # Rename each wheel to include variant in version
+          # e.g., pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl
+          #    -> pycolmap-3.14.0.dev0+cuda-cp310-cp310-win_amd64.whl
+          for wheel in wheelhouse/*.whl; do
+            if [ -f "$wheel" ]; then
+              filename=$(basename "$wheel")
+              # Extract parts: name-version-pytag-abitag-platform.whl
+              # Insert variant after version (before first -cp)
+              newname=$(echo "$filename" | sed "s/\(pycolmap-[0-9.]*\.dev[0-9]*\)\(-cp\)/\1${VARIANT}\2/")
+              if [ "$filename" != "$newname" ]; then
+                echo "  $filename -> $newname"
+                mv "$wheel" "wheelhouse/$newname"
+              fi
+            fi
+          done
+
+          echo "Renamed wheels:"
           ls -la wheelhouse/*.whl || echo "No wheels found"
 
       - name: Prepare artifact name
