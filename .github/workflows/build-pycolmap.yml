@@ -463,6 +463,60 @@ jobs:
             exit 1
           fi
 
+      # ==================== Smoke Test ====================
+      - name: Smoke test pycolmap wheel (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          $wheel = Get-ChildItem -Path wheelhouse -Filter "pycolmap-*.whl" | Select-Object -First 1
+
+          if (-not $wheel) {
+            Write-Host "ERROR: No wheel found in wheelhouse/" -ForegroundColor Red
+            exit 1
+          }
+
+          Write-Host "Testing wheel: $($wheel.Name)"
+
+          # Install the wheel
+          python -m pip install $wheel.FullName --force-reinstall
+
+          # Test import and version
+          Write-Host "Testing pycolmap import..."
+          python -c "import pycolmap; print(f'pycolmap version: {pycolmap.__version__}')"
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: pycolmap import failed" -ForegroundColor Red
+            exit 1
+          }
+          Write-Host "pycolmap smoke test passed" -ForegroundColor Green
+
+      - name: Smoke test pycolmap wheel (Linux)
+        if: runner.os == 'Linux'
+        working-directory: third_party/colmap-for-pycolmap
+        run: |
+          WHEEL=$(ls wheelhouse/pycolmap-*.whl | head -n 1)
+
+          if [ -z "$WHEEL" ]; then
+            echo "ERROR: No wheel found in wheelhouse/"
+            exit 1
+          fi
+
+          echo "Testing wheel: $WHEEL"
+
+          # Install the wheel
+          pip install "$WHEEL" --force-reinstall
+
+          # Test import and version
+          echo "Testing pycolmap import..."
+          python -c "import pycolmap; print(f'pycolmap version: {pycolmap.__version__}')"
+
+          if [ $? -ne 0 ]; then
+            echo "ERROR: pycolmap import failed"
+            exit 1
+          fi
+          echo "pycolmap smoke test passed"
+
       # ==================== Artifacts ====================
       - name: Rename wheels with variant suffix
         shell: bash

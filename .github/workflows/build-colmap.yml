@@ -375,16 +375,58 @@ jobs:
             Write-Host "WARNING: windeployqt returned non-zero exit code, but continuing..." -ForegroundColor Yellow
           }
 
-          # Verify platforms plugin exists
+          # Verify platforms plugin exists - FAIL if missing (critical for GUI)
           $platformsDir = "$installBin/platforms"
           if (Test-Path "$platformsDir/qwindows.dll") {
             Write-Host "Qt platforms plugin bundled successfully:" -ForegroundColor Green
             Get-ChildItem $platformsDir
           } else {
-            Write-Host "WARNING: platforms/qwindows.dll not found after windeployqt" -ForegroundColor Yellow
+            Write-Host "ERROR: Qt platforms plugin not bundled!" -ForegroundColor Red
+            Write-Host "platforms/qwindows.dll is required for GUI to work" -ForegroundColor Red
             Write-Host "Contents of bin directory:" -ForegroundColor Yellow
             Get-ChildItem $installBin -Recurse | Select-Object FullName
+            exit 1
           }
+
+      # ==================== Smoke Test ====================
+      - name: Smoke test COLMAP binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $colmap = "build/install/colmap/bin/colmap.exe"
+
+          if (-not (Test-Path $colmap)) {
+            Write-Host "ERROR: colmap.exe not found at $colmap" -ForegroundColor Red
+            exit 1
+          }
+
+          Write-Host "Testing COLMAP binary..."
+          & $colmap --help | Select-Object -First 10
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: COLMAP binary failed to run" -ForegroundColor Red
+            exit 1
+          }
+          Write-Host "COLMAP smoke test passed" -ForegroundColor Green
+
+      - name: Smoke test COLMAP binary (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          COLMAP="build/install/colmap/bin/colmap"
+
+          if [ ! -f "$COLMAP" ]; then
+            echo "ERROR: colmap binary not found at $COLMAP"
+            exit 1
+          fi
+
+          echo "Testing COLMAP binary..."
+          "$COLMAP" --help | head -10
+
+          if [ $? -ne 0 ]; then
+            echo "ERROR: COLMAP binary failed to run"
+            exit 1
+          fi
+          echo "COLMAP smoke test passed"
 
       # ==================== Artifacts ====================
       - name: Prepare artifact name
