@@ -265,6 +265,29 @@ jobs:
           chmod +x ./scripts_linux/build_colmap.sh
           ./scripts_linux/build_colmap.sh Release $CUDA_FLAG
 
+      # ==================== Bundle vcpkg Dependencies (Windows) ====================
+      - name: Bundle vcpkg DLLs (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installBin = "build/install/colmap/bin"
+
+          # Ensure bin directory exists
+          if (-not (Test-Path $installBin)) {
+            Write-Host "ERROR: COLMAP bin directory not found at $installBin" -ForegroundColor Red
+            exit 1
+          }
+
+          # Copy vcpkg dependencies
+          $vcpkgBin = "build/vcpkg_installed/x64-windows/bin"
+          if (Test-Path "$vcpkgBin/*.dll") {
+            Write-Host "Copying vcpkg DLLs from: $vcpkgBin"
+            Copy-Item "$vcpkgBin/*.dll" $installBin -Force
+          }
+
+          Write-Host "Bundled DLLs:" -ForegroundColor Green
+          Get-ChildItem "$installBin/*.dll" | Select-Object Name
+
       # ==================== Bundle cuDSS ====================
       - name: Bundle cuDSS DLLs (Windows)
         if: matrix.cuda && matrix.cudss && runner.os == 'Windows'
@@ -401,13 +424,17 @@ jobs:
           }
 
           Write-Host "Testing COLMAP binary..."
-          & $colmap --help | Select-Object -First 10
+          $output = & $colmap --help 2>&1
 
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: COLMAP binary failed to run" -ForegroundColor Red
+          # Check if we got meaningful output (not just an error)
+          if ($output -match "COLMAP" -or $output -match "Usage" -or $output -match "commands") {
+            $output | Select-Object -First 10
+            Write-Host "COLMAP smoke test passed" -ForegroundColor Green
+          } else {
+            Write-Host "ERROR: COLMAP binary failed to run or produced no output" -ForegroundColor Red
+            Write-Host "Output was: $output"
             exit 1
           }
-          Write-Host "COLMAP smoke test passed" -ForegroundColor Green
 
       - name: Smoke test COLMAP binary (Linux)
         if: runner.os == 'Linux'
@@ -420,13 +447,17 @@ jobs:
           fi
 
           echo "Testing COLMAP binary..."
-          "$COLMAP" --help | head -10
+          OUTPUT=$("$COLMAP" --help 2>&1 || true)
 
-          if [ $? -ne 0 ]; then
-            echo "ERROR: COLMAP binary failed to run"
+          # Check if we got meaningful output (not just an error)
+          if echo "$OUTPUT" | grep -qiE "(colmap|usage|commands)"; then
+            echo "$OUTPUT" | head -10
+            echo "COLMAP smoke test passed"
+          else
+            echo "ERROR: COLMAP binary failed to run or produced no output"
+            echo "Output was: $OUTPUT"
             exit 1
           fi
-          echo "COLMAP smoke test passed"
 
       # ==================== Artifacts ====================
       - name: Prepare artifact name

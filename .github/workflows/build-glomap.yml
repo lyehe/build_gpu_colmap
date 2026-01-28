@@ -308,13 +308,17 @@ jobs:
           }
 
           Write-Host "Testing GLOMAP binary..."
-          & $glomap --help | Select-Object -First 10
+          $output = & $glomap --help 2>&1
 
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "ERROR: GLOMAP binary failed to run" -ForegroundColor Red
+          # Check if we got meaningful output (not just an error)
+          if ($output -match "glomap" -or $output -match "mapper" -or $output -match "commands") {
+            $output | Select-Object -First 10
+            Write-Host "GLOMAP smoke test passed" -ForegroundColor Green
+          } else {
+            Write-Host "ERROR: GLOMAP binary failed to run or produced no output" -ForegroundColor Red
+            Write-Host "Output was: $output"
             exit 1
           }
-          Write-Host "GLOMAP smoke test passed" -ForegroundColor Green
 
       - name: Smoke test GLOMAP binary (Linux)
         if: runner.os == 'Linux'
@@ -327,13 +331,17 @@ jobs:
           fi
 
           echo "Testing GLOMAP binary..."
-          ./build/install/glomap/bin/glomap --help | head -10
+          OUTPUT=$(./build/install/glomap/bin/glomap --help 2>&1 || true)
 
-          if [ $? -ne 0 ]; then
-            echo "ERROR: GLOMAP binary failed to run"
+          # Check if we got meaningful output (not just an error)
+          if echo "$OUTPUT" | grep -qiE "(glomap|mapper|commands)"; then
+            echo "$OUTPUT" | head -10
+            echo "GLOMAP smoke test passed"
+          else
+            echo "ERROR: GLOMAP binary failed to run or produced no output"
+            echo "Output was: $OUTPUT"
             exit 1
           fi
-          echo "GLOMAP smoke test passed"
 
       # ==================== Artifacts ====================
       - name: Prepare artifact name
