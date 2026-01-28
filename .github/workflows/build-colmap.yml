@@ -341,6 +341,51 @@ jobs:
           echo "cuDSS libraries found:"
           ls -la build/install/colmap/lib/libcudss*.so*
 
+      # ==================== Bundle Qt for GUI builds ====================
+      - name: Bundle Qt dependencies (Windows GUI)
+        if: matrix.gui && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installBin = "build/install/colmap/bin"
+          $colmapExe = "$installBin/colmap.exe"
+
+          if (-not (Test-Path $colmapExe)) {
+            Write-Host "ERROR: colmap.exe not found at $colmapExe" -ForegroundColor Red
+            exit 1
+          }
+
+          # Find windeployqt from vcpkg Qt installation
+          $vcpkgInstalled = "build/vcpkg_installed/x64-windows"
+          $windeployqt = Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+          if (-not $windeployqt) {
+            Write-Host "ERROR: windeployqt.exe not found in vcpkg_installed" -ForegroundColor Red
+            Write-Host "Searching for Qt tools..." -ForegroundColor Yellow
+            Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "*.exe" | Where-Object { $_.Name -like "*qt*" -or $_.Name -like "*deploy*" } | Select-Object FullName
+            exit 1
+          }
+
+          Write-Host "Found windeployqt: $($windeployqt.FullName)"
+          Write-Host "Running windeployqt on colmap.exe..."
+
+          # Run windeployqt to copy Qt DLLs and plugins
+          & $windeployqt.FullName $colmapExe --no-translations --no-system-d3d-compiler --no-opengl-sw
+
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "WARNING: windeployqt returned non-zero exit code, but continuing..." -ForegroundColor Yellow
+          }
+
+          # Verify platforms plugin exists
+          $platformsDir = "$installBin/platforms"
+          if (Test-Path "$platformsDir/qwindows.dll") {
+            Write-Host "Qt platforms plugin bundled successfully:" -ForegroundColor Green
+            Get-ChildItem $platformsDir
+          } else {
+            Write-Host "WARNING: platforms/qwindows.dll not found after windeployqt" -ForegroundColor Yellow
+            Write-Host "Contents of bin directory:" -ForegroundColor Yellow
+            Get-ChildItem $installBin -Recurse | Select-Object FullName
+          }
+
       # ==================== Artifacts ====================
       - name: Prepare artifact name
         id: artifact-name
