@@ -116,7 +116,7 @@ jobs:
         with:
           cuda: ${{ matrix.cuda_version }}
           method: 'network'
-          sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc", "nvrtc_dev", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev", "nvjitlink"]'
           log-file-suffix: '-${{ matrix.name }}.log'
 
       - name: Install CUDA Toolkit (Linux)
