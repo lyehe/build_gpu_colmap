@@ -285,8 +285,49 @@ jobs:
             Copy-Item "$vcpkgBin/*.dll" $installBin -Force
           }
 
-          Write-Host "Bundled DLLs:" -ForegroundColor Green
+          Write-Host "Bundled vcpkg DLLs:" -ForegroundColor Green
           Get-ChildItem "$installBin/*.dll" | Select-Object Name
+
+      # ==================== Bundle CUDA Runtime (Windows) ====================
+      - name: Bundle CUDA DLLs (Windows)
+        if: matrix.cuda && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installBin = "build/install/colmap/bin"
+          $cudaBin = "$env:CUDA_PATH\bin"
+
+          if (-not (Test-Path $cudaBin)) {
+            Write-Host "ERROR: CUDA bin directory not found at $cudaBin" -ForegroundColor Red
+            exit 1
+          }
+
+          Write-Host "Copying CUDA runtime DLLs from: $cudaBin"
+
+          # Copy essential CUDA runtime DLLs
+          $cudaDlls = @(
+            "cudart64_*.dll",
+            "cublas64_*.dll",
+            "cublasLt64_*.dll",
+            "cusparse64_*.dll",
+            "cusolver64_*.dll",
+            "curand64_*.dll",
+            "cufft64_*.dll",
+            "nvrtc64_*.dll",
+            "nvrtc-builtins64_*.dll"
+          )
+
+          foreach ($pattern in $cudaDlls) {
+            $dlls = Get-ChildItem "$cudaBin/$pattern" -ErrorAction SilentlyContinue
+            if ($dlls) {
+              foreach ($dll in $dlls) {
+                Write-Host "  Copying: $($dll.Name)"
+                Copy-Item $dll.FullName $installBin -Force
+              }
+            }
+          }
+
+          Write-Host "CUDA DLLs bundled:" -ForegroundColor Green
+          Get-ChildItem "$installBin/cu*.dll" | Select-Object Name
 
       # ==================== Bundle cuDSS ====================
       - name: Bundle cuDSS DLLs (Windows)
