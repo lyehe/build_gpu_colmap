@@ -302,32 +302,36 @@ jobs:
           }
 
           Write-Host "Copying CUDA runtime DLLs from: $cudaBin"
+          Write-Host "Available CUDA DLLs in toolkit:"
+          Get-ChildItem -Path $cudaBin -Filter "*.dll" | Where-Object { $_.Name -match "^(cu|nv)" } | Select-Object Name | Format-Table -HideTableHeaders
 
-          # Copy essential CUDA runtime DLLs
-          $cudaDlls = @(
-            "cudart64_*.dll",
-            "cublas64_*.dll",
-            "cublasLt64_*.dll",
-            "cusparse64_*.dll",
-            "cusolver64_*.dll",
-            "curand64_*.dll",
-            "cufft64_*.dll",
-            "nvrtc64_*.dll",
-            "nvrtc-builtins64_*.dll"
+          # Copy essential CUDA runtime DLLs using -Filter for proper wildcard handling
+          $cudaPatterns = @(
+            "cudart64_*",
+            "cublas64_*",
+            "cublasLt64_*",
+            "cusparse64_*",
+            "cusolver64_*",
+            "curand64_*",
+            "cufft64_*",
+            "nvrtc64_*",
+            "nvrtc-builtins64_*",
+            "nvJitLink_*"
           )
 
-          foreach ($pattern in $cudaDlls) {
-            $dlls = Get-ChildItem "$cudaBin/$pattern" -ErrorAction SilentlyContinue
-            if ($dlls) {
-              foreach ($dll in $dlls) {
-                Write-Host "  Copying: $($dll.Name)"
-                Copy-Item $dll.FullName $installBin -Force
-              }
+          $copiedCount = 0
+          foreach ($pattern in $cudaPatterns) {
+            $dlls = Get-ChildItem -Path $cudaBin -Filter "$pattern.dll" -ErrorAction SilentlyContinue
+            foreach ($dll in $dlls) {
+              Write-Host "  Copying: $($dll.Name)"
+              Copy-Item $dll.FullName $installBin -Force
+              $copiedCount++
             }
           }
 
-          Write-Host "CUDA DLLs bundled:" -ForegroundColor Green
-          Get-ChildItem "$installBin/cu*.dll" | Select-Object Name
+          Write-Host "Copied $copiedCount CUDA DLLs" -ForegroundColor Green
+          Write-Host "CUDA/NV DLLs in install bin:" -ForegroundColor Green
+          Get-ChildItem -Path $installBin -Filter "*.dll" | Where-Object { $_.Name -match "^(cu|nv)" } | Select-Object Name
 
       # ==================== Bundle cuDSS ====================
       - name: Bundle cuDSS DLLs (Windows)
@@ -458,11 +462,16 @@ jobs:
         shell: pwsh
         run: |
           $colmap = "build/install/colmap/bin/colmap.exe"
+          $binDir = "build/install/colmap/bin"
 
           if (-not (Test-Path $colmap)) {
             Write-Host "ERROR: colmap.exe not found at $colmap" -ForegroundColor Red
             exit 1
           }
+
+          # List all DLLs in bin directory for diagnostics
+          Write-Host "DLLs in bin directory:" -ForegroundColor Cyan
+          Get-ChildItem -Path $binDir -Filter "*.dll" | Select-Object Name | Format-Table -HideTableHeaders
 
           Write-Host "Testing COLMAP binary..."
           $output = & $colmap --help 2>&1
@@ -474,6 +483,17 @@ jobs:
           } else {
             Write-Host "ERROR: COLMAP binary failed to run or produced no output" -ForegroundColor Red
             Write-Host "Output was: $output"
+            Write-Host ""
+            Write-Host "Checking for missing DLL dependencies..." -ForegroundColor Yellow
+            # Try to get more info about the failure
+            try {
+              $proc = Start-Process -FilePath $colmap -ArgumentList "--help" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "stdout.txt" -RedirectStandardError "stderr.txt"
+              Write-Host "Exit code: $($proc.ExitCode)"
+              if (Test-Path "stdout.txt") { Write-Host "stdout: $(Get-Content stdout.txt -Raw)" }
+              if (Test-Path "stderr.txt") { Write-Host "stderr: $(Get-Content stderr.txt -Raw)" }
+            } catch {
+              Write-Host "Process start failed: $_"
+            }
             exit 1
           }
 
