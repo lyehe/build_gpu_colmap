@@ -65,17 +65,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Free disk space
+      - name: Free disk space (aggressive)
         run: |
           echo "Disk space before cleanup:"
           df -h
-          # Remove unnecessary packages to free disk space
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
+
+          # Remove unnecessary packages to free maximum disk space
+          # This is needed because we download 32+ large artifacts (some 100MB+ each)
+          echo "Removing large unnecessary directories..."
+          sudo rm -rf /usr/share/dotnet || true
+          sudo rm -rf /usr/local/lib/android || true
+          sudo rm -rf /opt/ghc || true
+          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+          sudo rm -rf /opt/hostedtoolcache/go || true
+          sudo rm -rf /opt/hostedtoolcache/node || true
+          sudo rm -rf /opt/hostedtoolcache/Python || true
+          sudo rm -rf /opt/hostedtoolcache/Ruby || true
+          sudo rm -rf /opt/microsoft || true
+          sudo rm -rf /opt/google || true
+          sudo rm -rf /opt/pipx || true
+          sudo rm -rf /usr/local/share/boost || true
+          sudo rm -rf /usr/local/share/chromium || true
+          sudo rm -rf /usr/local/share/powershell || true
+          sudo rm -rf /usr/share/swift || true
+          sudo rm -rf /usr/share/miniconda || true
+          sudo rm -rf /imagegeneration || true
+
+          # Clean Docker images
+          echo "Cleaning Docker..."
           sudo docker image prune --all --force || true
+          sudo docker system prune --all --force || true
+
+          # Clean apt cache
+          echo "Cleaning apt..."
           sudo apt-get clean
+          sudo apt-get autoremove -y || true
+
           echo "Disk space after cleanup:"
           df -h
 
@@ -86,11 +111,20 @@ jobs:
 
       - name: List downloaded artifacts
         run: |
+          echo "Disk space after download:"
+          df -h /
+          echo ""
+          echo "Total artifacts size:"
+          du -sh artifacts/ || true
+          echo ""
           echo "Downloaded artifacts:"
-          find artifacts/ -type f -name "*.whl" -o -name "*.zip" -o -name "*.tar.gz" | head -100
+          find artifacts/ -type f \( -name "*.whl" -o -name "*.zip" -o -name "*.tar.gz" \) | head -100
           echo ""
           echo "Directory structure:"
           ls -la artifacts/
+          echo ""
+          echo "Largest directories:"
+          du -sh artifacts/*/ 2>/dev/null | sort -hr | head -20
 
       # ==================== Package COLMAP ====================
       - name: Package COLMAP artifacts
@@ -104,11 +138,16 @@ jobs:
               cd "$dir"
               zip -r "../../packages/${name}.zip" .
               cd ../..
+              # Delete raw artifact after packaging to save space
+              rm -rf "$dir"
             fi
           done
 
           echo "COLMAP packages created:"
           ls -la packages/COLMAP-* || echo "No COLMAP packages"
+          echo ""
+          echo "Disk space after COLMAP packaging:"
+          df -h /
 
       # ==================== Package GLOMAP ====================
       - name: Package GLOMAP artifacts
@@ -120,11 +159,16 @@ jobs:
               cd "$dir"
               zip -r "../../packages/${name}.zip" .
               cd ../..
+              # Delete raw artifact after packaging to save space
+              rm -rf "$dir"
             fi
           done
 
           echo "GLOMAP packages created:"
           ls -la packages/GLOMAP-* || echo "No GLOMAP packages"
+          echo ""
+          echo "Disk space after GLOMAP packaging:"
+          df -h /
 
       # ==================== Collect pycolmap wheels ====================
       # Wheels now have unique names with variant suffix (+cpu, +cuda, +cuda.cudss)
@@ -134,8 +178,17 @@ jobs:
           mkdir -p packages/wheels
 
           # Find and copy all wheel files (they have unique names now)
-          find artifacts/ -name "*.whl" -exec cp {} packages/wheels/ \;
+          # Process one at a time and delete source to save space
+          for whl in $(find artifacts/ -name "*.whl" 2>/dev/null); do
+            echo "Collecting: $(basename "$whl")"
+            cp "$whl" packages/wheels/
+            rm -f "$whl"
+          done
 
+          # Clean up remaining artifact directories
+          rm -rf artifacts/pycolmap-* 2>/dev/null || true
+
+          echo ""
           echo "All pycolmap wheels:"
           ls -la packages/wheels/*.whl || echo "No wheels found"
 
@@ -144,6 +197,9 @@ jobs:
           echo "  CPU:        $(ls packages/wheels/*+cpu*.whl 2>/dev/null | wc -l)"
           echo "  CUDA:       $(ls packages/wheels/*+cuda-*.whl 2>/dev/null | wc -l)"
           echo "  CUDA+cuDSS: $(ls packages/wheels/*+cuda.cudss*.whl 2>/dev/null | wc -l)"
+          echo ""
+          echo "Disk space after wheel collection:"
+          df -h /
 
       # ==================== Generate Checksums ====================
       - name: Generate SHA256 checksums
