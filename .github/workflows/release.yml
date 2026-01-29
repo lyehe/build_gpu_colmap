@@ -283,21 +283,11 @@ jobs:
           ~/tools/glomap/bin/glomap mapper --database_path db.db --image_path images --output_path sparse
           ```
 
-          ### pycolmap (pip install)
+          ### pycolmap
 
-          **GPU/CUDA version (recommended):**
+          Download the appropriate wheel for your Python version and platform, then install:
           ```bash
-          pip install pycolmap --extra-index-url https://${{ github.repository_owner }}.github.io/build_gpu_colmap/
-          ```
-
-          **CPU version (from PyPI):**
-          ```bash
-          pip install pycolmap
-          ```
-
-          **Verify installation:**
-          ```bash
-          python -c "import pycolmap; print(pycolmap.__version__)"
+          pip install pycolmap-3.14.0.dev0+cuda-cp312-cp312-win_amd64.whl
           ```
 
           ## Package Variants
@@ -306,14 +296,7 @@ jobs:
           |---------|-------------|
           | `CPU` | CPU-only (no NVIDIA GPU required) |
           | `CUDA` | GPU-accelerated (Windows: self-contained, Linux: requires CUDA Toolkit) |
-          | `CUDA-cuDSS` | CUDA + cuDSS sparse solver (2-5x faster) |
-
-          ## Why are Linux packages smaller?
-
-          - **Windows (~1 GB):** Bundles all CUDA runtime DLLs for self-contained operation
-          - **Linux (~25-45 MB):** Dynamically links to system CUDA libraries
-
-          Linux CUDA builds require CUDA Toolkit installed: `sudo apt-get install nvidia-cuda-toolkit`
+          | `CUDA+cuDSS` | CUDA + cuDSS sparse solver (faster bundle adjustment) |
 
           ## System Requirements
 
