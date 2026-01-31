@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Point Cloud Tools** - Self-contained build environment for COLMAP, GLOMAP, and related computer vision tools with CUDA support. This project uses vcpkg for dependency management and CMake's ExternalProject module to orchestrate builds of multiple interdependent computer vision libraries.
 
 ### Key Components
-- **COLMAP 3.13 dev** - Structure-from-Motion and Multi-View Stereo (latest development, general use)
-- **COLMAP 3.13 dev for pycolmap** (colmap-for-pycolmap) - Latest development version configured specifically for Python wheel building
+- **COLMAP 3.14 dev** - Structure-from-Motion and Multi-View Stereo (latest development, general use)
+- **COLMAP 3.14 dev for pycolmap** (colmap-for-pycolmap) - Latest development version configured specifically for Python wheel building
 - **COLMAP 3.11** (colmap-for-glomap) - Pinned to commit 78f1eefa specifically for GLOMAP compatibility
 - **GLOMAP** - Fast global Structure-from-Motion
 - **Ceres Solver** - Nonlinear optimization library (base dependency for all)
@@ -96,14 +96,14 @@ cmake --build . --config Release
 ### Multiple COLMAP Version Strategy
 This project can build **three separate COLMAP versions**:
 
-1. **COLMAP 3.13 dev** (`third_party/colmap`) → `build/install/colmap/`
+1. **COLMAP 3.14 dev** (`third_party/colmap`) → `build/install/colmap/`
    - For general use
-   - Tracks latest COLMAP main branch (version 3.13.0.dev0)
+   - Tracks latest COLMAP main branch (version 3.14.0.dev0)
    - Full features enabled
 
-2. **COLMAP 3.13 dev for pycolmap** (`third_party/colmap-for-pycolmap`) → `build/install/colmap-for-pycolmap/`
+2. **COLMAP 3.14 dev for pycolmap** (`third_party/colmap-for-pycolmap`) → `build/install/colmap-for-pycolmap/`
    - For building Python wheels with specific configurations
-   - Tracks latest COLMAP main branch (version 3.13.0.dev0)
+   - Tracks latest COLMAP main branch (version 3.14.0.dev0)
    - Built with GUI/tests disabled, optimized for Python bindings
    - Optional build (set `-DBUILD_COLMAP_FOR_PYCOLMAP=ON`)
 
@@ -120,8 +120,8 @@ The CMakeLists.txt uses `ExternalProject_Add()` to enforce strict build order:
 
 ```
 Ceres Solver (base dependency)
-    ├── COLMAP 3.13 dev ─────────────→ build/install/colmap/
-    ├── COLMAP 3.13 dev for pycolmap (optional) → build/install/colmap-for-pycolmap/
+    ├── COLMAP 3.14 dev ─────────────→ build/install/colmap/
+    ├── COLMAP 3.14 dev for pycolmap (optional) → build/install/colmap-for-pycolmap/
     ├── COLMAP 3.11 ─────────────────→ build/install/colmap-for-glomap/
     └── PoseLib ─────────────────────→ build/install/poselib/
             └── GLOMAP ──────────────→ build/install/glomap/
@@ -327,7 +327,7 @@ The project includes scripts to package and release builds:
 
 **Step 1: Build Components**
 ```powershell
-# Build COLMAP 3.13 dev
+# Build COLMAP 3.14 dev
 .\scripts_windows\build_colmap.ps1
 
 # Build GLOMAP (includes COLMAP 3.11)
@@ -344,7 +344,7 @@ The project includes scripts to package and release builds:
 ```
 
 This creates in `releases/`:
-- `COLMAP-3.13-dev-Windows-x64-CUDA.zip` - COLMAP 3.13 dev from `build/install/colmap/`
+- `COLMAP-3.13-dev-Windows-x64-CUDA.zip` - COLMAP 3.14 dev from `build/install/colmap/`
 - `GLOMAP-Windows-x64-CUDA.zip` - GLOMAP (self-contained with COLMAP 3.11) from `build/install/glomap/`
 - Copies `pycolmap-*.whl` files from `third_party/colmap-for-pycolmap/wheelhouse/`
 
@@ -358,12 +358,12 @@ gh auth login
 ```
 
 **Release Strategy:**
-- **COLMAP 3.13 dev** - Latest development version for general use
+- **COLMAP 3.14 dev** - Latest development version for general use
 - **GLOMAP** - Self-contained with COLMAP 3.11 bundled for compatibility
-- **pycolmap wheels** - Built from COLMAP 3.13 dev, one wheel per Python version
+- **pycolmap wheels** - Built from COLMAP 3.14 dev, one wheel per Python version
 
 Users don't need both COLMAP packages - each is self-contained:
-- Use COLMAP 3.13 dev for latest features
+- Use COLMAP 3.14 dev for latest features
 - Use GLOMAP for fast global SfM (includes its own COLMAP 3.11)
 
 ## Documentation Reference

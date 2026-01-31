@@ -4,10 +4,10 @@ Pre-built Windows binaries for COLMAP, GLOMAP, and Python wheels with CUDA suppo
 
 ## What's Included
 
-### COLMAP 3.13 dev - Windows x64 CUDA (119 MB)
-**File**: `COLMAP-3.13-dev-Windows-x64-CUDA.zip`
+### COLMAP 3.14 dev - Windows x64 CUDA (119 MB)
+**File**: `COLMAP-3.14-dev-Windows-x64-CUDA.zip`
 
-Latest COLMAP development version (3.13.0.dev0) for Structure-from-Motion and Multi-View Stereo reconstruction.
+Latest COLMAP development version (3.14.0.dev0) for Structure-from-Motion and Multi-View Stereo reconstruction.
 
 - All dependencies bundled (no separate installation needed)
 - CUDA GPU acceleration for RTX 20/30/40 series, A100, H100
@@ -42,9 +42,11 @@ Fast global Structure-from-Motion tool.
 
 ### pycolmap - Python Wheels (570 MB each)
 **Files**:
-- `pycolmap-3.13.0.dev0-cp310-cp310-win_amd64.whl` (Python 3.10)
-- `pycolmap-3.13.0.dev0-cp311-cp311-win_amd64.whl` (Python 3.11)
-- `pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl` (Python 3.12)
+- `pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl` (Python 3.10)
+- `pycolmap-3.14.0.dev0-cp311-cp311-win_amd64.whl` (Python 3.11)
+- `pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl` (Python 3.12)
+- `pycolmap-3.14.0.dev0-cp313-cp313-win_amd64.whl` (Python 3.13)
+- `pycolmap-3.14.0.dev0-cp314-cp314-win_amd64.whl` (Python 3.14)
 
 Python bindings for COLMAP with all dependencies bundled.
 
@@ -54,7 +56,7 @@ Python bindings for COLMAP with all dependencies bundled.
 
 **Installation**:
 ```bash
-pip install pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl
+pip install pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl
 ```
 
 **Quick Test**:
@@ -82,18 +84,31 @@ Windows Defender may flag these binaries as potentially unwanted software (typic
 
 **For GPU Acceleration** (optional but recommended):
 - NVIDIA GPU with Compute Capability 7.5+ (RTX 20/30/40, A100, H100)
-- [CUDA Toolkit 11.0+](https://developer.nvidia.com/cuda-downloads) installed separately
-- Latest NVIDIA drivers
+- **NVIDIA Driver 570.26+ required** (for CUDA 12.8 binaries)
+  - Windows: Driver 570.65+
+  - Linux: Driver 570.26+
+- Check your driver version: `nvidia-smi`
 
 **Note**: Binaries will run without CUDA but GPU acceleration will be disabled.
 
+**⚠️ "PTX compiled with unsupported toolchain" Error**:
+If you see this error during GPU feature extraction, your NVIDIA driver is too old.
+```
+CUDA error: the provided PTX was compiled with an unsupported toolchain
+```
+**Fix**: Update your NVIDIA driver to version 570 or later:
+- Windows: Download from [NVIDIA Drivers](https://www.nvidia.com/Download/index.aspx)
+- Linux: `sudo apt install nvidia-driver-570` (Ubuntu/Debian)
+
 **For pycolmap**:
-- Python 3.10, 3.11, or 3.12 (64-bit)
+- Python 3.10, 3.11, 3.12, 3.13, or 3.14 (64-bit)
 - Wheels are self-contained and work on any compatible Windows machine
 
 ## What's New
 
-- Latest COLMAP 3.13 development version with newest features
+- Latest COLMAP 3.14 development version with newest features
+- GLOMAP functionality merged into COLMAP
+- New fisheye (equidistant) camera model
 - GLOMAP with COLMAP 3.11 for compatibility
 - Self-contained Python wheels for easy installation
 - All packages include CUDA support for GPU acceleration

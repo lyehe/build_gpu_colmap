@@ -428,10 +428,11 @@ if ($ValidVersions.Count -eq 0) {
     Write-Host "ERROR: No Python 3.9+ installations found" -ForegroundColor Red
     Write-Host ""
     Write-Host "To install multiple Python versions:" -ForegroundColor Yellow
-    Write-Host "  winget install Python.Python.3.9" -ForegroundColor White
     Write-Host "  winget install Python.Python.3.10" -ForegroundColor White
     Write-Host "  winget install Python.Python.3.11" -ForegroundColor White
     Write-Host "  winget install Python.Python.3.12" -ForegroundColor White
+    Write-Host "  winget install Python.Python.3.13" -ForegroundColor White
+    Write-Host "  winget install Python.Python.3.14" -ForegroundColor White
     exit 1
 }
 

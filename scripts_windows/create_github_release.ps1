@@ -100,11 +100,13 @@ try {
         --title "$RELEASE_TITLE" `
         --notes-file "$RELEASE_NOTES_FILE" `
         --repo "lyehe/build_gpu_colmap" `
-        COLMAP-3.13-dev-Windows-x64-CUDA.zip `
+        COLMAP-3.14-dev-Windows-x64-CUDA.zip `
         GLOMAP-Windows-x64-CUDA.zip `
-        pycolmap-3.13.0.dev0-cp310-cp310-win_amd64.whl `
-        pycolmap-3.13.0.dev0-cp311-cp311-win_amd64.whl `
-        pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl
+        pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl `
+        pycolmap-3.14.0.dev0-cp311-cp311-win_amd64.whl `
+        pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl `
+        pycolmap-3.14.0.dev0-cp313-cp313-win_amd64.whl `
+        pycolmap-3.14.0.dev0-cp314-cp314-win_amd64.whl
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
