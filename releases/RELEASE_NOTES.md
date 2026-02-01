@@ -1,6 +1,16 @@
-# COLMAP GPU Builder v1.0.0
+# Point Cloud Tools v2.2.0 - COLMAP 3.14
 
-Pre-built Windows binaries for COLMAP, GLOMAP, and Python wheels with CUDA support.
+Pre-built Windows/Linux binaries for COLMAP, GLOMAP, and Python wheels with CUDA 12.8 support.
+
+## ⚠️ Important: NVIDIA Driver 570+ Required
+
+CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-smi`.
+
+## 🎉 Highlights
+
+- **GLOMAP merged into COLMAP** - Global SfM functionality is now part of COLMAP 3.14
+- **New fisheye (equidistant) camera model**
+- **Python 3.10-3.14 support**
 
 ## What's Included
 
@@ -104,14 +114,13 @@ CUDA error: the provided PTX was compiled with an unsupported toolchain
 - Python 3.10, 3.11, 3.12, 3.13, or 3.14 (64-bit)
 - Wheels are self-contained and work on any compatible Windows machine
 
-## What's New
+## What's New in COLMAP 3.14
 
-- Latest COLMAP 3.14 development version with newest features
-- GLOMAP functionality merged into COLMAP
-- New fisheye (equidistant) camera model
-- GLOMAP with COLMAP 3.11 for compatibility
-- Self-contained Python wheels for easy installation
-- All packages include CUDA support for GPU acceleration
+- **GLOMAP merged into COLMAP** - Run global SfM directly: `colmap global_mapper`
+- **New fisheye (equidistant) camera model** - Better support for wide-angle lenses
+- **Bundle adjustment refactoring** - Improved optimization performance
+- **PLY mesh reading support** - Import mesh files directly
+- Standalone GLOMAP package still available (uses COLMAP 3.11 for compatibility)
 
 ## Supported GPU Architectures
 
