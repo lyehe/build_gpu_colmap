@@ -215,9 +215,13 @@ jobs:
       - name: Generate release notes
         run: |
           cat > release_notes.md << 'RELEASE_EOF'
-          Pre-built COLMAP and pycolmap binaries with CUDA support.
+          Pre-built COLMAP and pycolmap binaries with CUDA 12.8 support.
 
-          **Note:** GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper` for global Structure-from-Motion.
+          ## Highlights
+
+          - **COLMAP updated to latest** - Includes LightGlue ONNX feature matching and ALIKED support
+          - **GLOMAP removed from repository** - Global SfM is now built into COLMAP 3.14 (`colmap global_mapper`)
+          - **Build fixes** - Disabled ONNX runtime to fix install failures, fixed ExternalProject LIST_SEPARATOR handling
 
           ## Installation
 
@@ -253,8 +257,8 @@ jobs:
           ## System Requirements
 
           - **GPU:** NVIDIA RTX 20 series or newer (Compute Capability 7.5+)
-          - **Driver:** 520+ (Windows), 525+ (Linux)
-          - **Python:** 3.10, 3.11, 3.12, or 3.13 (for pycolmap)
+          - **Driver:** 570+ (Windows), 570+ (Linux) - CUDA 12.8 requires driver 570+
+          - **Python:** 3.10, 3.11, 3.12, 3.13, or 3.14 (for pycolmap)
           RELEASE_EOF
 
       - name: Upload assets and update release notes
