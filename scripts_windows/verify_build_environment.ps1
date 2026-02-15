@@ -322,7 +322,7 @@ To build without CUDA, use: -NoCuda flag with build scripts
         }
     }
 
-    # Check for cuDSS (CUDA Direct Sparse Solver) - optional but useful for COLMAP/GLOMAP
+    # Check for cuDSS (CUDA Direct Sparse Solver) - optional but useful for COLMAP
     $CudssFound = $false
     $CudssLocation = ""
 

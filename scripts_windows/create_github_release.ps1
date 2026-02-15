@@ -1,4 +1,4 @@
-﻿# GitHub Release Creation Script
+# GitHub Release Creation Script
 # This script creates a GitHub release and uploads all assets from releases/ directory
 
 $ErrorActionPreference = "Stop"
@@ -95,18 +95,31 @@ try {
         exit 1
     }
 
+    # Build list of assets to upload
+    $assets = @()
+
+    # Add COLMAP zip if it exists
+    $colmapZip = "COLMAP-3.14-dev-Windows-x64-CUDA.zip"
+    if (Test-Path $colmapZip) {
+        $assets += $colmapZip
+    }
+
+    # Add pycolmap wheels
+    Get-ChildItem -Filter "pycolmap-*.whl" | ForEach-Object {
+        $assets += $_.Name
+    }
+
+    if ($assets.Count -eq 0) {
+        Write-Host "ERROR: No release assets found" -ForegroundColor Red
+        exit 1
+    }
+
     # Create the release with notes from file
     & $GH_CLI release create $RELEASE_TAG `
         --title "$RELEASE_TITLE" `
         --notes-file "$RELEASE_NOTES_FILE" `
         --repo "lyehe/build_gpu_colmap" `
-        COLMAP-3.14-dev-Windows-x64-CUDA.zip `
-        GLOMAP-Windows-x64-CUDA.zip `
-        pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl `
-        pycolmap-3.14.0.dev0-cp311-cp311-win_amd64.whl `
-        pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl `
-        pycolmap-3.14.0.dev0-cp313-cp313-win_amd64.whl `
-        pycolmap-3.14.0.dev0-cp314-cp314-win_amd64.whl
+        @assets
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""

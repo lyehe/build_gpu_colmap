@@ -1,6 +1,8 @@
 # Point Cloud Tools
 
-Pre-built COLMAP, GLOMAP, and pycolmap binaries with CUDA support for Windows and Linux.
+Pre-built COLMAP and pycolmap binaries with CUDA support for Windows and Linux.
+
+**Note:** GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper` for global Structure-from-Motion.
 
 ## Downloads
 
@@ -10,8 +12,7 @@ Download the latest release from [GitHub Releases](https://github.com/YOUR_USERN
 
 | Package | Description |
 |---------|-------------|
-| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v3.13 dev) |
-| **GLOMAP** | Fast global Structure-from-Motion |
+| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v3.14 dev) |
 | **pycolmap** | Python bindings for COLMAP |
 
 ### Release Variants
@@ -37,6 +38,9 @@ $env:PATH = "C:\Tools\COLMAP\bin;$env:PATH"
 # Run COLMAP
 colmap gui
 colmap automatic_reconstructor --workspace_path ./project --image_path ./images
+
+# Global SfM (previously GLOMAP)
+colmap global_mapper --database_path ./database.db --image_path ./images --output_path ./sparse
 ```
 
 **Linux:**
@@ -50,34 +54,9 @@ export PATH="$HOME/tools/colmap/bin:$PATH"
 # Run COLMAP
 colmap gui
 colmap automatic_reconstructor --workspace_path ./project --image_path ./images
-```
 
-### GLOMAP
-
-GLOMAP packages are self-contained and include their own COLMAP 3.11 for compatibility.
-
-**Windows:**
-```powershell
-# Extract the archive
-Expand-Archive GLOMAP-windows-latest-CUDA12.8.1.zip -DestinationPath C:\Tools\GLOMAP
-
-# Add to PATH (optional)
-$env:PATH = "C:\Tools\GLOMAP\bin;$env:PATH"
-
-# Run GLOMAP
-glomap mapper --database_path ./database.db --image_path ./images --output_path ./sparse
-```
-
-**Linux:**
-```bash
-# Extract the archive
-unzip GLOMAP-ubuntu-22.04-CUDA12.8.1.zip -d ~/tools/glomap
-
-# Add to PATH (optional)
-export PATH="$HOME/tools/glomap/bin:$PATH"
-
-# Run GLOMAP
-glomap mapper --database_path ./database.db --image_path ./images --output_path ./sparse
+# Global SfM (previously GLOMAP)
+colmap global_mapper --database_path ./database.db --image_path ./images --output_path ./sparse
 ```
 
 ### pycolmap (Python Wheels)
@@ -85,14 +64,14 @@ glomap mapper --database_path ./database.db --image_path ./images --output_path 
 **Install from wheel file:**
 ```bash
 # Download the wheel for your Python version (e.g., cp312 = Python 3.12)
-pip install pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl      # Windows
-pip install pycolmap-3.13.0.dev0-cp312-cp312-linux_x86_64.whl   # Linux
+pip install pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl      # Windows
+pip install pycolmap-3.14.0.dev0-cp312-cp312-linux_x86_64.whl   # Linux
 
 # Verify installation
 python -c "import pycolmap; print(pycolmap.__version__)"
 ```
 
-**Available Python versions:** 3.10, 3.11, 3.12, 3.13
+**Available Python versions:** 3.10, 3.11, 3.12, 3.13, 3.14
 
 **Usage example:**
 ```python
@@ -118,7 +97,6 @@ Linux packages are significantly smaller than Windows packages:
 | Package | Linux | Windows | Reason |
 |---------|-------|---------|--------|
 | COLMAP CUDA | ~45 MB | ~1.3 GB | CUDA runtime bundling |
-| GLOMAP CUDA | ~10 MB | ~1.2 GB | CUDA runtime bundling |
 | pycolmap | ~26 MB | ~1 GB | CUDA runtime bundling |
 
 **Why?**
@@ -141,7 +119,7 @@ sudo apt-get install nvidia-cuda-toolkit
 ### Minimum
 - **OS:** Windows 10/11 x64 or Ubuntu 22.04+ x64
 - **RAM:** 8 GB (16 GB+ recommended for large datasets)
-- **Storage:** 2 GB for COLMAP, 1.5 GB for GLOMAP
+- **Storage:** 2 GB for COLMAP
 
 ### For CUDA builds
 - **GPU:** NVIDIA GPU with Compute Capability 7.5+ (RTX 20 series or newer)
@@ -154,6 +132,18 @@ sudo apt-get install nvidia-cuda-toolkit
 - Ada Lovelace (RTX 40 series) - SM 8.9
 - Hopper (H100) - SM 9.0
 - Blackwell (RTX 50 series) - SM 12.0
+
+## Migration from GLOMAP
+
+If you were previously using the standalone GLOMAP binary, simply replace:
+
+```bash
+# Old (standalone GLOMAP)
+glomap mapper --database_path db.db --image_path images --output_path sparse
+
+# New (COLMAP 3.14+)
+colmap global_mapper --database_path db.db --image_path images --output_path sparse
+```
 
 ## Building from Source
 
@@ -171,11 +161,9 @@ See [CLAUDE.md](.claude/CLAUDE.md) for detailed build instructions.
 ## License
 
 - **COLMAP:** BSD-3-Clause
-- **GLOMAP:** BSD-3-Clause
 - **This build system:** MIT
 
 ## Links
 
 - [COLMAP Documentation](https://colmap.github.io/)
-- [GLOMAP Repository](https://github.com/colmap/glomap)
 - [pycolmap Documentation](https://colmap.github.io/pycolmap.html)

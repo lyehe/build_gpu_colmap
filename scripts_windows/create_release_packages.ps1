@@ -1,5 +1,5 @@
 # Create Release Packages Script
-# Packages COLMAP 3.13 dev, GLOMAP, and pycolmap wheels for release
+# Packages COLMAP 3.14 dev and pycolmap wheels for release
 
 [CmdletBinding()]
 param(
@@ -13,18 +13,17 @@ Create Release Packages Script
 Usage: .\create_release_packages.ps1
 
 This script packages the built components for GitHub release:
-  - COLMAP 3.13 dev (from build/install/colmap/)
-  - GLOMAP (from build/install/glomap/)
+  - COLMAP 3.14 dev (from build/install/colmap/)
   - Copies pycolmap wheels (from third_party/colmap-for-pycolmap/wheelhouse/)
 
+Note: GLOMAP has been merged into COLMAP 3.14. Use 'colmap global_mapper' for global SfM.
+
 Output: releases/ directory with:
-  - COLMAP-3.13-dev-Windows-x64-CUDA.zip
-  - GLOMAP-Windows-x64-CUDA.zip
+  - COLMAP-3.14-dev-Windows-x64-CUDA.zip
   - pycolmap-*.whl files
 
 Prerequisites:
-  - Build COLMAP 3.13 dev with: .\scripts_windows\build_colmap.ps1
-  - Build GLOMAP with: .\scripts_windows\build_glomap.ps1
+  - Build COLMAP 3.14 dev with: .\scripts_windows\build_colmap.ps1
   - Build pycolmap wheels with: .\scripts_windows\build_pycolmap_wheels.ps1
 "@
     exit 0
@@ -50,17 +49,12 @@ if (-not (Test-Path $ReleasesDir)) {
 
 # Check required installations
 $ColmapInstall = Join-Path $InstallDir "colmap"
-$GlomapInstall = Join-Path $InstallDir "glomap"
 $PycolmapWheelhouse = Join-Path $ProjectRoot "third_party\colmap-for-pycolmap\wheelhouse"
 
 $missingComponents = @()
 
 if (-not (Test-Path (Join-Path $ColmapInstall "bin\colmap.exe"))) {
-    $missingComponents += "COLMAP 3.13 dev (run: .\scripts_windows\build_colmap.ps1)"
-}
-
-if (-not (Test-Path (Join-Path $GlomapInstall "bin\glomap.exe"))) {
-    $missingComponents += "GLOMAP (run: .\scripts_windows\build_glomap.ps1)"
+    $missingComponents += "COLMAP 3.14 dev (run: .\scripts_windows\build_colmap.ps1)"
 }
 
 if ($missingComponents.Count -gt 0) {
@@ -73,9 +67,9 @@ if ($missingComponents.Count -gt 0) {
     exit 1
 }
 
-# Package COLMAP 3.13 dev
-Write-Host "[1/3] Packaging COLMAP 3.13 dev..." -ForegroundColor Green
-$ColmapZip = Join-Path $ReleasesDir "COLMAP-3.13-dev-Windows-x64-CUDA.zip"
+# Package COLMAP 3.14 dev
+Write-Host "[1/2] Packaging COLMAP 3.14 dev..." -ForegroundColor Green
+$ColmapZip = Join-Path $ReleasesDir "COLMAP-3.14-dev-Windows-x64-CUDA.zip"
 
 if (Test-Path $ColmapZip) {
     Remove-Item $ColmapZip -Force
@@ -86,30 +80,13 @@ try {
     # Compress with maximum compression
     Compress-Archive -Path "*" -DestinationPath $ColmapZip -CompressionLevel Optimal
     $colmapSize = [Math]::Round((Get-Item $ColmapZip).Length / 1MB, 2)
-    Write-Host "  Created: COLMAP-3.13-dev-Windows-x64-CUDA.zip ($colmapSize MB)" -ForegroundColor Green
-} finally {
-    Pop-Location
-}
-
-# Package GLOMAP
-Write-Host "[2/3] Packaging GLOMAP..." -ForegroundColor Green
-$GlomapZip = Join-Path $ReleasesDir "GLOMAP-Windows-x64-CUDA.zip"
-
-if (Test-Path $GlomapZip) {
-    Remove-Item $GlomapZip -Force
-}
-
-Push-Location $GlomapInstall
-try {
-    Compress-Archive -Path "*" -DestinationPath $GlomapZip -CompressionLevel Optimal
-    $glomapSize = [Math]::Round((Get-Item $GlomapZip).Length / 1MB, 2)
-    Write-Host "  Created: GLOMAP-Windows-x64-CUDA.zip ($glomapSize MB)" -ForegroundColor Green
+    Write-Host "  Created: COLMAP-3.14-dev-Windows-x64-CUDA.zip ($colmapSize MB)" -ForegroundColor Green
 } finally {
     Pop-Location
 }
 
 # Copy pycolmap wheels
-Write-Host "[3/3] Copying pycolmap wheels..." -ForegroundColor Green
+Write-Host "[2/2] Copying pycolmap wheels..." -ForegroundColor Green
 
 if (Test-Path $PycolmapWheelhouse) {
     $wheels = Get-ChildItem -Path $PycolmapWheelhouse -Filter "pycolmap-*.whl"
@@ -122,11 +99,11 @@ if (Test-Path $PycolmapWheelhouse) {
             Write-Host "  Copied: $($wheel.Name) ($wheelSize MB)" -ForegroundColor Green
         }
     } else {
-        Write-Host "  ⚠ No pycolmap wheels found in $PycolmapWheelhouse" -ForegroundColor Yellow
+        Write-Host "  Warning: No pycolmap wheels found in $PycolmapWheelhouse" -ForegroundColor Yellow
         Write-Host "    Run: .\scripts_windows\build_pycolmap_wheels.ps1" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  ⚠ Pycolmap wheelhouse not found" -ForegroundColor Yellow
+    Write-Host "  Warning: Pycolmap wheelhouse not found" -ForegroundColor Yellow
     Write-Host "    Run: .\scripts_windows\build_pycolmap_wheels.ps1" -ForegroundColor Yellow
 }
 
@@ -157,6 +134,9 @@ Get-ChildItem -Path $ReleasesDir -Filter "*.whl" | ForEach-Object {
     Write-Host "  - $($_.Name) ($size)" -ForegroundColor White
 }
 
+Write-Host ""
+Write-Host "Note: GLOMAP has been merged into COLMAP 3.14." -ForegroundColor Cyan
+Write-Host "Use 'colmap global_mapper' for global Structure-from-Motion." -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Yellow
 Write-Host "  1. Review and update: releases\RELEASE_NOTES.md" -ForegroundColor White

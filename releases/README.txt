@@ -4,28 +4,31 @@
 
 This directory contains packaged builds ready for GitHub release.
 
+NOTE: GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper`
+      for global Structure-from-Motion.
+
 CONTENTS:
 ---------
-1. COLMAP-3.13-dev-Windows-x64-CUDA.zip (79 MB)
-   - COLMAP 3.13.0.dev0 (latest development) with CUDA support
+1. COLMAP-3.14-dev-Windows-x64-CUDA.zip
+   - COLMAP 3.14.0.dev0 (latest development) with CUDA support
    - All dependencies bundled
    - Latest features and improvements
+   - Includes global SfM (previously GLOMAP)
 
-2. GLOMAP-Windows-x64-CUDA.zip (13 MB)
-   - GLOMAP fast global SfM with CUDA support
-   - Self-contained with all dependencies (COLMAP 3.11, Ceres, PoseLib)
-   - No additional dependencies required
-
-3. pycolmap-3.13.0.dev0-cp310-cp310-win_amd64.whl (571 MB)
+2. pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl
    - Python 3.10 wheel with all dependencies
 
-4. pycolmap-3.13.0.dev0-cp311-cp311-win_amd64.whl (571 MB)
+3. pycolmap-3.14.0.dev0-cp311-cp311-win_amd64.whl
    - Python 3.11 wheel with all dependencies
 
-5. pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl (571 MB)
+4. pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl
    - Python 3.12 wheel with all dependencies
 
-TOTAL SIZE: ~1.8 GB
+5. pycolmap-3.14.0.dev0-cp313-cp313-win_amd64.whl
+   - Python 3.13 wheel with all dependencies
+
+6. pycolmap-3.14.0.dev0-cp314-cp314-win_amd64.whl
+   - Python 3.14 wheel with all dependencies
 
 CREATING THE RELEASE:
 --------------------
@@ -47,33 +50,15 @@ Option 2: Manual Upload
 
 2. Create a new tag: v1.0.0
 
-3. Set release title: COLMAP GPU Builder v1.0.0 - Windows CUDA Build
+3. Set release title: Point Cloud Tools v1.0.0 - Windows CUDA Build
 
 4. Copy the content from RELEASE_NOTES.md into the description
 
 5. Upload all files:
-   - COLMAP-3.13-dev-Windows-x64-CUDA.zip
-   - GLOMAP-Windows-x64-CUDA.zip
-   - pycolmap-3.13.0.dev0-cp310-cp310-win_amd64.whl
-   - pycolmap-3.13.0.dev0-cp311-cp311-win_amd64.whl
-   - pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl
+   - COLMAP-3.14-dev-Windows-x64-CUDA.zip
+   - pycolmap-*.whl files
 
 6. Click "Publish release"
-
-
-Option 3: Command Line (One-liner)
------------------------------------
-After authenticating with gh CLI:
-
-"C:\Program Files\GitHub CLI\gh.exe" release create v1.0.0 ^
-  --title "COLMAP GPU Builder v1.0.0 - Windows CUDA Build" ^
-  --notes-file RELEASE_NOTES.md ^
-  --repo YOUR-USERNAME/colmap-gpu-builder ^
-  COLMAP-3.13-dev-Windows-x64-CUDA.zip ^
-  GLOMAP-Windows-x64-CUDA.zip ^
-  pycolmap-3.13.0.dev0-cp310-cp310-win_amd64.whl ^
-  pycolmap-3.13.0.dev0-cp311-cp311-win_amd64.whl ^
-  pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl
 
 
 NOTES:

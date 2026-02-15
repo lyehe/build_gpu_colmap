@@ -4,15 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Point Cloud Tools** - Self-contained build environment for COLMAP, GLOMAP, and related computer vision tools with CUDA support. This project uses vcpkg for dependency management and CMake's ExternalProject module to orchestrate builds of multiple interdependent computer vision libraries.
+**Point Cloud Tools** - Self-contained build environment for COLMAP and related computer vision tools with CUDA support. This project uses vcpkg for dependency management and CMake's ExternalProject module to orchestrate builds of multiple interdependent computer vision libraries.
+
+**Note:** GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper` for global Structure-from-Motion.
 
 ### Key Components
 - **COLMAP 3.14 dev** - Structure-from-Motion and Multi-View Stereo (latest development, general use)
 - **COLMAP 3.14 dev for pycolmap** (colmap-for-pycolmap) - Latest development version configured specifically for Python wheel building
-- **COLMAP 3.11** (colmap-for-glomap) - Pinned to commit 78f1eefa specifically for GLOMAP compatibility
-- **GLOMAP** - Fast global Structure-from-Motion
-- **Ceres Solver** - Nonlinear optimization library (base dependency for all)
-- **PoseLib** - Camera pose estimation (dependency for GLOMAP)
+- **Ceres Solver** - Nonlinear optimization library (base dependency)
 
 ## Common Build Commands
 
@@ -32,15 +31,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building
 
 ```powershell
-# Windows - Build everything (COLMAP + GLOMAP)
+# Windows - Build COLMAP
 # Automatically initializes submodules and bootstraps vcpkg
 .\scripts_windows\build.ps1 -Configuration Release
 
 # Build only COLMAP (latest)
 .\scripts_windows\build_colmap.ps1
-
-# Build only GLOMAP (includes Ceres, PoseLib, COLMAP 3.11)
-.\scripts_windows\build_glomap.ps1
 
 # Build without CUDA
 .\scripts_windows\build.ps1 -NoCuda
@@ -53,7 +49,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Linux
 ./scripts_linux/build.sh --config Release
 ./scripts_linux/build_colmap.sh
-./scripts_linux/build_glomap.sh
 ./scripts_linux/build.sh --no-cuda
 ./scripts_linux/build.sh --clean
 ```
@@ -84,7 +79,6 @@ cmake .. \
   -DCMAKE_TOOLCHAIN_FILE=../third_party/vcpkg/scripts/buildsystems/vcpkg.cmake \
   -DBUILD_COLMAP=OFF \
   -DBUILD_COLMAP_FOR_PYCOLMAP=ON \
-  -DBUILD_GLOMAP=OFF \
   -DCUDA_ENABLED=ON
 cmake --build . --config Release
 
@@ -94,12 +88,13 @@ cmake --build . --config Release
 ## Architecture & Build System
 
 ### Multiple COLMAP Version Strategy
-This project can build **three separate COLMAP versions**:
+This project can build **two separate COLMAP versions**:
 
 1. **COLMAP 3.14 dev** (`third_party/colmap`) → `build/install/colmap/`
    - For general use
    - Tracks latest COLMAP main branch (version 3.14.0.dev0)
    - Full features enabled
+   - Includes global SfM (previously GLOMAP): `colmap global_mapper`
 
 2. **COLMAP 3.14 dev for pycolmap** (`third_party/colmap-for-pycolmap`) → `build/install/colmap-for-pycolmap/`
    - For building Python wheels with specific configurations
@@ -107,12 +102,7 @@ This project can build **three separate COLMAP versions**:
    - Built with GUI/tests disabled, optimized for Python bindings
    - Optional build (set `-DBUILD_COLMAP_FOR_PYCOLMAP=ON`)
 
-3. **COLMAP 3.11** (`third_party/colmap-for-glomap`) → `build/install/colmap-for-glomap/`
-   - Pinned to commit 78f1eefa (tagged as 3.10-137-g78f1eefa, "Changelog for upcoming 3.11 release")
-   - Specifically for GLOMAP compatibility (GLOMAP requires this exact version)
-   - Built with GUI/CGAL/tests disabled
-
-**Why?** Different use cases require different COLMAP configurations and versions for optimal compatibility and performance.
+**Why?** Different use cases require different COLMAP configurations for optimal compatibility and performance.
 
 ### Build Dependency Chain
 
@@ -121,17 +111,13 @@ The CMakeLists.txt uses `ExternalProject_Add()` to enforce strict build order:
 ```
 Ceres Solver (base dependency)
     ├── COLMAP 3.14 dev ─────────────→ build/install/colmap/
-    ├── COLMAP 3.14 dev for pycolmap (optional) → build/install/colmap-for-pycolmap/
-    ├── COLMAP 3.11 ─────────────────→ build/install/colmap-for-glomap/
-    └── PoseLib ─────────────────────→ build/install/poselib/
-            └── GLOMAP ──────────────→ build/install/glomap/
+    └── COLMAP 3.14 dev for pycolmap (optional) → build/install/colmap-for-pycolmap/
 ```
 
 **Critical Details:**
 - Ceres is built first with `ExternalProject_Add()` and installed to `build/install/ceres/`
 - Subsequent projects use `-DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres` to find Ceres
 - All projects share the same `vcpkg_installed` directory for dependencies
-- GLOMAP is built last as a separate CMake invocation (see `CMakeLists.txt:404-411`)
 
 ### vcpkg Integration
 
@@ -150,7 +136,7 @@ Ceres Solver (base dependency)
 
 **CUDA Detection Flow** (CMakeLists.txt lines 34-240):
 1. Detects CUDA Toolkit via `find_package(CUDAToolkit)`
-2. Sets architectures: `75;80;86;89;90;120` (RTX 20/30/40 series, H100)
+2. Sets architectures: `75;80;86;89;90` (RTX 20/30/40 series, H100)
 3. Searches for cuDSS (optional sparse solver library):
    - Windows: `C:\Program Files\NVIDIA cuDSS\v*/`
    - Linux: `/usr/local/cuda/`, `/opt/nvidia/cudss/`, `$CUDSS_ROOT`
@@ -168,17 +154,11 @@ build/
 ├── install/                    # All installation outputs
 │   ├── ceres/                 # Ceres Solver
 │   ├── colmap/                # COLMAP (latest) - general use
-│   ├── colmap-for-pycolmap/   # COLMAP - for Python wheels (optional)
-│   ├── colmap-for-glomap/     # COLMAP 3.11 - for GLOMAP
-│   ├── poselib/               # PoseLib
-│   └── glomap/                # GLOMAP
+│   └── colmap-for-pycolmap/   # COLMAP - for Python wheels (optional)
 ├── vcpkg_installed/           # Shared vcpkg dependencies
 ├── ceres/                     # Ceres build directory
 ├── colmap/                    # COLMAP build directory
-├── colmap-pycolmap/           # COLMAP-for-pycolmap build directory (optional)
-├── colmap-g/                  # COLMAP-for-GLOMAP build directory
-├── poselib/                   # PoseLib build directory
-└── glomap/                    # GLOMAP build directory
+└── colmap-pycolmap/           # COLMAP-for-pycolmap build directory (optional)
 ```
 
 ## Important CMake Flags
@@ -190,10 +170,9 @@ cmake .. \
   -DVCPKG_OVERLAY_PORTS=../overlay-ports \
   -DGFLAGS_USE_TARGET_NAMESPACE=ON \  # Required to fix gflags/glog linking
   -DCUDA_ENABLED=ON \
-  -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90;120" \
+  -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89;90" \
   -DBUILD_COLMAP=ON \
   -DBUILD_COLMAP_FOR_PYCOLMAP=OFF \
-  -DBUILD_GLOMAP=ON \
   -DBUILD_CERES=ON
 ```
 
@@ -211,15 +190,9 @@ cmake .. \
 
 **COLMAP:**
 - `CUDA_ENABLED=ON/OFF`
-- `GUI_ENABLED=OFF` for colmap-for-pycolmap and colmap-for-glomap
-- `CGAL_ENABLED=OFF` for colmap-for-glomap
-- `TESTS_ENABLED=OFF` for colmap-for-pycolmap and colmap-for-glomap
+- `GUI_ENABLED=OFF` for colmap-for-pycolmap
+- `TESTS_ENABLED=OFF` for colmap-for-pycolmap
 - Uses Ceres via `CMAKE_PREFIX_PATH`
-
-**GLOMAP:**
-- Requires PoseLib and COLMAP 3.11
-- Built as separate CMake invocation after dependencies install
-- See build scripts for GLOMAP orchestration
 
 ## Known Issues & Fixes
 
@@ -228,7 +201,7 @@ cmake .. \
 
 **Fix:** Already applied in all build scripts via `-DGFLAGS_USE_TARGET_NAMESPACE=ON`
 
-**Root Cause:** vcpkg's gflags uses target namespace `gflags::gflags`, but COLMAP/GLOMAP expect `gflags`. The flag enables a compatibility mode.
+**Root Cause:** vcpkg's gflags uses target namespace `gflags::gflags`, but COLMAP expects `gflags`. The flag enables a compatibility mode.
 
 ### vcpkg Conflicts
 **Symptom:** System vcpkg interfering with local vcpkg
@@ -259,7 +232,7 @@ Or copy DLL to executable directory. See docs/INSTALL_CUDSS.md
 ## Development Workflow
 
 ### Automatic Submodule Initialization
-All build scripts (`build.ps1`, `build_colmap.ps1`, `build_glomap.ps1`) automatically:
+Build scripts (`build.ps1`, `build_colmap.ps1`) automatically:
 1. Check if required submodules are initialized (by checking for `.git` directory)
 2. Run `git submodule update --init --recursive <path>` for any missing submodules
 3. Bootstrap vcpkg if `vcpkg.exe` doesn't exist
@@ -271,8 +244,7 @@ This means users can:
 
 **Submodule Requirements:**
 - `build_colmap.ps1`: vcpkg, ceres-solver, colmap
-- `build_glomap.ps1`: vcpkg, ceres-solver, poselib, colmap-for-glomap, glomap
-- `build.ps1`: Initializes submodules based on `-SkipColmap` and `-SkipGlomap` flags
+- `build.ps1`: vcpkg, ceres-solver, colmap
 - For colmap-for-pycolmap: manually initialize with `git submodule update --init --recursive third_party/colmap-for-pycolmap`
 
 ### Modifying Build Scripts
@@ -302,7 +274,6 @@ Use `overlay-ports/` for vcpkg port modifications:
 
 # Test individual components
 .\scripts_windows\build_colmap.ps1 -Clean
-.\scripts_windows\build_glomap.ps1 -Clean
 ```
 
 ### Updating Submodules
@@ -319,8 +290,6 @@ git add third_party/colmap
 git commit -m "Update COLMAP to latest"
 ```
 
-**Warning:** Updating COLMAP for GLOMAP may break compatibility. Check `docs/GLOMAP_COLMAP_VERSION.md` first.
-
 ### Creating Release Packages
 
 The project includes scripts to package and release builds:
@@ -329,9 +298,6 @@ The project includes scripts to package and release builds:
 ```powershell
 # Build COLMAP 3.14 dev
 .\scripts_windows\build_colmap.ps1
-
-# Build GLOMAP (includes COLMAP 3.11)
-.\scripts_windows\build_glomap.ps1
 
 # Build pycolmap wheels (optional)
 .\scripts_windows\build_pycolmap_wheels.ps1
@@ -344,8 +310,7 @@ The project includes scripts to package and release builds:
 ```
 
 This creates in `releases/`:
-- `COLMAP-3.13-dev-Windows-x64-CUDA.zip` - COLMAP 3.14 dev from `build/install/colmap/`
-- `GLOMAP-Windows-x64-CUDA.zip` - GLOMAP (self-contained with COLMAP 3.11) from `build/install/glomap/`
+- `COLMAP-3.14-dev-Windows-x64-CUDA.zip` - COLMAP 3.14 dev from `build/install/colmap/`
 - Copies `pycolmap-*.whl` files from `third_party/colmap-for-pycolmap/wheelhouse/`
 
 **Step 3: Create GitHub Release**
@@ -358,19 +323,13 @@ gh auth login
 ```
 
 **Release Strategy:**
-- **COLMAP 3.14 dev** - Latest development version for general use
-- **GLOMAP** - Self-contained with COLMAP 3.11 bundled for compatibility
+- **COLMAP 3.14 dev** - Latest development version for general use (includes global SfM)
 - **pycolmap wheels** - Built from COLMAP 3.14 dev, one wheel per Python version
-
-Users don't need both COLMAP packages - each is self-contained:
-- Use COLMAP 3.14 dev for latest features
-- Use GLOMAP for fast global SfM (includes its own COLMAP 3.11)
 
 ## Documentation Reference
 
 - **BUILD_ANALYSIS.md** - Detailed build system architecture analysis
 - **BUILD_PYTHON_WHEELS.md** - PyColmap wheel building guide
-- **GLOMAP_COLMAP_VERSION.md** - COLMAP version compatibility for GLOMAP
 - **GFLAGS_FIX.md** - Technical details on gflags namespace fix
 - **INSTALL_CUDSS.md** - cuDSS installation guide
 - **CUDSS_DETECTION.md** - How cuDSS detection works in CMake

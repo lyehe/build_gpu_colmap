@@ -8,7 +8,7 @@
 #          the bare 'flann' reference with the actual library path.
 #
 # Required variables (set via -D):
-#   COLMAP_INSTALL_DIR - Path to COLMAP installation (e.g., build/install/colmap-for-glomap)
+#   COLMAP_INSTALL_DIR - Path to COLMAP installation (e.g., build/install/colmap)
 #   FLANN_LIBRARY_PATH - Full path to FLANN library (e.g., .../libflann_cpp_s.a)
 
 if(NOT DEFINED COLMAP_INSTALL_DIR)

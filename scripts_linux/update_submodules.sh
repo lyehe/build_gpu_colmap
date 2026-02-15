@@ -1,6 +1,6 @@
 #!/bin/bash
 # Update all git submodules to their latest versions
-# Usage: ./update_submodules.sh [--all | --vcpkg | --colmap | --glomap | --ceres | --pyceres | --poselib]
+# Usage: ./update_submodules.sh [--all | --vcpkg | --colmap | --ceres]
 
 set -e
 
@@ -17,10 +17,7 @@ NC='\033[0m' # No Color
 UPDATE_ALL=0
 UPDATE_VCPKG=0
 UPDATE_COLMAP=0
-UPDATE_GLOMAP=0
 UPDATE_CERES=0
-UPDATE_PYCERES=0
-UPDATE_POSELIB=0
 
 # Show help
 show_help() {
@@ -30,15 +27,12 @@ show_help() {
     echo "  --all           Update all submodules (default if no options specified)"
     echo "  --vcpkg         Update only vcpkg"
     echo "  --colmap        Update only COLMAP"
-    echo "  --glomap        Update only GLOMAP"
     echo "  --ceres         Update only Ceres Solver"
-    echo "  --pyceres       Update only PyCeres"
-    echo "  --poselib       Update only PoseLib"
     echo "  --help, -h      Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0                                Update all submodules"
-    echo "  $0 --colmap --glomap              Update only COLMAP and GLOMAP"
+    echo "  $0 --colmap                       Update only COLMAP"
     echo "  $0 --vcpkg                        Update only vcpkg"
     exit 0
 }
@@ -62,20 +56,8 @@ while [[ $# -gt 0 ]]; do
             UPDATE_COLMAP=1
             shift
             ;;
-        --glomap)
-            UPDATE_GLOMAP=1
-            shift
-            ;;
         --ceres)
             UPDATE_CERES=1
-            shift
-            ;;
-        --pyceres)
-            UPDATE_PYCERES=1
-            shift
-            ;;
-        --poselib)
-            UPDATE_POSELIB=1
             shift
             ;;
         --help|-h)
@@ -132,17 +114,6 @@ else
         echo ""
     fi
 
-    if [ $UPDATE_GLOMAP -eq 1 ]; then
-        echo "Updating GLOMAP..."
-        cd third_party/glomap
-        git checkout main
-        git pull
-        cd ../..
-        git add third_party/glomap
-        echo -e "${GREEN}GLOMAP updated${NC}"
-        echo ""
-    fi
-
     if [ $UPDATE_CERES -eq 1 ]; then
         echo "Updating Ceres Solver..."
         cd third_party/ceres-solver
@@ -151,28 +122,6 @@ else
         cd ../..
         git add third_party/ceres-solver
         echo -e "${GREEN}Ceres Solver updated${NC}"
-        echo ""
-    fi
-
-    if [ $UPDATE_PYCERES -eq 1 ]; then
-        echo "Updating PyCeres..."
-        cd third_party/pyceres
-        git checkout main
-        git pull
-        cd ../..
-        git add third_party/pyceres
-        echo -e "${GREEN}PyCeres updated${NC}"
-        echo ""
-    fi
-
-    if [ $UPDATE_POSELIB -eq 1 ]; then
-        echo "Updating PoseLib..."
-        cd third_party/poselib
-        git checkout master
-        git pull
-        cd ../..
-        git add third_party/poselib
-        echo -e "${GREEN}PoseLib updated${NC}"
         echo ""
     fi
 

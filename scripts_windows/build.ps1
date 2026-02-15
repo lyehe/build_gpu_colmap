@@ -1,5 +1,5 @@
 # Build All - Point Cloud Tools Build Script
-# Usage: .\build.ps1 [-Configuration Debug|Release] [-NoCuda] [-SkipGlomap] [-SkipColmap] [-Clean]
+# Usage: .\build.ps1 [-Configuration Debug|Release] [-NoCuda] [-Clean]
 
 [CmdletBinding()]
 param(
@@ -8,8 +8,6 @@ param(
     [string]$Configuration = 'Release',
 
     [switch]$NoCuda,
-    [switch]$SkipGlomap,
-    [switch]$SkipColmap,
     [switch]$Clean,
     [switch]$Help
 )
@@ -20,23 +18,20 @@ Build All - Point Cloud Tools
 
 Usage: .\build.ps1 [options]
 
-This script builds all components by calling individual build scripts:
-  - COLMAP (latest version) - unless -SkipColmap
-  - GLOMAP (with dependencies: Ceres, PoseLib, COLMAP v3.11) - unless -SkipGlomap
+This script builds COLMAP (latest version) by calling the build_colmap.ps1 script.
+
+Note: GLOMAP has been merged into COLMAP 3.14. Use 'colmap global_mapper' for global SfM.
 
 Options:
   -Configuration <Debug|Release>  Build configuration (default: Release)
   -NoCuda                         Disable CUDA support
-  -SkipGlomap                     Skip GLOMAP build
-  -SkipColmap                     Skip COLMAP (latest) build
   -Clean                          Clean build directory before building
   -Help                           Show this help message
 
 Examples:
-  .\build.ps1                      Build both COLMAP and GLOMAP
-  .\build.ps1 -SkipGlomap          Build only COLMAP (latest)
-  .\build.ps1 -SkipColmap          Build only GLOMAP
-  .\build.ps1 -Clean               Clean and rebuild everything
+  .\build.ps1                      Build COLMAP
+  .\build.ps1 -Clean               Clean and rebuild
+  .\build.ps1 -NoCuda              Build without CUDA support
 "@
     exit 0
 }
@@ -67,20 +62,11 @@ function Initialize-Submodule {
     }
 }
 
-# Initialize required submodules based on what will be built
+# Initialize required submodules
 Write-Host "Checking required submodules..." -ForegroundColor Cyan
 Initialize-Submodule "third_party\vcpkg" "vcpkg"
 Initialize-Submodule "third_party\ceres-solver" "Ceres Solver"
-
-if (-not $SkipColmap) {
-    Initialize-Submodule "third_party\colmap" "COLMAP"
-}
-
-if (-not $SkipGlomap) {
-    Initialize-Submodule "third_party\poselib" "PoseLib"
-    Initialize-Submodule "third_party\colmap-for-glomap" "COLMAP for GLOMAP"
-    Initialize-Submodule "third_party\glomap" "GLOMAP"
-}
+Initialize-Submodule "third_party\colmap" "COLMAP"
 Write-Host ""
 
 # Bootstrap vcpkg if needed
@@ -101,58 +87,30 @@ Write-Host "Point Cloud Tools - Build All" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host "Configuration: $Configuration" -ForegroundColor White
 Write-Host "CUDA: $(if ($NoCuda) { 'Disabled' } else { 'Enabled' })" -ForegroundColor White
-
-$Components = @()
-if (-not $SkipColmap) { $Components += "COLMAP (latest)" }
-if (-not $SkipGlomap) { $Components += "GLOMAP" }
-
-if ($Components.Count -eq 0) {
-    Write-Host "Error: Nothing to build (both -SkipColmap and -SkipGlomap specified)" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "Components: $($Components -join ', ')" -ForegroundColor White
+Write-Host "Components: COLMAP (latest)" -ForegroundColor White
 Write-Host "================================================================" -ForegroundColor Cyan
 
-# Build COLMAP (latest) first if requested
-if (-not $SkipColmap) {
-    Write-Host ""
-    Write-Host "Building COLMAP (latest)..." -ForegroundColor Green
+# Build COLMAP
+Write-Host ""
+Write-Host "Building COLMAP (latest)..." -ForegroundColor Green
 
-    $BuildArgs = @{
-        Configuration = $Configuration
-    }
-    if ($NoCuda) { $BuildArgs['NoCuda'] = $true }
-    if ($Clean) { $BuildArgs['Clean'] = $true; $Clean = $false }  # Only clean once
-
-    $ColmapScript = Join-Path $ScriptDir "build_colmap.ps1"
-    & $ColmapScript @BuildArgs
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "COLMAP build failed"
-    }
+$BuildArgs = @{
+    Configuration = $Configuration
 }
+if ($NoCuda) { $BuildArgs['NoCuda'] = $true }
+if ($Clean) { $BuildArgs['Clean'] = $true }
 
-# Build GLOMAP (with dependencies) if requested
-if (-not $SkipGlomap) {
-    Write-Host ""
-    Write-Host "Building GLOMAP..." -ForegroundColor Green
+$ColmapScript = Join-Path $ScriptDir "build_colmap.ps1"
+& $ColmapScript @BuildArgs
 
-    $BuildArgs = @{
-        Configuration = $Configuration
-    }
-    if ($NoCuda) { $BuildArgs['NoCuda'] = $true }
-    if ($Clean) { $BuildArgs['Clean'] = $true }
-
-    $GlomapScript = Join-Path $ScriptDir "build_glomap.ps1"
-    & $GlomapScript @BuildArgs
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "GLOMAP build failed"
-    }
+if ($LASTEXITCODE -ne 0) {
+    throw "COLMAP build failed"
 }
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Green
-Write-Host "All builds completed successfully!" -ForegroundColor Green
+Write-Host "Build completed successfully!" -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Note: GLOMAP has been merged into COLMAP 3.14." -ForegroundColor Cyan
+Write-Host "Use 'colmap global_mapper' for global Structure-from-Motion." -ForegroundColor Cyan

@@ -251,7 +251,6 @@ jobs:
           }
 
           cmake .. @cmakeArgs `
-            -DBUILD_GLOMAP=OFF `
             -DBUILD_CERES=ON `
             -DGFLAGS_USE_TARGET_NAMESPACE=ON
 
@@ -278,7 +277,6 @@ jobs:
             -DCUDA_ENABLED="$CUDA_FLAG"
             -DBUILD_COLMAP=OFF
             -DBUILD_COLMAP_FOR_PYCOLMAP=ON
-            -DBUILD_GLOMAP=OFF
             -DBUILD_CERES=ON
           )
 

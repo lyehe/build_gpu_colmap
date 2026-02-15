@@ -1,12 +1,12 @@
 # Point Cloud Tools v2.2.0 - COLMAP 3.14
 
-Pre-built Windows/Linux binaries for COLMAP, GLOMAP, and Python wheels with CUDA 12.8 support.
+Pre-built Windows/Linux binaries for COLMAP and Python wheels with CUDA 12.8 support.
 
-## ⚠️ Important: NVIDIA Driver 570+ Required
+## Important: NVIDIA Driver 570+ Required
 
 CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-smi`.
 
-## 🎉 Highlights
+## Highlights
 
 - **GLOMAP merged into COLMAP** - Global SfM functionality is now part of COLMAP 3.14
 - **New fisheye (equidistant) camera model**
@@ -22,6 +22,7 @@ Latest COLMAP development version (3.14.0.dev0) for Structure-from-Motion and Mu
 - All dependencies bundled (no separate installation needed)
 - CUDA GPU acceleration for RTX 20/30/40 series, A100, H100
 - Includes GUI and command-line tools
+- **Global SfM included** - Use `colmap global_mapper` for fast global SfM (previously GLOMAP)
 
 **Quick Start**:
 ```cmd
@@ -30,22 +31,9 @@ Latest COLMAP development version (3.14.0.dev0) for Structure-from-Motion and Mu
 
 # Or command line
 .\bin\colmap.exe help
-```
 
----
-
-### GLOMAP - Windows x64 CUDA (667 KB)
-**File**: `GLOMAP-Windows-x64-CUDA.zip`
-
-Fast global Structure-from-Motion tool.
-
-- Self-contained with all dependencies (COLMAP 3.11, Ceres, PoseLib)
-- No additional installation required
-- GPU-accelerated processing
-
-**Quick Start**:
-```cmd
-.\bin\glomap.exe mapper --help
+# Global SfM (previously GLOMAP)
+.\bin\colmap.exe global_mapper --database_path db.db --image_path images --output_path sparse
 ```
 
 ---
@@ -63,6 +51,7 @@ Python bindings for COLMAP with all dependencies bundled.
 - No separate COLMAP installation needed
 - CUDA support included
 - Works on any Windows machine with matching Python version
+- **Global SfM included** - Access via `pycolmap.global_mapper()`
 
 **Installation**:
 ```bash
@@ -77,16 +66,16 @@ pycolmap.extract_features(image_path="images/", database_path="database.db")
 
 ## System Requirements
 
-**⚠️ Windows Defender False Positive Notice**:
-Windows Defender may flag these binaries as potentially unwanted software (typically `Wacatac.B!ml`). This is a **false positive** common with CUDA-compiled binaries. These files are built from official open-source COLMAP/GLOMAP repositories with no modifications. You can:
+**Windows Defender False Positive Notice**:
+Windows Defender may flag these binaries as potentially unwanted software (typically `Wacatac.B!ml`). This is a **false positive** common with CUDA-compiled binaries. These files are built from official open-source COLMAP repositories with no modifications. You can:
 - Add an exclusion in Windows Security
 - Submit as false positive to Microsoft: https://www.microsoft.com/en-us/wdsi/filesubmission
 - Verify by building from source yourself using this repository
 
 **Windows Compatibility**:
-- ✅ **Windows 10/11 (64-bit only)** - Fully tested and supported
-- ⚠️ **Windows 7/8/8.1** - May work but not tested
-- ❌ **32-bit Windows** - Not supported
+- **Windows 10/11 (64-bit only)** - Fully tested and supported
+- **Windows 7/8/8.1** - May work but not tested
+- **32-bit Windows** - Not supported
 
 **Minimum**:
 - 8 GB RAM (16 GB recommended for large datasets)
@@ -101,7 +90,7 @@ Windows Defender may flag these binaries as potentially unwanted software (typic
 
 **Note**: Binaries will run without CUDA but GPU acceleration will be disabled.
 
-**⚠️ "PTX compiled with unsupported toolchain" Error**:
+**"PTX compiled with unsupported toolchain" Error**:
 If you see this error during GPU feature extraction, your NVIDIA driver is too old.
 ```
 CUDA error: the provided PTX was compiled with an unsupported toolchain
@@ -120,7 +109,18 @@ CUDA error: the provided PTX was compiled with an unsupported toolchain
 - **New fisheye (equidistant) camera model** - Better support for wide-angle lenses
 - **Bundle adjustment refactoring** - Improved optimization performance
 - **PLY mesh reading support** - Import mesh files directly
-- Standalone GLOMAP package still available (uses COLMAP 3.11 for compatibility)
+
+## Migration from GLOMAP
+
+If you were previously using the standalone GLOMAP binary, simply replace:
+
+```bash
+# Old (standalone GLOMAP)
+glomap mapper --database_path db.db --image_path images --output_path sparse
+
+# New (COLMAP 3.14+)
+colmap global_mapper --database_path db.db --image_path images --output_path sparse
+```
 
 ## Supported GPU Architectures
 
@@ -130,9 +130,7 @@ Compiled for: RTX 20/30/40 series, A100, H100 (architectures 75, 80, 86, 89, 90,
 
 Each component has its own BSD 3-Clause License:
 - [COLMAP](https://github.com/colmap/colmap)
-- [GLOMAP](https://github.com/colmap/glomap)
 - [Ceres Solver](http://ceres-solver.org/)
-- [PoseLib](https://github.com/PoseLib/PoseLib)
 
 ## Documentation
 

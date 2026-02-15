@@ -231,7 +231,7 @@ To build without CUDA, use: --no-cuda flag with build scripts"
         fi
     fi
 
-    # Check for cuDSS (CUDA Direct Sparse Solver) - optional but useful for COLMAP/GLOMAP
+    # Check for cuDSS (CUDA Direct Sparse Solver) - optional but useful for COLMAP
     CUDSS_FOUND=false
     CUDSS_LOCATION=""
 

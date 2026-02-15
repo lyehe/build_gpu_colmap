@@ -1,15 +1,12 @@
 # Update all git submodules to their latest versions
-# Usage: .\update_submodules.ps1 [-All] [-Vcpkg] [-Colmap] [-Glomap] [-Ceres] [-Pyceres] [-Poselib]
+# Usage: .\update_submodules.ps1 [-All] [-Vcpkg] [-Colmap] [-Ceres]
 
 [CmdletBinding()]
 param(
     [switch]$All,
     [switch]$Vcpkg,
     [switch]$Colmap,
-    [switch]$Glomap,
     [switch]$Ceres,
-    [switch]$Pyceres,
-    [switch]$Poselib,
     [switch]$Help
 )
 
@@ -21,15 +18,12 @@ Options:
   -All            Update all submodules (default if no options specified)
   -Vcpkg          Update only vcpkg
   -Colmap         Update only COLMAP
-  -Glomap         Update only GLOMAP
   -Ceres          Update only Ceres Solver
-  -Pyceres        Update only PyCeres
-  -Poselib        Update only PoseLib
   -Help           Show this help message
 
 Examples:
   .\update_submodules.ps1                          Update all submodules
-  .\update_submodules.ps1 -Colmap -Glomap          Update only COLMAP and GLOMAP
+  .\update_submodules.ps1 -Colmap                  Update only COLMAP
   .\update_submodules.ps1 -Vcpkg                   Update only vcpkg
 "@
     exit 0
@@ -46,7 +40,7 @@ Write-Host "================================================================" -F
 Push-Location $ProjectRoot
 try {
     # If no specific submodule is specified, update all
-    if (-not ($Vcpkg -or $Colmap -or $Glomap -or $Ceres -or $Pyceres -or $Poselib)) {
+    if (-not ($Vcpkg -or $Colmap -or $Ceres)) {
         $All = $true
     }
 
@@ -68,10 +62,7 @@ try {
         $submodules = @(
             @{Flag=$Vcpkg; Name="vcpkg"; Path="third_party/vcpkg"; Branch="master"},
             @{Flag=$Colmap; Name="COLMAP"; Path="third_party/colmap"; Branch="main"},
-            @{Flag=$Glomap; Name="GLOMAP"; Path="third_party/glomap"; Branch="main"},
-            @{Flag=$Ceres; Name="Ceres Solver"; Path="third_party/ceres-solver"; Branch="master"},
-            @{Flag=$Pyceres; Name="PyCeres"; Path="third_party/pyceres"; Branch="main"},
-            @{Flag=$Poselib; Name="PoseLib"; Path="third_party/poselib"; Branch="master"}
+            @{Flag=$Ceres; Name="Ceres Solver"; Path="third_party/ceres-solver"; Branch="master"}
         )
 
         foreach ($submodule in $submodules) {

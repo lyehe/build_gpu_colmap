@@ -33,12 +33,6 @@ jobs:
     uses: ./.github/workflows/build-colmap.yml
     secrets: inherit
 
-  build-glomap:
-    name: Build GLOMAP
-    if: ${{ !inputs.skip_build }}
-    uses: ./.github/workflows/build-glomap.yml
-    secrets: inherit
-
   build-pycolmap:
     name: Build pycolmap
     if: ${{ !inputs.skip_build }}
@@ -48,15 +42,13 @@ jobs:
   # ==================== Package and Release ====================
   create-release-packages:
     name: Create Release Packages
-    needs: [build-colmap, build-glomap, build-pycolmap]
+    needs: [build-colmap, build-pycolmap]
     if: |
       always() && (
         (needs.build-colmap.result == 'success' &&
-         needs.build-glomap.result == 'success' &&
          needs.build-pycolmap.result == 'success') ||
         (inputs.skip_build &&
          needs.build-colmap.result == 'skipped' &&
-         needs.build-glomap.result == 'skipped' &&
          needs.build-pycolmap.result == 'skipped')
       )
     runs-on: ubuntu-latest
@@ -149,27 +141,6 @@ jobs:
           echo "Disk space after COLMAP packaging:"
           df -h /
 
-      # ==================== Package GLOMAP ====================
-      - name: Package GLOMAP artifacts
-        run: |
-          for dir in artifacts/GLOMAP-*; do
-            if [ -d "$dir" ]; then
-              name=$(basename "$dir")
-              echo "Packaging $name..."
-              cd "$dir"
-              zip -r "../../packages/${name}.zip" .
-              cd ../..
-              # Delete raw artifact after packaging to save space
-              rm -rf "$dir"
-            fi
-          done
-
-          echo "GLOMAP packages created:"
-          ls -la packages/GLOMAP-* || echo "No GLOMAP packages"
-          echo ""
-          echo "Disk space after GLOMAP packaging:"
-          df -h /
-
       # ==================== Collect pycolmap wheels ====================
       # Wheels now have unique names with variant suffix (+cpu, +cuda, +cuda.cudss)
       # so we just collect them all into one folder
@@ -218,13 +189,6 @@ jobs:
             echo "" >> SHA256SUMS.txt
           fi
 
-          # GLOMAP packages
-          if ls GLOMAP-*.zip 1>/dev/null 2>&1; then
-            echo "## GLOMAP" >> SHA256SUMS.txt
-            sha256sum GLOMAP-*.zip >> SHA256SUMS.txt
-            echo "" >> SHA256SUMS.txt
-          fi
-
           # pycolmap wheels (all variants in one folder with unique names)
           if ls wheels/*.whl 1>/dev/null 2>&1; then
             echo "## pycolmap wheels" >> SHA256SUMS.txt
@@ -251,7 +215,9 @@ jobs:
       - name: Generate release notes
         run: |
           cat > release_notes.md << 'RELEASE_EOF'
-          Pre-built COLMAP, GLOMAP, and pycolmap binaries with CUDA support.
+          Pre-built COLMAP and pycolmap binaries with CUDA support.
+
+          **Note:** GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper` for global Structure-from-Motion.
 
           ## Installation
 
@@ -267,20 +233,6 @@ jobs:
           ```bash
           unzip COLMAP-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
           ~/tools/colmap/bin/colmap gui
-          ```
-
-          ### GLOMAP
-
-          **Windows:**
-          ```powershell
-          Expand-Archive GLOMAP-windows-latest-CUDA12.8.1.zip -DestinationPath C:\Tools\GLOMAP
-          C:\Tools\GLOMAP\bin\glomap.exe mapper --database_path db.db --image_path images --output_path sparse
-          ```
-
-          **Linux:**
-          ```bash
-          unzip GLOMAP-ubuntu-22.04-CUDA12.8.1.zip -d ~/tools/glomap
-          ~/tools/glomap/bin/glomap mapper --database_path db.db --image_path images --output_path sparse
           ```
 
           ### pycolmap
@@ -313,7 +265,6 @@ jobs:
           append_body: true
           files: |
             packages/COLMAP-*.zip
-            packages/GLOMAP-*.zip
             packages/wheels/*.whl
             packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
@@ -329,7 +280,6 @@ jobs:
           body_path: release_notes.md
           files: |
             packages/COLMAP-*.zip
-            packages/GLOMAP-*.zip
             packages/wheels/*.whl
             packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
@@ -345,7 +295,6 @@ jobs:
           body_path: release_notes.md
           files: |
             packages/COLMAP-*.zip
-            packages/GLOMAP-*.zip
             packages/wheels/*.whl
             packages/SHA256SUMS.txt
           fail_on_unmatched_files: false
@@ -358,16 +307,6 @@ jobs:
 
           echo "### COLMAP Packages" >> $GITHUB_STEP_SUMMARY
           for f in packages/COLMAP-*.zip; do
-            if [ -f "$f" ]; then
-              size=$(du -h "$f" | cut -f1)
-              name=$(basename "$f")
-              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### GLOMAP Packages" >> $GITHUB_STEP_SUMMARY
-          for f in packages/GLOMAP-*.zip; do
             if [ -f "$f" ]; then
               size=$(du -h "$f" | cut -f1)
               name=$(basename "$f")
