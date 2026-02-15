@@ -28,7 +28,6 @@ include(ExternalProject)
 # Options for build modules
 option(BUILD_COLMAP "Build COLMAP" ON)
 option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF)
-option(BUILD_GLOMAP "Build GLOMAP" ON)
 option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
 
@@ -234,7 +233,7 @@ if(CUDA_ENABLED)
         # Set environment variable for subprojects
         set(ENV{CUDSS_ROOT} "${CUDSS_INSTALL_PATH}")
 
-        # Export variables for COLMAP/GLOMAP
+        # Export variables for COLMAP
         set(CUDSS_INCLUDE_DIR "${CUDSS_INCLUDE_DIR}" CACHE PATH "cuDSS include directory")
         set(CUDSS_LIBRARY_DIR "${CUDSS_LIBRARY_DIR}" CACHE PATH "cuDSS library directory")
         set(CUDSS_LIBRARY "${CUDSS_LIBRARY}" CACHE FILEPATH "cuDSS library")
@@ -261,18 +260,13 @@ if(CUDA_ENABLED)
 endif()
 
 # Build dependencies in order
-# Dependency chain: Ceres -> (COLMAP, PoseLib) -> GLOMAP
-#
-# Note: We build TWO versions of COLMAP:
-# 1. Latest COLMAP (third_party/colmap) - for standalone use
-# 2. COLMAP 3.11 (third_party/colmap-for-glomap) - pinned version for GLOMAP compatibility
+# Dependency chain: Ceres -> COLMAP
 #
 # Installation structure:
 # build/install/
 #   ├── ceres/       # Ceres Solver installation
-#   ├── colmap/      # COLMAP installation (for pycolmap)
-#   ├── poselib/     # PoseLib installation (for pyposelib)
-#   └── glomap/      # GLOMAP installation
+#   ├── colmap/      # COLMAP installation (general use)
+#   └── colmap-for-pycolmap/  # COLMAP installation (for Python wheels, optional)
 
 # Base install directory
 set(BASE_INSTALL_DIR "${CMAKE_BINARY_DIR}/install" CACHE PATH "Base installation directory")
@@ -316,7 +310,7 @@ if(BUILD_CERES)
         -DBUILD_TESTING=OFF
         -DBUILD_EXAMPLES=OFF
         -DBUILD_BENCHMARKS=OFF
-        # Use vcpkg's SuiteSparse config so Ceres links against the same targets as GLOMAP
+        # Use vcpkg's SuiteSparse config so Ceres links against the same targets as COLMAP
         -DSuiteSparse_DIR=${VCPKG_INSTALLED_TRIPLET_DIR}/share/suitesparse
         -DMETIS_DIR=${VCPKG_INSTALLED_TRIPLET_DIR}/share/metis
     )
@@ -360,37 +354,7 @@ if(BUILD_CERES)
     list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/ceres")
 endif()
 
-# Step 2: Build PoseLib (depends on Ceres)
-# Note: PoseLib is built here even if only GLOMAP is requested
-# GLOMAP's FETCH_POSELIB must be OFF to use our local PoseLib
-if(BUILD_GLOMAP)
-    message(STATUS "Configuring PoseLib as external project...")
-
-    ExternalProject_Add(poselib-external
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/poselib"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/poselib"
-        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-        CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
-        CMAKE_ARGS
-            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-            -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
-            -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
-            -DVCPKG_MANIFEST_MODE=OFF
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/poselib
-            -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres
-            -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
-        BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
-        INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
-        BUILD_ALWAYS OFF
-        STEP_TARGETS install
-        DEPENDS ceres-solver-external
-    )
-
-    list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/poselib")
-endif()
-
-# Step 3: Build COLMAP (latest version - depends on Ceres)
+# Step 2: Build COLMAP (latest version - depends on Ceres)
 if(BUILD_COLMAP)
     message(STATUS "Configuring COLMAP (latest) as external project...")
 
@@ -406,11 +370,16 @@ if(BUILD_COLMAP)
         set(COLMAP_CUDSS_ARGS "-Dcudss_DIR=${cudss_DIR}")
     endif()
 
+    # Escape semicolons for ExternalProject_Add LIST_SEPARATOR
+    string(REPLACE ";" "|" COLMAP_PREFIX_PATH_EP "${COLMAP_PREFIX_PATH}")
+    string(REPLACE ";" "|" CUDA_ARCHS_EP "${CMAKE_CUDA_ARCHITECTURES}")
+
     ExternalProject_Add(colmap-external
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap"
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
+        LIST_SEPARATOR "|"
         # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
@@ -422,9 +391,9 @@ if(BUILD_COLMAP)
             -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap
-            -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH}
+            -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH_EP}
             -DCUDA_ENABLED=${CUDA_ENABLED}
-            -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS_EP}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
@@ -441,7 +410,7 @@ if(BUILD_COLMAP)
     list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/colmap")
 endif()
 
-# Step 3b: Build COLMAP for pycolmap (Python wheel building - depends on Ceres)
+# Step 3: Build COLMAP for pycolmap (Python wheel building - depends on Ceres)
 # This is built separately with specific configurations optimized for Python bindings
 # Configuration based on COLMAP's official pycolmap GitHub Actions workflow
 if(BUILD_COLMAP_FOR_PYCOLMAP)
@@ -461,11 +430,20 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
         endif()
     endif()
 
+    # Escape semicolons for ExternalProject_Add LIST_SEPARATOR
+    if(NOT DEFINED COLMAP_PREFIX_PATH_EP)
+        string(REPLACE ";" "|" COLMAP_PREFIX_PATH_EP "${COLMAP_PREFIX_PATH}")
+    endif()
+    if(NOT DEFINED CUDA_ARCHS_EP)
+        string(REPLACE ";" "|" CUDA_ARCHS_EP "${CMAKE_CUDA_ARCHITECTURES}")
+    endif()
+
     ExternalProject_Add(colmap-for-pycolmap-external
         SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap"
         BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-pycolmap"
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
+        LIST_SEPARATOR "|"
         # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
@@ -477,9 +455,9 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DVCPKG_MANIFEST_MODE=OFF
             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
             -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-pycolmap
-            -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH}
+            -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH_EP}
             -DCUDA_ENABLED=${CUDA_ENABLED}
-            -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
+            -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS_EP}
             -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
@@ -499,85 +477,6 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
     list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/colmap-for-pycolmap")
 endif()
 
-# Step 4: Build COLMAP for GLOMAP (pinned to commit 78f1eefa - COLMAP 3.11)
-# This is built separately to ensure GLOMAP compatibility
-if(BUILD_GLOMAP)
-    message(STATUS "Configuring COLMAP for GLOMAP (v3.11 - commit 78f1eefa) as external project...")
-
-    # Determine vcpkg triplet for path hints (COLMAP 3.11's FindFLANN.cmake needs hints)
-    if(WIN32)
-        set(VCPKG_TRIPLET "x64-windows")
-    else()
-        set(VCPKG_TRIPLET "x64-linux")
-    endif()
-    set(VCPKG_INSTALLED_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TRIPLET}")
-
-    ExternalProject_Add(colmap-for-glomap-external
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/colmap-g"
-        CMAKE_GENERATOR "${CMAKE_GENERATOR}"
-        CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
-        # Patch COLMAP for vcpkg compatibility:
-        # 1. Set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
-        # 2. Replace FindFLANN.cmake with vcpkg-compatible version
-        # 3. Fix colmap-config.cmake.in to load dependencies before targets
-        PATCH_COMMAND ${CMAKE_COMMAND}
-            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
-        COMMAND ${CMAKE_COMMAND}
-            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_flann.cmake
-        COMMAND ${CMAKE_COMMAND}
-            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_flann_link.cmake
-        COMMAND ${CMAKE_COMMAND}
-            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-glomap
-            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_config.cmake
-        # Use LIST_SEPARATOR to handle semicolons in CMAKE_PREFIX_PATH correctly
-        LIST_SEPARATOR |
-        CMAKE_ARGS
-            -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-            -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
-            -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
-            -DVCPKG_MANIFEST_MODE=OFF
-            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-            -DCMAKE_INSTALL_PREFIX=${BASE_INSTALL_DIR}/colmap-for-glomap
-            -DCMAKE_PREFIX_PATH=${BASE_INSTALL_DIR}/ceres|${VCPKG_INSTALLED_PATH}
-            -DCUDA_ENABLED=${CUDA_ENABLED}
-            -DCMAKE_CUDA_ARCHITECTURES=${CMAKE_CUDA_ARCHITECTURES}
-            -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
-            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
-            -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
-            -DGUI_ENABLED=${GUI_ENABLED}
-            -DCGAL_ENABLED=OFF
-            -DTESTS_ENABLED=OFF
-            -DFLANN_INCLUDE_DIR_HINTS=${VCPKG_INSTALLED_PATH}/include
-            -DFLANN_LIBRARY_DIR_HINTS=${VCPKG_INSTALLED_PATH}/lib
-            -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
-            # Define glog version macros for COLMAP compatibility with vcpkg glog 0.7+
-            # vcpkg's glog doesn't define GLOG_VERSION_MAJOR in headers, causing COLMAP
-            # to use the wrong glog API
-            "-DCMAKE_CXX_FLAGS=-DGLOG_VERSION_MAJOR=0 -DGLOG_VERSION_MINOR=7"
-        BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
-        INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
-        BUILD_ALWAYS OFF
-        STEP_TARGETS install
-        DEPENDS ceres-solver-external
-    )
-
-    list(APPEND CMAKE_PREFIX_PATH "${BASE_INSTALL_DIR}/colmap-for-glomap")
-endif()
-
-# Step 5: Build GLOMAP (depends on COLMAP-for-GLOMAP and PoseLib)
-# Note: GLOMAP is NOT configured here to avoid dependency issues
-# It must be built after dependencies are installed using a separate CMake invocation
-# See scripts_windows/build_glomap_fast.ps1 for the build orchestration
-if(BUILD_GLOMAP)
-    message(STATUS "GLOMAP will be configured separately after dependencies are built")
-    message(STATUS "  Dependencies: Ceres, PoseLib, COLMAP for GLOMAP")
-    message(STATUS "  Use build script to build GLOMAP after dependencies")
-endif()
-
 # Print configuration summary
 message(STATUS "==================== Configuration Summary ====================")
 message(STATUS "CUDA Support: ${CUDA_ENABLED}")
@@ -592,6 +491,5 @@ if(CUDA_ENABLED)
 endif()
 message(STATUS "Build COLMAP: ${BUILD_COLMAP}")
 message(STATUS "Build COLMAP for pycolmap: ${BUILD_COLMAP_FOR_PYCOLMAP}")
-message(STATUS "Build GLOMAP: ${BUILD_GLOMAP}")
 message(STATUS "Build Ceres Solver: ${BUILD_CERES}")
 message(STATUS "===============================================================")
