@@ -381,9 +381,13 @@ if(BUILD_COLMAP)
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
         LIST_SEPARATOR "|"
         # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
+        # and fix ONNX install on Windows (share/ directory doesn't exist)
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_onnx_install.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
@@ -399,7 +403,6 @@ if(BUILD_COLMAP)
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
             -DTESTS_ENABLED=OFF
-            -DONNX_ENABLED=OFF
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
             ${COLMAP_CUDSS_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
@@ -446,9 +449,13 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
         LIST_SEPARATOR "|"
         # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
+        # and fix ONNX install on Windows (share/ directory doesn't exist)
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_onnx_install.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
@@ -464,7 +471,6 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
             -DTESTS_ENABLED=OFF
-            -DONNX_ENABLED=OFF
             -DCGAL_ENABLED=ON
             -DOPENGL_ENABLED=OFF
             -DGFLAGS_USE_TARGET_NAMESPACE=ON
