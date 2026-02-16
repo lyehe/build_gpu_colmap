@@ -1,6 +1,6 @@
-# Point Cloud Tools v2.3.0 - COLMAP 3.14
+# COLMAP Build v3.14.0-dev1
 
-Pre-built Windows/Linux binaries for COLMAP and Python wheels with CUDA 12.8 support.
+Pre-built Windows/Linux COLMAP binaries and pycolmap Python wheels with CUDA 12.8 support.
 
 ## Important: NVIDIA Driver 570+ Required
 
@@ -8,119 +8,98 @@ CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-sm
 
 ## Highlights
 
-- **COLMAP updated to latest** - Includes LightGlue ONNX feature matching and ALIKED support
-- **GLOMAP removed from repository** - Global SfM is now built into COLMAP 3.14 (`colmap global_mapper`)
-- **Build fixes** - Disabled ONNX runtime to fix install failures, fixed ExternalProject LIST_SEPARATOR handling
-- **Python 3.10-3.14 support**
+- **ONNX support enabled** — LightGlue and ALIKED learned feature matching/detection
+- **COLMAP updated to latest** (`a6f539d4`) — pycolmap.match_from_pairs, improved mapper/triangulator bindings
+- **Global SfM built-in** — Use `colmap global_mapper` (previously standalone GLOMAP)
+- **Cross-platform** — 8 COLMAP packages + 25 pycolmap wheels (Windows & Linux, CPU/CUDA/cuDSS)
+- **Python 3.10–3.14** support
 
 ## What's Included
 
-### COLMAP 3.14 dev - Windows x64 CUDA
-**File**: `COLMAP-3.14-dev-Windows-x64-CUDA.zip`
+### COLMAP Packages (8 variants)
 
-Latest COLMAP development version (3.14.0.dev0) for Structure-from-Motion and Multi-View Stereo reconstruction.
+| Package | Platform | GPU | GUI |
+|---------|----------|-----|-----|
+| `COLMAP-windows-latest-CPU` | Windows | — | — |
+| `COLMAP-windows-latest-CUDA` | Windows | CUDA 12.8 | — |
+| `COLMAP-windows-latest-CUDA-GUI` | Windows | CUDA 12.8 | Qt GUI |
+| `COLMAP-windows-latest-CUDA-cuDSS` | Windows | CUDA 12.8 + cuDSS | — |
+| `COLMAP-windows-latest-CUDA-cuDSS-GUI` | Windows | CUDA 12.8 + cuDSS | Qt GUI |
+| `COLMAP-ubuntu-22.04-CPU` | Linux | — | — |
+| `COLMAP-ubuntu-22.04-CUDA` | Linux | CUDA 12.8 | — |
+| `COLMAP-ubuntu-22.04-CUDA-cuDSS` | Linux | CUDA 12.8 + cuDSS | — |
 
-- All dependencies bundled (no separate installation needed)
-- CUDA GPU acceleration for RTX 20/30/40 series, A100, H100
-- Includes GUI and command-line tools
-- **Global SfM included** - Use `colmap global_mapper` for fast global SfM (previously GLOMAP)
-- **LightGlue ONNX** - State-of-the-art learned feature matching
-- **ALIKED** - Another learned feature detector/descriptor
+### pycolmap Wheels (25 variants)
 
-**Quick Start**:
-```cmd
-# Extract and run
-.\COLMAP.bat
+Python 3.10–3.14 for Windows and Linux, in CPU / CUDA / CUDA+cuDSS variants.
 
-# Or command line
-.\bin\colmap.exe help
-
-# Global SfM (previously GLOMAP)
-.\bin\colmap.exe global_mapper --database_path db.db --image_path images --output_path sparse
-```
-
----
-
-### pycolmap - Python Wheels
-**Files**:
-- `pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl` (Python 3.10)
-- `pycolmap-3.14.0.dev0-cp311-cp311-win_amd64.whl` (Python 3.11)
-- `pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl` (Python 3.12)
-- `pycolmap-3.14.0.dev0-cp313-cp313-win_amd64.whl` (Python 3.13)
-- `pycolmap-3.14.0.dev0-cp314-cp314-win_amd64.whl` (Python 3.14)
-
-Python bindings for COLMAP with all dependencies bundled.
-
-- No separate COLMAP installation needed
-- CUDA support included
-- Works on any Windows machine with matching Python version
-- **Global SfM included** - Access via `pycolmap.global_mapper()`
-
-**Installation**:
 ```bash
-pip install pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl
+pip install pycolmap-3.14.0.dev0+cuda-cp312-cp312-win_amd64.whl
 ```
 
-**Quick Test**:
+| Variant suffix | Description |
+|----------------|-------------|
+| `+cpu` | CPU-only (no NVIDIA GPU required) |
+| `+cuda` | CUDA 12.8 GPU acceleration |
+| `+cuda.cudss` | CUDA 12.8 + cuDSS sparse solver (fastest bundle adjustment) |
+
+## Quick Start
+
+**COLMAP (Windows):**
+```powershell
+Expand-Archive COLMAP-windows-latest-CUDA.zip -DestinationPath C:\Tools\COLMAP
+C:\Tools\COLMAP\bin\colmap.exe gui
+```
+
+**COLMAP (Linux):**
+```bash
+unzip COLMAP-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
+~/tools/colmap/bin/colmap gui
+```
+
+**Global SfM (previously GLOMAP):**
+```bash
+colmap global_mapper --database_path db.db --image_path images --output_path sparse
+```
+
+**pycolmap:**
 ```python
 import pycolmap
 pycolmap.extract_features(image_path="images/", database_path="database.db")
 ```
 
-## What's New in v2.3.0
+## COLMAP Changes (since v2.3.0 / v3.14.0-dev0)
 
-### COLMAP Updates
-- **LightGlue ONNX feature matching** - State-of-the-art learned feature matching via ONNX runtime
-- **ALIKED support** - Additional learned feature detector/descriptor via ONNX
-- Various bug fixes and dependency updates from upstream COLMAP
+### New
+- **ONNX support enabled** — LightGlue ONNX feature matching and ALIKED support now included in builds
+- **`pycolmap.match_from_pairs`** ([#4056](https://github.com/colmap/colmap/pull/4056)) — Custom pair matching on GPU
+- **Improved incremental mapper/triangulator bindings** ([#4101](https://github.com/colmap/colmap/pull/4101))
 
-### Repository Changes
-- **GLOMAP removed** - The standalone GLOMAP build has been removed from this repository since global SfM is now integrated into COLMAP 3.14 as `colmap global_mapper`
-- **ONNX runtime disabled** - Disabled ONNX runtime in COLMAP builds to fix install failures (ONNX feature matchers still work via built-in support)
-- **ExternalProject LIST_SEPARATOR fix** - Fixed CMake list separator handling for paths with semicolons
+### Improvements
+- Avoid unnecessary copies ([#4103](https://github.com/colmap/colmap/pull/4103))
+- Use native menu bar on Mac ([#4102](https://github.com/colmap/colmap/pull/4102))
+
+### Build System
+- Fixed ONNX install on Windows via `patch_colmap_onnx_install.cmake` (upstream bug: `share/` directory only exists on non-Windows but install rule was unconditional)
+- Updated both COLMAP submodules to latest (`a6f539d4`)
 
 ## System Requirements
 
-**Windows Defender False Positive Notice**:
-Windows Defender may flag these binaries as potentially unwanted software (typically `Wacatac.B!ml`). This is a **false positive** common with CUDA-compiled binaries. These files are built from official open-source COLMAP repositories with no modifications. You can:
-- Add an exclusion in Windows Security
-- Submit as false positive to Microsoft: https://www.microsoft.com/en-us/wdsi/filesubmission
-- Verify by building from source yourself using this repository
-
-**Windows Compatibility**:
-- **Windows 10/11 (64-bit only)** - Fully tested and supported
-- **Windows 7/8/8.1** - May work but not tested
-- **32-bit Windows** - Not supported
-
-**Minimum**:
+**Minimum:**
 - 8 GB RAM (16 GB recommended for large datasets)
-- [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe) (usually already installed)
+- [Visual C++ Redistributable 2015-2022](https://aka.ms/vs/17/release/vc_redist.x64.exe) (Windows, usually already installed)
 
-**For GPU Acceleration** (optional but recommended):
+**For GPU Acceleration:**
 - NVIDIA GPU with Compute Capability 7.5+ (RTX 20/30/40, A100, H100)
-- **NVIDIA Driver 570.26+ required** (for CUDA 12.8 binaries)
-  - Windows: Driver 570.65+
-  - Linux: Driver 570.26+
-- Check your driver version: `nvidia-smi`
+- NVIDIA Driver 570+ required for CUDA 12.8
+- Architectures: 75, 80, 86, 89, 90, 120
 
-**Note**: Binaries will run without CUDA but GPU acceleration will be disabled.
-
-**"PTX compiled with unsupported toolchain" Error**:
-If you see this error during GPU feature extraction, your NVIDIA driver is too old.
-```
-CUDA error: the provided PTX was compiled with an unsupported toolchain
-```
-**Fix**: Update your NVIDIA driver to version 570 or later:
-- Windows: Download from [NVIDIA Drivers](https://www.nvidia.com/Download/index.aspx)
-- Linux: `sudo apt install nvidia-driver-570` (Ubuntu/Debian)
-
-**For pycolmap**:
+**For pycolmap:**
 - Python 3.10, 3.11, 3.12, 3.13, or 3.14 (64-bit)
-- Wheels are self-contained and work on any compatible Windows machine
+
+**Windows Defender:** May flag CUDA binaries as false positives (`Wacatac.B!ml`). Add an exclusion or [submit to Microsoft](https://www.microsoft.com/en-us/wdsi/filesubmission).
 
 ## Migration from GLOMAP
-
-If you were previously using the standalone GLOMAP binary, simply replace:
 
 ```bash
 # Old (standalone GLOMAP)
@@ -130,22 +109,10 @@ glomap mapper --database_path db.db --image_path images --output_path sparse
 colmap global_mapper --database_path db.db --image_path images --output_path sparse
 ```
 
-## Supported GPU Architectures
-
-Compiled for: RTX 20/30/40 series, A100, H100 (architectures 75, 80, 86, 89, 90, 120)
-
 ## License
 
-Each component has its own BSD 3-Clause License:
-- [COLMAP](https://github.com/colmap/colmap)
-- [Ceres Solver](http://ceres-solver.org/)
-
-## Documentation
-
-- [Build from source](https://github.com/opsiclear/point-cloud-tools)
-- [COLMAP Documentation](https://colmap.github.io/)
-- [Report issues](https://github.com/opsiclear/point-cloud-tools/issues)
+BSD 3-Clause — [COLMAP](https://github.com/colmap/colmap) · [Ceres Solver](http://ceres-solver.org/)
 
 ---
 
-**Built with**: Visual Studio 2022, CUDA 12.x, CMake 3.28+, vcpkg
+**Built with**: Visual Studio 2022, CUDA 12.8, CMake 3.28+, vcpkg

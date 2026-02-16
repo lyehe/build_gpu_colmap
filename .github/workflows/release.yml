@@ -219,9 +219,9 @@ jobs:
 
           ## Highlights
 
-          - **COLMAP updated to latest** - Includes LightGlue ONNX feature matching and ALIKED support
-          - **GLOMAP removed from repository** - Global SfM is now built into COLMAP 3.14 (`colmap global_mapper`)
-          - **Build fixes** - Disabled ONNX runtime to fix install failures, fixed ExternalProject LIST_SEPARATOR handling
+          - **ONNX support enabled** — LightGlue and ALIKED learned feature matching/detection
+          - **Global SfM built-in** — Use `colmap global_mapper` (previously standalone GLOMAP)
+          - **Cross-platform** — 8 COLMAP packages + 25 pycolmap wheels
 
           ## Installation
 
