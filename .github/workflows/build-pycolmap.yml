@@ -99,8 +99,7 @@ jobs:
 
       - name: Install Python build dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install scikit-build-core[pyproject] pybind11 delvewheel
+          python -m pip install --upgrade pip setuptools wheel scikit-build-core[pyproject] "pybind11==3.0.1" delvewheel
 
       # ==================== CUDA Setup ====================
       - name: Install CUDA Toolkit (Windows)
@@ -537,14 +536,15 @@ jobs:
           echo "Renaming wheels with variant: $VARIANT"
 
           # Rename each wheel to include variant in version
-          # e.g., pycolmap-3.14.0.dev0-cp310-cp310-win_amd64.whl
-          #    -> pycolmap-3.14.0.dev0+cuda-cp310-cp310-win_amd64.whl
+          # e.g., pycolmap-4.0.1-cp310-cp310-win_amd64.whl
+          #    -> pycolmap-4.0.1+cuda-cp310-cp310-win_amd64.whl
           for wheel in wheelhouse/*.whl; do
             if [ -f "$wheel" ]; then
               filename=$(basename "$wheel")
               # Extract parts: name-version-pytag-abitag-platform.whl
               # Insert variant after version (before first -cp)
-              newname=$(echo "$filename" | sed "s/\(pycolmap-[0-9.]*\.dev[0-9]*\)\(-cp\)/\1${VARIANT}\2/")
+              # Matches both release versions (4.0.1) and dev versions (4.0.1.dev0)
+              newname=$(echo "$filename" | sed "s/\(pycolmap-[0-9][^-]*\)\(-cp\)/\1${VARIANT}\2/")
               if [ "$filename" != "$newname" ]; then
                 echo "  $filename -> $newname"
                 mv "$wheel" "wheelhouse/$newname"

@@ -2,7 +2,7 @@
 
 Pre-built COLMAP and pycolmap binaries with CUDA support for Windows and Linux.
 
-**Note:** GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper` for global Structure-from-Motion.
+**Note:** GLOMAP has been merged into COLMAP. Use `colmap global_mapper` for global Structure-from-Motion.
 
 ## Downloads
 
@@ -12,7 +12,7 @@ Download the latest release from [GitHub Releases](https://github.com/YOUR_USERN
 
 | Package | Description |
 |---------|-------------|
-| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v3.14 dev) |
+| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.0.1) |
 | **pycolmap** | Python bindings for COLMAP |
 
 ### Release Variants
@@ -64,8 +64,8 @@ colmap global_mapper --database_path ./database.db --image_path ./images --outpu
 **Install from wheel file:**
 ```bash
 # Download the wheel for your Python version (e.g., cp312 = Python 3.12)
-pip install pycolmap-3.14.0.dev0-cp312-cp312-win_amd64.whl      # Windows
-pip install pycolmap-3.14.0.dev0-cp312-cp312-linux_x86_64.whl   # Linux
+pip install pycolmap-4.0.1-cp312-cp312-win_amd64.whl      # Windows
+pip install pycolmap-4.0.1-cp312-cp312-linux_x86_64.whl   # Linux
 
 # Verify installation
 python -c "import pycolmap; print(pycolmap.__version__)"
@@ -141,7 +141,7 @@ If you were previously using the standalone GLOMAP binary, simply replace:
 # Old (standalone GLOMAP)
 glomap mapper --database_path db.db --image_path images --output_path sparse
 
-# New (COLMAP 3.14+)
+# New (COLMAP 4.0+)
 colmap global_mapper --database_path db.db --image_path images --output_path sparse
 ```
 

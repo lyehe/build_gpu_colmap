@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Point Cloud Tools** - Self-contained build environment for COLMAP and related computer vision tools with CUDA support. This project uses vcpkg for dependency management and CMake's ExternalProject module to orchestrate builds of multiple interdependent computer vision libraries.
 
-**Note:** GLOMAP has been merged into COLMAP 3.14. Use `colmap global_mapper` for global Structure-from-Motion.
+**Note:** GLOMAP has been merged into COLMAP. Use `colmap global_mapper` for global Structure-from-Motion.
 
 ### Key Components
-- **COLMAP 3.14 dev** - Structure-from-Motion and Multi-View Stereo (latest development, general use)
-- **COLMAP 3.14 dev for pycolmap** (colmap-for-pycolmap) - Latest development version configured specifically for Python wheel building
+- **COLMAP 4.0.1** - Structure-from-Motion and Multi-View Stereo (general use)
+- **COLMAP 4.0.1 for pycolmap** (colmap-for-pycolmap) - Configured specifically for Python wheel building
 - **Ceres Solver** - Nonlinear optimization library (base dependency)
 
 ## Common Build Commands
@@ -90,15 +90,15 @@ cmake --build . --config Release
 ### Multiple COLMAP Version Strategy
 This project can build **two separate COLMAP versions**:
 
-1. **COLMAP 3.14 dev** (`third_party/colmap`) → `build/install/colmap/`
+1. **COLMAP 4.0.1** (`third_party/colmap`) → `build/install/colmap/`
    - For general use
-   - Tracks latest COLMAP main branch (version 3.14.0.dev0)
+   - COLMAP 4.0.1 release
    - Full features enabled
    - Includes global SfM (previously GLOMAP): `colmap global_mapper`
 
-2. **COLMAP 3.14 dev for pycolmap** (`third_party/colmap-for-pycolmap`) → `build/install/colmap-for-pycolmap/`
+2. **COLMAP 4.0.1 for pycolmap** (`third_party/colmap-for-pycolmap`) → `build/install/colmap-for-pycolmap/`
    - For building Python wheels with specific configurations
-   - Tracks latest COLMAP main branch (version 3.14.0.dev0)
+   - COLMAP 4.0.1 release
    - Built with GUI/tests disabled, optimized for Python bindings
    - Optional build (set `-DBUILD_COLMAP_FOR_PYCOLMAP=ON`)
 
@@ -110,8 +110,8 @@ The CMakeLists.txt uses `ExternalProject_Add()` to enforce strict build order:
 
 ```
 Ceres Solver (base dependency)
-    ├── COLMAP 3.14 dev ─────────────→ build/install/colmap/
-    └── COLMAP 3.14 dev for pycolmap (optional) → build/install/colmap-for-pycolmap/
+    ├── COLMAP 4.0.1 ───────────────────→ build/install/colmap/
+    └── COLMAP 4.0.1 for pycolmap (optional) → build/install/colmap-for-pycolmap/
 ```
 
 **Critical Details:**
@@ -296,7 +296,7 @@ The project includes scripts to package and release builds:
 
 **Step 1: Build Components**
 ```powershell
-# Build COLMAP 3.14 dev
+# Build COLMAP 4.0.1
 .\scripts_windows\build_colmap.ps1
 
 # Build pycolmap wheels (optional)
@@ -310,7 +310,7 @@ The project includes scripts to package and release builds:
 ```
 
 This creates in `releases/`:
-- `COLMAP-3.14-dev-Windows-x64-CUDA.zip` - COLMAP 3.14 dev from `build/install/colmap/`
+- `COLMAP-4.0.1-Windows-x64-CUDA.zip` - COLMAP 4.0.1 from `build/install/colmap/`
 - Copies `pycolmap-*.whl` files from `third_party/colmap-for-pycolmap/wheelhouse/`
 
 **Step 3: Create GitHub Release**
@@ -323,8 +323,8 @@ gh auth login
 ```
 
 **Release Strategy:**
-- **COLMAP 3.14 dev** - Latest development version for general use (includes global SfM)
-- **pycolmap wheels** - Built from COLMAP 3.14 dev, one wheel per Python version
+- **COLMAP 4.0.1** - Release version for general use (includes global SfM)
+- **pycolmap wheels** - Built from COLMAP 4.0.1, one wheel per Python version
 
 ## Documentation Reference
 

@@ -226,13 +226,13 @@ For Linux, debug symbols are stripped by default during wheel repair.
 The generated wheels are **platform-specific** and can be distributed:
 
 **Windows:**
-- `pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl`
+- `pycolmap-4.0.1-cp312-cp312-win_amd64.whl`
   - Works on Windows 10/11 x64
   - Python 3.12 specific
   - ~50-100 MB with CUDA
 
 **Linux:**
-- `pycolmap-3.13.0.dev0-cp312-cp312-manylinux_2_31_x86_64.whl`
+- `pycolmap-4.0.1-cp312-cp312-manylinux_2_31_x86_64.whl`
   - Works on modern Linux (Ubuntu 22.04+, RHEL 9+)
   - Python 3.12 specific
   - ~50-80 MB
@@ -241,7 +241,7 @@ The generated wheels are **platform-specific** and can be distributed:
 ```bash
 # Upload to file server, S3, etc.
 # Users install with:
-pip install pycolmap-3.13.0.dev0-cp312-cp312-*.whl
+pip install pycolmap-4.0.1-cp312-cp312-*.whl
 ```
 
 ## Advanced: Building for Multiple Python Versions
@@ -353,7 +353,7 @@ python3.12 -m pip install build auditwheel
 A bundled wheel contains:
 
 ```
-pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl
+pycolmap-4.0.1-cp312-cp312-win_amd64.whl
 ├── pycolmap/                 # Python package
 │   ├── __init__.py
 │   ├── _pycolmap.*.pyd       # C++ extension (Windows)
@@ -363,7 +363,7 @@ pycolmap-3.13.0.dev0-cp312-cp312-win_amd64.whl
 │   ├── glog.dll
 │   ├── cudart64_*.dll
 │   └── ...
-└── pycolmap-3.13.0.dev0.dist-info/
+└── pycolmap-4.0.1.dist-info/
     ├── METADATA
     ├── WHEEL
     └── ...

@@ -20,7 +20,7 @@ Usage: .\build.ps1 [options]
 
 This script builds COLMAP (latest version) by calling the build_colmap.ps1 script.
 
-Note: GLOMAP has been merged into COLMAP 3.14. Use 'colmap global_mapper' for global SfM.
+Note: GLOMAP has been merged into COLMAP. Use 'colmap global_mapper' for global SfM.
 
 Options:
   -Configuration <Debug|Release>  Build configuration (default: Release)
@@ -112,5 +112,5 @@ Write-Host "================================================================" -F
 Write-Host "Build completed successfully!" -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Note: GLOMAP has been merged into COLMAP 3.14." -ForegroundColor Cyan
+Write-Host "Note: GLOMAP has been merged into COLMAP." -ForegroundColor Cyan
 Write-Host "Use 'colmap global_mapper' for global Structure-from-Motion." -ForegroundColor Cyan

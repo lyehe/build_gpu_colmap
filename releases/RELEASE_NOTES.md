@@ -1,4 +1,4 @@
-# COLMAP Build v3.14.0-dev1
+# COLMAP Build v4.0.1
 
 Pre-built Windows/Linux COLMAP binaries and pycolmap Python wheels with CUDA 12.8 support.
 
@@ -8,8 +8,8 @@ CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-sm
 
 ## Highlights
 
+- **COLMAP 4.0.1** — Major release with significant improvements
 - **ONNX support enabled** — LightGlue and ALIKED learned feature matching/detection
-- **COLMAP updated to latest** (`a6f539d4`) — pycolmap.match_from_pairs, improved mapper/triangulator bindings
 - **Global SfM built-in** — Use `colmap global_mapper` (previously standalone GLOMAP)
 - **Cross-platform** — 8 COLMAP packages + 25 pycolmap wheels (Windows & Linux, CPU/CUDA/cuDSS)
 - **Python 3.10–3.14** support
@@ -34,7 +34,7 @@ CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-sm
 Python 3.10–3.14 for Windows and Linux, in CPU / CUDA / CUDA+cuDSS variants.
 
 ```bash
-pip install pycolmap-3.14.0.dev0+cuda-cp312-cp312-win_amd64.whl
+pip install pycolmap-4.0.1+cuda-cp312-cp312-win_amd64.whl
 ```
 
 | Variant suffix | Description |
@@ -68,20 +68,9 @@ import pycolmap
 pycolmap.extract_features(image_path="images/", database_path="database.db")
 ```
 
-## COLMAP Changes (since v2.3.0 / v3.14.0-dev0)
+## Changes (since v3.14.0-dev1)
 
-### New
-- **ONNX support enabled** — LightGlue ONNX feature matching and ALIKED support now included in builds
-- **`pycolmap.match_from_pairs`** ([#4056](https://github.com/colmap/colmap/pull/4056)) — Custom pair matching on GPU
-- **Improved incremental mapper/triangulator bindings** ([#4101](https://github.com/colmap/colmap/pull/4101))
-
-### Improvements
-- Avoid unnecessary copies ([#4103](https://github.com/colmap/colmap/pull/4103))
-- Use native menu bar on Mac ([#4102](https://github.com/colmap/colmap/pull/4102))
-
-### Build System
-- Fixed ONNX install on Windows via `patch_colmap_onnx_install.cmake` (upstream bug: `share/` directory only exists on non-Windows but install rule was unconditional)
-- Updated both COLMAP submodules to latest (`a6f539d4`)
+- **COLMAP 4.0.1** — Updated to COLMAP 4.0.1 release
 
 ## System Requirements
 
@@ -105,7 +94,7 @@ pycolmap.extract_features(image_path="images/", database_path="database.db")
 # Old (standalone GLOMAP)
 glomap mapper --database_path db.db --image_path images --output_path sparse
 
-# New (COLMAP 3.14+)
+# New (COLMAP 4.0+)
 colmap global_mapper --database_path db.db --image_path images --output_path sparse
 ```
 
