@@ -6,7 +6,7 @@ Pre-built COLMAP and pycolmap binaries with CUDA support for Windows and Linux.
 
 ## Downloads
 
-Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/build_gpu_colmap/releases).
+Download the latest release from [GitHub Releases](https://github.com/lyehe/build_gpu_colmap/releases).
 
 ### Available Packages
 
@@ -22,6 +22,8 @@ Download the latest release from [GitHub Releases](https://github.com/YOUR_USERN
 | `CPU` | CPU-only build | Systems without NVIDIA GPU |
 | `CUDA` | GPU-accelerated with CUDA | NVIDIA GPU (CUDA Toolkit not required) |
 | `CUDA-cuDSS` | CUDA + cuDSS sparse solver | Best performance (2-5x faster sparse solving) |
+| `CUDA-GUI` | CUDA + Qt GUI | Interactive reconstruction with GPU |
+| `CUDA-cuDSS-GUI` | CUDA + cuDSS + Qt GUI | Best performance with GUI |
 
 ## Installation
 
@@ -41,6 +43,11 @@ colmap automatic_reconstructor --workspace_path ./project --image_path ./images
 
 # Global SfM (previously GLOMAP)
 colmap global_mapper --database_path ./database.db --image_path ./images --output_path ./sparse
+
+# ALIKED + LightGlue (learned features)
+colmap feature_extractor --database_path ./database.db --image_path ./images --FeatureExtraction.type ALIKED_N16ROT
+colmap exhaustive_matcher --database_path ./database.db --FeatureMatching.type ALIKED_LIGHTGLUE
+colmap mapper --database_path ./database.db --image_path ./images --output_path ./sparse
 ```
 
 **Linux:**
@@ -57,6 +64,11 @@ colmap automatic_reconstructor --workspace_path ./project --image_path ./images
 
 # Global SfM (previously GLOMAP)
 colmap global_mapper --database_path ./database.db --image_path ./images --output_path ./sparse
+
+# ALIKED + LightGlue (learned features)
+colmap feature_extractor --database_path ./database.db --image_path ./images --FeatureExtraction.type ALIKED_N16ROT
+colmap exhaustive_matcher --database_path ./database.db --FeatureMatching.type ALIKED_LIGHTGLUE
+colmap mapper --database_path ./database.db --image_path ./images --output_path ./sparse
 ```
 
 ### pycolmap (Python Wheels)
@@ -77,17 +89,38 @@ python -c "import pycolmap; print(pycolmap.__version__)"
 ```python
 import pycolmap
 
-# Run automatic reconstruction
-pycolmap.automatic_reconstructor(
-    workspace_path="./project",
-    image_path="./images"
-)
-
-# Or use individual components
 database_path = "./database.db"
-pycolmap.extract_features(database_path, "./images")
+image_path = "./images"
+output_path = "./sparse"
+
+# Extract features and match
+pycolmap.extract_features(database_path, image_path)
 pycolmap.match_exhaustive(database_path)
-maps = pycolmap.incremental_mapping(database_path, "./images", "./sparse")
+
+# Incremental SfM
+maps = pycolmap.incremental_mapping(database_path, image_path, output_path)
+
+# Or Global SfM (GLOMAP)
+maps = pycolmap.global_mapping(database_path, image_path, output_path)
+```
+
+**ALIKED + LightGlue (learned features):**
+```python
+import pycolmap
+
+database_path = "./database.db"
+image_path = "./images"
+
+# Extract ALIKED features
+pycolmap.extract_features(database_path, image_path,
+    options=pycolmap.FeatureExtractionOptions(
+        type=pycolmap.FeatureExtractorType.ALIKED_N16ROT))
+
+# Match with LightGlue
+pycolmap.match_exhaustive(database_path)
+
+# Reconstruct
+maps = pycolmap.incremental_mapping(database_path, image_path, "./sparse")
 ```
 
 ## Package Size Differences
@@ -123,8 +156,8 @@ sudo apt-get install nvidia-cuda-toolkit
 
 ### For CUDA builds
 - **GPU:** NVIDIA GPU with Compute Capability 7.5+ (RTX 20 series or newer)
-- **Driver:** NVIDIA driver 520+ (Windows), 525+ (Linux)
-- **CUDA:** Not required on Windows (bundled). Required on Linux (CUDA 11.0+)
+- **Driver:** NVIDIA driver 570+ (CUDA 12.8)
+- **CUDA:** Not required on Windows (bundled). Required on Linux (CUDA 12.0+)
 
 ### Supported GPU Architectures
 - Turing (RTX 20 series, GTX 16 series) - SM 7.5
