@@ -416,43 +416,63 @@ jobs:
         run: |
           $installBin = "build/install/colmap/bin"
           $colmapExe = "$installBin/colmap.exe"
+          $vcpkgInstalled = "build/vcpkg_installed/x64-windows"
 
           if (-not (Test-Path $colmapExe)) {
             Write-Host "ERROR: colmap.exe not found at $colmapExe" -ForegroundColor Red
             exit 1
           }
 
-          # Find windeployqt from vcpkg Qt installation
-          $vcpkgInstalled = "build/vcpkg_installed/x64-windows"
+          # Try windeployqt first
           $windeployqt = Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
 
-          if (-not $windeployqt) {
-            Write-Host "ERROR: windeployqt.exe not found in vcpkg_installed" -ForegroundColor Red
-            Write-Host "Searching for Qt tools..." -ForegroundColor Yellow
-            Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "*.exe" | Where-Object { $_.Name -like "*qt*" -or $_.Name -like "*deploy*" } | Select-Object FullName
-            exit 1
+          if ($windeployqt) {
+            Write-Host "Found windeployqt: $($windeployqt.FullName)"
+            Write-Host "Running windeployqt on colmap.exe..."
+            & $windeployqt.FullName $colmapExe --no-translations --no-system-d3d-compiler --no-opengl-sw
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "WARNING: windeployqt returned non-zero exit code" -ForegroundColor Yellow
+            }
+          } else {
+            Write-Host "WARNING: windeployqt.exe not found, will copy Qt plugins manually" -ForegroundColor Yellow
           }
 
-          Write-Host "Found windeployqt: $($windeployqt.FullName)"
-          Write-Host "Running windeployqt on colmap.exe..."
-
-          # Run windeployqt to copy Qt DLLs and plugins
-          & $windeployqt.FullName $colmapExe --no-translations --no-system-d3d-compiler --no-opengl-sw
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "WARNING: windeployqt returned non-zero exit code, but continuing..." -ForegroundColor Yellow
-          }
-
-          # Verify platforms plugin exists - FAIL if missing (critical for GUI)
+          # Manual fallback: copy Qt platform plugin if windeployqt didn't
           $platformsDir = "$installBin/platforms"
+          if (-not (Test-Path "$platformsDir/qwindows.dll")) {
+            Write-Host "windeployqt did not deploy platforms plugin, copying manually..." -ForegroundColor Yellow
+
+            # Search for qwindows.dll in vcpkg
+            $qwindows = Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "qwindows.dll" -ErrorAction SilentlyContinue |
+              Where-Object { $_.DirectoryName -like "*plugins*platforms*" -or $_.DirectoryName -like "*Qt6*plugins*platforms*" } |
+              Select-Object -First 1
+
+            if ($qwindows) {
+              New-Item -ItemType Directory -Force -Path $platformsDir | Out-Null
+              Copy-Item $qwindows.FullName "$platformsDir/qwindows.dll" -Force
+              Write-Host "Copied $($qwindows.FullName) -> $platformsDir/qwindows.dll" -ForegroundColor Green
+            }
+
+            # Also copy Qt styles plugin if present
+            $qstyle = Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "qwindowsvistastyle.dll" -ErrorAction SilentlyContinue |
+              Where-Object { $_.DirectoryName -like "*plugins*styles*" } |
+              Select-Object -First 1
+            if ($qstyle) {
+              $stylesDir = "$installBin/styles"
+              New-Item -ItemType Directory -Force -Path $stylesDir | Out-Null
+              Copy-Item $qstyle.FullName "$stylesDir/qwindowsvistastyle.dll" -Force
+              Write-Host "Copied styles plugin" -ForegroundColor Green
+            }
+          }
+
+          # Final verification
           if (Test-Path "$platformsDir/qwindows.dll") {
             Write-Host "Qt platforms plugin bundled successfully:" -ForegroundColor Green
             Get-ChildItem $platformsDir
           } else {
-            Write-Host "ERROR: Qt platforms plugin not bundled!" -ForegroundColor Red
-            Write-Host "platforms/qwindows.dll is required for GUI to work" -ForegroundColor Red
-            Write-Host "Contents of bin directory:" -ForegroundColor Yellow
-            Get-ChildItem $installBin -Recurse | Select-Object FullName
+            Write-Host "ERROR: Qt platforms plugin not found anywhere!" -ForegroundColor Red
+            Write-Host "Searched in: $vcpkgInstalled" -ForegroundColor Yellow
+            Get-ChildItem -Path $vcpkgInstalled -Recurse -Filter "qwindows*" | Select-Object FullName
             exit 1
           }
 
