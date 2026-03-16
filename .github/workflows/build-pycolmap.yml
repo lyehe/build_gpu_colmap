@@ -2,16 +2,6 @@ name: Build pycolmap Wheels
 
 on:
   workflow_call:
-  push:
-    branches: [master, main]
-    paths:
-      - 'CMakeLists.txt'
-      - 'vcpkg.json'
-      - 'third_party/colmap-for-pycolmap/**'
-      - 'third_party/ceres-solver/**'
-      - 'scripts_windows/**'
-      - 'scripts_linux/**'
-      - '.github/workflows/build-pycolmap.yml'
   pull_request:
     branches: [master, main]
   workflow_dispatch:
@@ -219,78 +209,88 @@ jobs:
       # ==================== Build COLMAP-for-pycolmap ====================
       - name: Build COLMAP-for-pycolmap (Windows)
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "ON" } else { "OFF" }
-          $cudssFlag = if ("${{ matrix.cudss }}" -eq "true") { "ON" } else { "OFF" }
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 180
+          max_attempts: 3
+          retry_wait_seconds: 30
+          shell: pwsh
+          command: |
+            $cudaFlag = if ("${{ matrix.cuda }}" -eq "true") { "ON" } else { "OFF" }
+            $cudssFlag = if ("${{ matrix.cudss }}" -eq "true") { "ON" } else { "OFF" }
 
-          Write-Host "Building COLMAP-for-pycolmap with CUDA=$cudaFlag cuDSS=$cudssFlag"
+            Write-Host "Building COLMAP-for-pycolmap with CUDA=$cudaFlag cuDSS=$cudssFlag"
 
-          # Create build directory
-          New-Item -ItemType Directory -Force -Path build | Out-Null
-          Set-Location build
+            # Create build directory
+            New-Item -ItemType Directory -Force -Path build | Out-Null
+            Set-Location build
 
-          # Configure
-          $vcpkgToolchain = "${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            # Configure
+            $vcpkgToolchain = "${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
-          # Build cmake args
-          $cmakeArgs = @(
-            "-G", "Ninja",
-            "-DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain",
-            "-DCMAKE_BUILD_TYPE=Release",
-            "-DCUDA_ENABLED=$cudaFlag",
-            "-DBUILD_COLMAP=OFF",
-            "-DBUILD_COLMAP_FOR_PYCOLMAP=ON"
-          )
+            # Build cmake args
+            $cmakeArgs = @(
+              "-G", "Ninja",
+              "-DCMAKE_TOOLCHAIN_FILE=$vcpkgToolchain",
+              "-DCMAKE_BUILD_TYPE=Release",
+              "-DCUDA_ENABLED=$cudaFlag",
+              "-DBUILD_COLMAP=OFF",
+              "-DBUILD_COLMAP_FOR_PYCOLMAP=ON"
+            )
 
-          # Add cuDSS paths if enabled
-          if ("${{ matrix.cudss }}" -eq "true" -and $env:cudss_DIR) {
-            Write-Host "Adding cuDSS from: $env:cudss_DIR"
-            $cmakeArgs += "-Dcudss_DIR=$env:cudss_DIR"
-          }
+            # Add cuDSS paths if enabled
+            if ("${{ matrix.cudss }}" -eq "true" -and $env:cudss_DIR) {
+              Write-Host "Adding cuDSS from: $env:cudss_DIR"
+              $cmakeArgs += "-Dcudss_DIR=$env:cudss_DIR"
+            }
 
-          cmake .. @cmakeArgs `
-            -DBUILD_CERES=ON `
-            -DGFLAGS_USE_TARGET_NAMESPACE=ON
+            cmake .. @cmakeArgs `
+              -DBUILD_CERES=ON `
+              -DGFLAGS_USE_TARGET_NAMESPACE=ON
 
-          # Build
-          cmake --build . --config Release --parallel
+            # Build
+            cmake --build . --config Release --parallel
 
       - name: Build COLMAP-for-pycolmap (Linux)
         if: runner.os == 'Linux'
-        run: |
-          CUDA_FLAG="${{ matrix.cuda && 'ON' || 'OFF' }}"
-          CUDSS_FLAG="${{ matrix.cudss && 'true' || 'false' }}"
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 180
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            CUDA_FLAG="${{ matrix.cuda && 'ON' || 'OFF' }}"
+            CUDSS_FLAG="${{ matrix.cudss && 'true' || 'false' }}"
 
-          echo "Building COLMAP-for-pycolmap with CUDA=$CUDA_FLAG cuDSS=$CUDSS_FLAG"
+            echo "Building COLMAP-for-pycolmap with CUDA=$CUDA_FLAG cuDSS=$CUDSS_FLAG"
 
-          # Create build directory
-          mkdir -p build
-          cd build
+            # Create build directory
+            mkdir -p build
+            cd build
 
-          # Build cmake args
-          CMAKE_ARGS=(
-            -G Ninja
-            -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
-            -DCMAKE_BUILD_TYPE=Release
-            -DCUDA_ENABLED="$CUDA_FLAG"
-            -DBUILD_COLMAP=OFF
-            -DBUILD_COLMAP_FOR_PYCOLMAP=ON
-            -DBUILD_CERES=ON
-          )
+            # Build cmake args
+            CMAKE_ARGS=(
+              -G Ninja
+              -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}/third_party/vcpkg/scripts/buildsystems/vcpkg.cmake"
+              -DCMAKE_BUILD_TYPE=Release
+              -DCUDA_ENABLED="$CUDA_FLAG"
+              -DBUILD_COLMAP=OFF
+              -DBUILD_COLMAP_FOR_PYCOLMAP=ON
+              -DBUILD_CERES=ON
+            )
 
-          # Add cuDSS paths if enabled
-          if [ "$CUDSS_FLAG" = "true" ] && [ -n "$cudss_DIR" ]; then
-            echo "Adding cuDSS from: $cudss_DIR"
-            CMAKE_ARGS+=(-Dcudss_DIR="$cudss_DIR")
-          fi
+            # Add cuDSS paths if enabled
+            if [ "$CUDSS_FLAG" = "true" ] && [ -n "$cudss_DIR" ]; then
+              echo "Adding cuDSS from: $cudss_DIR"
+              CMAKE_ARGS+=(-Dcudss_DIR="$cudss_DIR")
+            fi
 
-          # Configure
-          cmake .. "${CMAKE_ARGS[@]}" \
-            -DGFLAGS_USE_TARGET_NAMESPACE=ON
+            # Configure
+            cmake .. "${CMAKE_ARGS[@]}" \
+              -DGFLAGS_USE_TARGET_NAMESPACE=ON
 
-          # Build
-          cmake --build . --config Release --parallel
+            # Build
+            cmake --build . --config Release --parallel
 
       # ==================== Build Python Wheel ====================
       - name: Build wheel (Windows)
