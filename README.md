@@ -12,7 +12,7 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 
 | Package | Description |
 |---------|-------------|
-| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.0.1) |
+| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.0.2) |
 | **pycolmap** | Python bindings for COLMAP |
 
 ### Release Variants
@@ -76,8 +76,8 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 **Install from wheel file:**
 ```bash
 # Download the wheel for your Python version (e.g., cp312 = Python 3.12)
-pip install pycolmap-4.0.1-cp312-cp312-win_amd64.whl      # Windows
-pip install pycolmap-4.0.1-cp312-cp312-linux_x86_64.whl   # Linux
+pip install pycolmap-4.0.2-cp312-cp312-win_amd64.whl      # Windows
+pip install pycolmap-4.0.2-cp312-cp312-linux_x86_64.whl   # Linux
 
 # Verify installation
 python -c "import pycolmap; print(pycolmap.__version__)"
@@ -184,8 +184,8 @@ Releases are fully automated via GitHub Actions:
 
 ```bash
 # Create and push a tag — this builds everything and creates a GitHub release
-git tag v4.0.1
-git push origin v4.0.1
+git tag v4.0.2
+git push origin v4.0.2
 ```
 
 **What happens:** `release.yml` triggers → builds 8 COLMAP variants + 25 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).

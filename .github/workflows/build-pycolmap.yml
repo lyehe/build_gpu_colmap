@@ -451,15 +451,63 @@ jobs:
             # Show wheel info first
             auditwheel show "$WHEEL" || true
 
-            # Try repair with verbose output, exclude system libs that can't be bundled
-            if auditwheel repair "$WHEEL" -w wheelhouse --plat manylinux_2_31_x86_64; then
-              echo "Created manylinux_2_31_x86_64 wheel"
-            elif auditwheel repair "$WHEEL" -w wheelhouse --plat manylinux2014_x86_64; then
-              echo "Created manylinux2014_x86_64 wheel"
-            else
-              echo "WARNING: auditwheel repair failed, using original wheel"
-              # Don't fail - the wheel might still work without bundling
+            # Build CUDA library exclusion list for auditwheel.
+            # CUDA toolkit libraries must be provided by the user's installation
+            # and cannot be bundled into the wheel (size + licensing).
+            EXCLUDE_ARGS=""
+            if [ "${{ matrix.cuda }}" = "true" ]; then
+              EXCLUDE_ARGS="
+                --exclude libcuda.so.1
+                --exclude libcudart.so.11.0
+                --exclude libcudart.so.12
+                --exclude libcublas.so.11
+                --exclude libcublas.so.12
+                --exclude libcublasLt.so.11
+                --exclude libcublasLt.so.12
+                --exclude libcufft.so.10
+                --exclude libcufft.so.11
+                --exclude libcufftw.so.10
+                --exclude libcufftw.so.11
+                --exclude libcurand.so.10
+                --exclude libcusolver.so.11
+                --exclude libcusolverMg.so.11
+                --exclude libcusparse.so.11
+                --exclude libcusparse.so.12
+                --exclude libnvJitLink.so.12
+                --exclude libnvrtc.so.11.2
+                --exclude libnvrtc.so.12
+                --exclude libcudnn.so.8
+                --exclude libcudnn.so.9
+                --exclude libnccl.so.2
+                --exclude libnvToolsExt.so.1
+                --exclude libcudss.so.0
+              "
             fi
+
+            # Determine the minimum manylinux platform tag.
+            # Ubuntu 22.04 has glibc 2.35, so manylinux_2_35 is the baseline.
+            # Try progressively older tags in case the toolchain allows it.
+            REPAIRED=false
+            for PLAT in manylinux_2_35_x86_64 manylinux_2_31_x86_64; do
+              echo "Attempting auditwheel repair with --plat $PLAT..."
+              if auditwheel repair "$WHEEL" -w wheelhouse --plat "$PLAT" $EXCLUDE_ARGS; then
+                echo "Created $PLAT wheel"
+                REPAIRED=true
+                # Remove original unrepaired wheel to avoid confusion
+                rm -f "$WHEEL"
+                break
+              fi
+            done
+
+            if [ "$REPAIRED" = false ]; then
+              echo "ERROR: auditwheel repair failed for all platform targets"
+              echo "The wheel will not have bundled shared libraries and will fail on user systems."
+              exit 1
+            fi
+
+            # List final wheels
+            echo "Wheels in wheelhouse:"
+            ls -la wheelhouse/*.whl
           else
             echo "ERROR: No wheel found to repair!"
             exit 1
@@ -536,14 +584,14 @@ jobs:
           echo "Renaming wheels with variant: $VARIANT"
 
           # Rename each wheel to include variant in version
-          # e.g., pycolmap-4.0.1-cp310-cp310-win_amd64.whl
-          #    -> pycolmap-4.0.1+cuda-cp310-cp310-win_amd64.whl
+          # e.g., pycolmap-4.0.2-cp310-cp310-win_amd64.whl
+          #    -> pycolmap-4.0.2+cuda-cp310-cp310-win_amd64.whl
           for wheel in wheelhouse/*.whl; do
             if [ -f "$wheel" ]; then
               filename=$(basename "$wheel")
               # Extract parts: name-version-pytag-abitag-platform.whl
               # Insert variant after version (before first -cp)
-              # Matches both release versions (4.0.1) and dev versions (4.0.1.dev0)
+              # Matches both release versions (4.0.2) and dev versions (4.0.2.dev0)
               newname=$(echo "$filename" | sed "s/\(pycolmap-[0-9][^-]*\)\(-cp\)/\1${VARIANT}\2/")
               if [ "$filename" != "$newname" ]; then
                 echo "  $filename -> $newname"

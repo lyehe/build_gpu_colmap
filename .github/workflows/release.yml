@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g., v4.0.1)'
+        description: 'Release tag (e.g., v4.0.2)'
         required: true
         type: string
       skip_build:
@@ -205,7 +205,7 @@ jobs:
           if [ "${{ github.event_name }}" = "release" ]; then
             echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "push" ]; then
-            # Extract tag from ref (refs/tags/v4.0.1 -> v4.0.1)
+            # Extract tag from ref (refs/tags/v4.0.2 -> v4.0.2)
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
@@ -215,11 +215,11 @@ jobs:
       - name: Generate release notes
         run: |
           cat > release_notes.md << 'RELEASE_EOF'
-          Pre-built COLMAP 4.0.1 and pycolmap binaries with CUDA 12.8 support.
+          Pre-built COLMAP 4.0.2 and pycolmap binaries with CUDA 12.8 support.
 
           ## Highlights
 
-          - **COLMAP 4.0.1** — Major release
+          - **COLMAP 4.0.2** — Major release
           - **ONNX support enabled** — LightGlue and ALIKED learned feature matching/detection
           - **Global SfM built-in** — Use `colmap global_mapper` (previously standalone GLOMAP)
           - **Global mapping Python bindings** — `pycolmap.global_mapper`
@@ -245,7 +245,7 @@ jobs:
 
           Download the appropriate wheel for your Python version and platform, then install:
           ```bash
-          pip install pycolmap-4.0.1+cuda-cp312-cp312-win_amd64.whl
+          pip install pycolmap-4.0.2+cuda-cp312-cp312-win_amd64.whl
           ```
 
           ## Package Variants

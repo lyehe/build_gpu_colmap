@@ -218,29 +218,68 @@ echo -e "${DARK_GRAY}  This will include all required .so files in the wheel${NC
 WHEELHOUSE_DIR="${COLMAP_SOURCE}/wheelhouse"
 mkdir -p "$WHEELHOUSE_DIR"
 
-# Run auditwheel to bundle libraries
-# --plat manylinux_2_31_x86_64 is for modern Linux (glibc 2.31+)
-# Use manylinux2014_x86_64 for broader compatibility
-auditwheel repair \
-    --plat manylinux_2_31_x86_64 \
-    --wheel-dir "$WHEELHOUSE_DIR" \
-    "$WHEEL_FILE"
+# Add CUDA library paths if CUDA enabled
+if [ "$NO_CUDA" != true ]; then
+    for cuda_lib_dir in "${CUDA_HOME}/lib64" "/usr/local/cuda/lib64"; do
+        if [ -d "$cuda_lib_dir" ]; then
+            export LD_LIBRARY_PATH="${cuda_lib_dir}:${LD_LIBRARY_PATH}"
+            break
+        fi
+    done
+fi
 
-if [ $? -ne 0 ]; then
-    echo -e "${YELLOW}WARNING: auditwheel failed with manylinux_2_31, trying manylinux2014...${NC}"
+# Show wheel dependency info
+auditwheel show "$WHEEL_FILE" || true
 
-    # Fallback to older manylinux for compatibility
-    auditwheel repair \
-        --plat manylinux2014_x86_64 \
-        --wheel-dir "$WHEELHOUSE_DIR" \
-        "$WHEEL_FILE"
+# Build CUDA library exclusion list for auditwheel.
+# CUDA toolkit libraries must be provided by the user's installation
+# and cannot be bundled (size + licensing).
+EXCLUDE_ARGS=""
+if [ "$NO_CUDA" != true ]; then
+    EXCLUDE_ARGS="
+        --exclude libcuda.so.1
+        --exclude libcudart.so.11.0
+        --exclude libcudart.so.12
+        --exclude libcublas.so.11
+        --exclude libcublas.so.12
+        --exclude libcublasLt.so.11
+        --exclude libcublasLt.so.12
+        --exclude libcufft.so.10
+        --exclude libcufft.so.11
+        --exclude libcufftw.so.10
+        --exclude libcufftw.so.11
+        --exclude libcurand.so.10
+        --exclude libcusolver.so.11
+        --exclude libcusolverMg.so.11
+        --exclude libcusparse.so.11
+        --exclude libcusparse.so.12
+        --exclude libnvJitLink.so.12
+        --exclude libnvrtc.so.11.2
+        --exclude libnvrtc.so.12
+        --exclude libcudnn.so.8
+        --exclude libcudnn.so.9
+        --exclude libnccl.so.2
+        --exclude libnvToolsExt.so.1
+        --exclude libcudss.so.0
+    "
+fi
 
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}auditwheel failed to bundle libraries${NC}"
-        echo -e "${YELLOW}The wheel may still work but won't be portable${NC}"
-        echo -e "${YELLOW}Using original wheel: $WHEEL_FILE${NC}"
-        cp "$WHEEL_FILE" "$WHEELHOUSE_DIR/"
+# Determine the minimum manylinux platform tag based on glibc version.
+# Try progressively older tags for broader compatibility.
+REPAIRED=false
+for PLAT in manylinux_2_35_x86_64 manylinux_2_31_x86_64 manylinux2014_x86_64; do
+    echo -e "${DARK_GRAY}Attempting auditwheel repair with --plat $PLAT...${NC}"
+    if auditwheel repair --plat "$PLAT" --wheel-dir "$WHEELHOUSE_DIR" $EXCLUDE_ARGS "$WHEEL_FILE"; then
+        echo -e "${GREEN}Created $PLAT wheel${NC}"
+        REPAIRED=true
+        break
     fi
+done
+
+if [ "$REPAIRED" != true ]; then
+    echo -e "${RED}ERROR: auditwheel repair failed for all platform targets${NC}"
+    echo -e "${RED}The wheel will not have bundled shared libraries and will fail on user systems.${NC}"
+    exit 1
 fi
 
 # Find the repaired wheel

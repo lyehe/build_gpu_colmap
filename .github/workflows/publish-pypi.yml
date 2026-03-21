@@ -10,7 +10,7 @@ on:
         type: boolean
         default: true
       tag:
-        description: 'Release tag to download artifacts from (e.g., v4.0.1)'
+        description: 'Release tag to download artifacts from (e.g., v4.0.2)'
         required: false
         type: string
 

@@ -1,4 +1,4 @@
-# COLMAP Build v4.0.1
+# COLMAP Build v4.0.2
 
 Pre-built Windows/Linux COLMAP binaries and pycolmap Python wheels with CUDA 12.8 support.
 
@@ -8,7 +8,7 @@ CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-sm
 
 ## Highlights
 
-- **COLMAP 4.0.1** — Major release with significant improvements
+- **COLMAP 4.0.2** — Major release with significant improvements
 - **ONNX support enabled** — LightGlue and ALIKED learned feature matching/detection
 - **Global SfM built-in** — Use `colmap global_mapper` (previously standalone GLOMAP)
 - **Cross-platform** — 8 COLMAP packages + 25 pycolmap wheels (Windows & Linux, CPU/CUDA/cuDSS)
@@ -34,7 +34,7 @@ CUDA 12.8 binaries require **NVIDIA Driver 570 or later**. Check with `nvidia-sm
 Python 3.10–3.14 for Windows and Linux, in CPU / CUDA / CUDA+cuDSS variants.
 
 ```bash
-pip install pycolmap-4.0.1+cuda-cp312-cp312-win_amd64.whl
+pip install pycolmap-4.0.2+cuda-cp312-cp312-win_amd64.whl
 ```
 
 | Variant suffix | Description |
@@ -70,7 +70,7 @@ pycolmap.extract_features(image_path="images/", database_path="database.db")
 
 ## Changes (since v3.14.0-dev1)
 
-- **COLMAP 4.0.1** — Updated to COLMAP 4.0.1 release
+- **COLMAP 4.0.2** — Updated to COLMAP 4.0.2 release
 
 ## System Requirements
 

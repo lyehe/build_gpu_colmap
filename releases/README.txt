@@ -9,25 +9,25 @@ NOTE: GLOMAP has been merged into COLMAP. Use `colmap global_mapper`
 
 CONTENTS:
 ---------
-1. COLMAP-4.0.1-Windows-x64-CUDA.zip
-   - COLMAP 4.0.1 with CUDA support
+1. COLMAP-4.0.2-Windows-x64-CUDA.zip
+   - COLMAP 4.0.2 with CUDA support
    - All dependencies bundled
    - Latest features and improvements
    - Includes global SfM (previously GLOMAP)
 
-2. pycolmap-4.0.1-cp310-cp310-win_amd64.whl
+2. pycolmap-4.0.2-cp310-cp310-win_amd64.whl
    - Python 3.10 wheel with all dependencies
 
-3. pycolmap-4.0.1-cp311-cp311-win_amd64.whl
+3. pycolmap-4.0.2-cp311-cp311-win_amd64.whl
    - Python 3.11 wheel with all dependencies
 
-4. pycolmap-4.0.1-cp312-cp312-win_amd64.whl
+4. pycolmap-4.0.2-cp312-cp312-win_amd64.whl
    - Python 3.12 wheel with all dependencies
 
-5. pycolmap-4.0.1-cp313-cp313-win_amd64.whl
+5. pycolmap-4.0.2-cp313-cp313-win_amd64.whl
    - Python 3.13 wheel with all dependencies
 
-6. pycolmap-4.0.1-cp314-cp314-win_amd64.whl
+6. pycolmap-4.0.2-cp314-cp314-win_amd64.whl
    - Python 3.14 wheel with all dependencies
 
 CREATING THE RELEASE:
@@ -55,7 +55,7 @@ Option 2: Manual Upload
 4. Copy the content from RELEASE_NOTES.md into the description
 
 5. Upload all files:
-   - COLMAP-4.0.1-Windows-x64-CUDA.zip
+   - COLMAP-4.0.2-Windows-x64-CUDA.zip
    - pycolmap-*.whl files
 
 6. Click "Publish release"

@@ -543,22 +543,75 @@ for entry in "${VALID_PYTHONS[@]}"; do
             if [ -n "$WHEEL_FILE" ] && [ -f "$WHEEL_FILE" ]; then
                 echo -e "  ${DARK_GRAY}Bundling shared libraries with auditwheel...${NC}"
 
-                # Use auditwheel to bundle all shared libraries
-                # Try manylinux_2_31 first (modern), fall back to manylinux2014 (broad compatibility)
+                # Set library paths for auditwheel to find all dependencies
                 VCPKG_LIB_PATH="${VCPKG_INSTALLED}/x64-linux/lib"
                 COLMAP_LIB_PATH="${COLMAP_INSTALL}/lib"
-
                 export LD_LIBRARY_PATH="${VCPKG_LIB_PATH}:${COLMAP_LIB_PATH}:${LD_LIBRARY_PATH}"
 
-                # Try modern manylinux first
-                if "$python_cmd" -m auditwheel repair -w wheelhouse --plat manylinux_2_31_x86_64 "$WHEEL_FILE" 2>/dev/null; then
-                    echo -e "  ${GREEN}Created manylinux_2_31_x86_64 wheel${NC}"
-                    exit 0
-                elif "$python_cmd" -m auditwheel repair -w wheelhouse --plat manylinux2014_x86_64 "$WHEEL_FILE" 2>/dev/null; then
-                    echo -e "  ${GREEN}Created manylinux2014_x86_64 wheel${NC}"
+                # Add CUDA library paths if CUDA enabled
+                if [ "$NO_CUDA" != true ]; then
+                    for cuda_lib_dir in "${CUDA_HOME}/lib64" "/usr/local/cuda/lib64"; do
+                        if [ -d "$cuda_lib_dir" ]; then
+                            export LD_LIBRARY_PATH="${cuda_lib_dir}:${LD_LIBRARY_PATH}"
+                            break
+                        fi
+                    done
+                fi
+
+                # Show wheel dependency info
+                "$python_cmd" -m auditwheel show "$WHEEL_FILE" || true
+
+                # Build CUDA library exclusion list for auditwheel.
+                # CUDA toolkit libraries must be provided by the user's installation
+                # and cannot be bundled (size + licensing).
+                EXCLUDE_ARGS=""
+                if [ "$NO_CUDA" != true ]; then
+                    EXCLUDE_ARGS="
+                        --exclude libcuda.so.1
+                        --exclude libcudart.so.11.0
+                        --exclude libcudart.so.12
+                        --exclude libcublas.so.11
+                        --exclude libcublas.so.12
+                        --exclude libcublasLt.so.11
+                        --exclude libcublasLt.so.12
+                        --exclude libcufft.so.10
+                        --exclude libcufft.so.11
+                        --exclude libcufftw.so.10
+                        --exclude libcufftw.so.11
+                        --exclude libcurand.so.10
+                        --exclude libcusolver.so.11
+                        --exclude libcusolverMg.so.11
+                        --exclude libcusparse.so.11
+                        --exclude libcusparse.so.12
+                        --exclude libnvJitLink.so.12
+                        --exclude libnvrtc.so.11.2
+                        --exclude libnvrtc.so.12
+                        --exclude libcudnn.so.8
+                        --exclude libcudnn.so.9
+                        --exclude libnccl.so.2
+                        --exclude libnvToolsExt.so.1
+                        --exclude libcudss.so.0
+                    "
+                fi
+
+                # Determine the minimum manylinux platform tag based on glibc version.
+                # Try progressively older tags for broader compatibility.
+                REPAIRED=false
+                for PLAT in manylinux_2_35_x86_64 manylinux_2_31_x86_64 manylinux2014_x86_64; do
+                    echo -e "  ${DARK_GRAY}Attempting auditwheel repair with --plat $PLAT...${NC}"
+                    if "$python_cmd" -m auditwheel repair -w wheelhouse --plat "$PLAT" $EXCLUDE_ARGS "$WHEEL_FILE"; then
+                        echo -e "  ${GREEN}Created $PLAT wheel${NC}"
+                        REPAIRED=true
+                        # Remove original unrepaired wheel to avoid confusion
+                        rm -f "$WHEEL_FILE"
+                        break
+                    fi
+                done
+
+                if [ "$REPAIRED" = true ]; then
                     exit 0
                 else
-                    echo -e "${RED}FAILED: auditwheel repair failed${NC}"
+                    echo -e "${RED}FAILED: auditwheel repair failed for all platform targets${NC}"
                     exit 1
                 fi
             else

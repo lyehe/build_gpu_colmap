@@ -1,5 +1,5 @@
 # Create Release Packages Script
-# Packages COLMAP 4.0.1 and pycolmap wheels for release
+# Packages COLMAP 4.0.2 and pycolmap wheels for release
 
 [CmdletBinding()]
 param(
@@ -13,17 +13,17 @@ Create Release Packages Script
 Usage: .\create_release_packages.ps1
 
 This script packages the built components for GitHub release:
-  - COLMAP 4.0.1 (from build/install/colmap/)
+  - COLMAP 4.0.2 (from build/install/colmap/)
   - Copies pycolmap wheels (from third_party/colmap-for-pycolmap/wheelhouse/)
 
 Note: GLOMAP has been merged into COLMAP. Use 'colmap global_mapper' for global SfM.
 
 Output: releases/ directory with:
-  - COLMAP-4.0.1-Windows-x64-CUDA.zip
+  - COLMAP-4.0.2-Windows-x64-CUDA.zip
   - pycolmap-*.whl files
 
 Prerequisites:
-  - Build COLMAP 4.0.1 with: .\scripts_windows\build_colmap.ps1
+  - Build COLMAP 4.0.2 with: .\scripts_windows\build_colmap.ps1
   - Build pycolmap wheels with: .\scripts_windows\build_pycolmap_wheels.ps1
 "@
     exit 0
@@ -54,7 +54,7 @@ $PycolmapWheelhouse = Join-Path $ProjectRoot "third_party\colmap-for-pycolmap\wh
 $missingComponents = @()
 
 if (-not (Test-Path (Join-Path $ColmapInstall "bin\colmap.exe"))) {
-    $missingComponents += "COLMAP 4.0.1 (run: .\scripts_windows\build_colmap.ps1)"
+    $missingComponents += "COLMAP 4.0.2 (run: .\scripts_windows\build_colmap.ps1)"
 }
 
 if ($missingComponents.Count -gt 0) {
@@ -67,9 +67,9 @@ if ($missingComponents.Count -gt 0) {
     exit 1
 }
 
-# Package COLMAP 4.0.1
-Write-Host "[1/2] Packaging COLMAP 4.0.1..." -ForegroundColor Green
-$ColmapZip = Join-Path $ReleasesDir "COLMAP-4.0.1-Windows-x64-CUDA.zip"
+# Package COLMAP 4.0.2
+Write-Host "[1/2] Packaging COLMAP 4.0.2..." -ForegroundColor Green
+$ColmapZip = Join-Path $ReleasesDir "COLMAP-4.0.2-Windows-x64-CUDA.zip"
 
 if (Test-Path $ColmapZip) {
     Remove-Item $ColmapZip -Force
@@ -80,7 +80,7 @@ try {
     # Compress with maximum compression
     Compress-Archive -Path "*" -DestinationPath $ColmapZip -CompressionLevel Optimal
     $colmapSize = [Math]::Round((Get-Item $ColmapZip).Length / 1MB, 2)
-    Write-Host "  Created: COLMAP-4.0.1-Windows-x64-CUDA.zip ($colmapSize MB)" -ForegroundColor Green
+    Write-Host "  Created: COLMAP-4.0.2-Windows-x64-CUDA.zip ($colmapSize MB)" -ForegroundColor Green
 } finally {
     Pop-Location
 }
