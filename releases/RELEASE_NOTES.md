@@ -68,9 +68,11 @@ import pycolmap
 pycolmap.extract_features(image_path="images/", database_path="database.db")
 ```
 
-## Changes (since v3.14.0-dev1)
+## Changes (since v4.0.1)
 
-- **COLMAP 4.0.2** — Updated to COLMAP 4.0.2 release
+- **COLMAP 4.0.2** — Updated to COLMAP 4.0.2 release (ALIKED fix, option manager fix)
+- **Fix Linux pycolmap wheels** — Fixed `ImportError: libonnxruntime.so.1` caused by auditwheel failing to bundle shared libraries into CUDA wheels
+- **Proper CUDA library exclusions** — auditwheel now excludes CUDA toolkit libraries (user-provided) while bundling onnxruntime and other dependencies
 
 ## System Requirements
 
