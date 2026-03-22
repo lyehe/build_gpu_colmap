@@ -92,8 +92,40 @@ jobs:
             cudss: false
             bundle_cuda: true
             cuda_version: '12.8.1'
-          # CUDA 13 self-contained variants (Linux only, bundled)
-          # Built with CUDA 13.1 + Blackwell arch 120, bundles CUDA runtime
+          # CUDA 13.0 self-contained variants (Linux only, bundled)
+          # For PyTorch compatibility (torch often pins to .0 releases)
+          - os: ubuntu-22.04
+            python-version: '3.10'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.11'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.13'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.14'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          # CUDA 13.1 self-contained variants (Linux only, bundled)
+          # Latest CUDA 13 + Blackwell arch 120
           - os: ubuntu-22.04
             python-version: '3.10'
             cuda: true
@@ -696,10 +728,11 @@ jobs:
         run: |
           # Determine variant suffix for wheel filename
           CUDA_MAJOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)
+          CUDA_MINOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f2)
           if [ "${{ matrix.cudss }}" = "true" ]; then
             VARIANT="+cuda.cudss"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
-            VARIANT="+cu${CUDA_MAJOR}.bundled"
+            VARIANT="+cu${CUDA_MAJOR}${CUDA_MINOR}.bundled"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             VARIANT="+cuda"
           else
@@ -733,10 +766,11 @@ jobs:
         shell: bash
         run: |
           CUDA_MAJOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)
+          CUDA_MINOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f2)
           if [ "${{ matrix.cudss }}" = "true" ]; then
             CUDA_SUFFIX="CUDA-cuDSS"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
-            CUDA_SUFFIX="cu${CUDA_MAJOR}-bundled"
+            CUDA_SUFFIX="cu${CUDA_MAJOR}${CUDA_MINOR}-bundled"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             CUDA_SUFFIX="CUDA"
           else
