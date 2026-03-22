@@ -17,7 +17,7 @@ on:
 
 jobs:
   build-wheels:
-    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && matrix.cudss && format('CUDA{0}+cuDSS', matrix.cuda_version) || matrix.cuda && format('CUDA{0}', matrix.cuda_version) || 'CPU' }}
+    name: py${{ matrix.python-version }} ${{ matrix.os }} ${{ matrix.cuda && matrix.bundle_cuda && format('CUDA{0}-bundled', matrix.cuda_version) || matrix.cuda && matrix.cudss && format('CUDA{0}+cuDSS', matrix.cuda_version) || matrix.cuda && format('CUDA{0}', matrix.cuda_version) || 'CPU' }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,33 +26,71 @@ jobs:
         python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
         cuda: [true, false]
         cudss: [false]  # Default: no cuDSS
+        bundle_cuda: [false]  # Default: don't bundle CUDA runtime libs
         cuda_version: ['12.8.1']
         include:
-          # Add cuDSS variants for CUDA builds (Windows only for now - smaller matrix)
+          # cuDSS variants (Windows only)
           - os: windows-latest
             python-version: '3.10'
             cuda: true
             cudss: true
+            bundle_cuda: false
             cuda_version: '12.8.1'
           - os: windows-latest
             python-version: '3.11'
             cuda: true
             cudss: true
+            bundle_cuda: false
             cuda_version: '12.8.1'
           - os: windows-latest
             python-version: '3.12'
             cuda: true
             cudss: true
+            bundle_cuda: false
             cuda_version: '12.8.1'
           - os: windows-latest
             python-version: '3.13'
             cuda: true
             cudss: true
+            bundle_cuda: false
             cuda_version: '12.8.1'
           - os: windows-latest
             python-version: '3.14'
             cuda: true
             cudss: true
+            bundle_cuda: false
+            cuda_version: '12.8.1'
+          # Self-contained CUDA variants (Linux only) - bundle CUDA runtime libs
+          # so users don't need CUDA toolkit installed
+          - os: ubuntu-22.04
+            python-version: '3.10'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.11'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.13'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.14'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
             cuda_version: '12.8.1'
 
     steps:
@@ -452,36 +490,40 @@ jobs:
             auditwheel show "$WHEEL" || true
 
             # Build CUDA library exclusion list for auditwheel.
-            # CUDA toolkit libraries must be provided by the user's installation
-            # and cannot be bundled into the wheel (size + licensing).
             EXCLUDE_ARGS=""
             if [ "${{ matrix.cuda }}" = "true" ]; then
-              EXCLUDE_ARGS="
-                --exclude libcuda.so.1
-                --exclude libcudart.so.11.0
-                --exclude libcudart.so.12
-                --exclude libcublas.so.11
-                --exclude libcublas.so.12
-                --exclude libcublasLt.so.11
-                --exclude libcublasLt.so.12
-                --exclude libcufft.so.10
-                --exclude libcufft.so.11
-                --exclude libcufftw.so.10
-                --exclude libcufftw.so.11
-                --exclude libcurand.so.10
-                --exclude libcusolver.so.11
-                --exclude libcusolverMg.so.11
-                --exclude libcusparse.so.11
-                --exclude libcusparse.so.12
-                --exclude libnvJitLink.so.12
-                --exclude libnvrtc.so.11.2
-                --exclude libnvrtc.so.12
-                --exclude libcudnn.so.8
-                --exclude libcudnn.so.9
-                --exclude libnccl.so.2
-                --exclude libnvToolsExt.so.1
-                --exclude libcudss.so.0
-              "
+              if [ "${{ matrix.bundle_cuda }}" = "true" ]; then
+                # Self-contained build: only exclude the driver library (must match kernel)
+                EXCLUDE_ARGS="--exclude libcuda.so.1"
+              else
+                # Lightweight build: exclude all CUDA toolkit libraries (user provides these)
+                EXCLUDE_ARGS="
+                  --exclude libcuda.so.1
+                  --exclude libcudart.so.11.0
+                  --exclude libcudart.so.12
+                  --exclude libcublas.so.11
+                  --exclude libcublas.so.12
+                  --exclude libcublasLt.so.11
+                  --exclude libcublasLt.so.12
+                  --exclude libcufft.so.10
+                  --exclude libcufft.so.11
+                  --exclude libcufftw.so.10
+                  --exclude libcufftw.so.11
+                  --exclude libcurand.so.10
+                  --exclude libcusolver.so.11
+                  --exclude libcusolverMg.so.11
+                  --exclude libcusparse.so.11
+                  --exclude libcusparse.so.12
+                  --exclude libnvJitLink.so.12
+                  --exclude libnvrtc.so.11.2
+                  --exclude libnvrtc.so.12
+                  --exclude libcudnn.so.8
+                  --exclude libcudnn.so.9
+                  --exclude libnccl.so.2
+                  --exclude libnvToolsExt.so.1
+                  --exclude libcudss.so.0
+                "
+              fi
             fi
 
             # Determine the minimum manylinux platform tag.
@@ -623,6 +665,8 @@ jobs:
           # Determine variant suffix for wheel filename
           if [ "${{ matrix.cudss }}" = "true" ]; then
             VARIANT="+cuda.cudss"
+          elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
+            VARIANT="+cuda.bundled"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             VARIANT="+cuda"
           else
@@ -657,6 +701,8 @@ jobs:
         run: |
           if [ "${{ matrix.cudss }}" = "true" ]; then
             CUDA_SUFFIX="CUDA-cuDSS"
+          elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
+            CUDA_SUFFIX="CUDA-bundled"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             CUDA_SUFFIX="CUDA"
           else
