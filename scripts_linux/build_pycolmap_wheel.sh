@@ -282,6 +282,45 @@ if [ "$REPAIRED" != true ]; then
     exit 1
 fi
 
+# Post-process: inject ONNX Runtime CUDA provider libraries.
+# auditwheel doesn't bundle these because onnxruntime loads them via dlopen().
+# Without them, ALIKED/LightGlue CUDA inference fails.
+if [ "$NO_CUDA" != true ]; then
+    REPAIRED_WHEEL_TMP=$(ls -t "$WHEELHOUSE_DIR"/pycolmap-*manylinux*.whl 2>/dev/null | head -n 1)
+    ORT_PROVIDERS_SHARED="${COLMAP_INSTALL}/lib/libonnxruntime_providers_shared.so"
+
+    if [ -n "$REPAIRED_WHEEL_TMP" ] && [ -f "$ORT_PROVIDERS_SHARED" ]; then
+        echo ""
+        echo -e "${YELLOW}Injecting ONNX Runtime CUDA providers into wheel...${NC}"
+        python3 -m pip install --quiet --upgrade wheel
+
+        TMPDIR=$(mktemp -d)
+        python3 -m wheel unpack "$REPAIRED_WHEEL_TMP" -d "$TMPDIR"
+        WHEEL_DIR=$(ls -d "$TMPDIR"/pycolmap-*)
+        LIBS_DIR=$(find "$WHEEL_DIR" -name "*.libs" -type d | head -1)
+        if [ -z "$LIBS_DIR" ]; then
+            LIBS_DIR="$WHEEL_DIR/pycolmap.libs"
+            mkdir -p "$LIBS_DIR"
+        fi
+
+        cp "${COLMAP_INSTALL}/lib/libonnxruntime_providers_shared.so" "$LIBS_DIR/"
+        cp "${COLMAP_INSTALL}/lib/libonnxruntime_providers_cuda.so" "$LIBS_DIR/"
+
+        RENAMED_ORT=$(ls "$LIBS_DIR"/libonnxruntime-*.so.* 2>/dev/null | head -1)
+        if [ -n "$RENAMED_ORT" ]; then
+            ln -sf "$(basename "$RENAMED_ORT")" "$LIBS_DIR/libonnxruntime.so.1"
+        fi
+
+        patchelf --set-rpath '$ORIGIN' "$LIBS_DIR/libonnxruntime_providers_shared.so"
+        patchelf --set-rpath '$ORIGIN' "$LIBS_DIR/libonnxruntime_providers_cuda.so"
+
+        rm -f "$REPAIRED_WHEEL_TMP"
+        python3 -m wheel pack "$WHEEL_DIR" -d "$WHEELHOUSE_DIR"
+        rm -rf "$TMPDIR"
+        echo -e "${GREEN}ONNX CUDA providers injected${NC}"
+    fi
+fi
+
 # Find the repaired wheel
 REPAIRED_WHEEL=$(ls -t "$WHEELHOUSE_DIR"/pycolmap-*.whl 2>/dev/null | head -1)
 if [ -z "$REPAIRED_WHEEL" ]; then

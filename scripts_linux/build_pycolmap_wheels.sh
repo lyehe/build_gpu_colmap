@@ -609,6 +609,43 @@ for entry in "${VALID_PYTHONS[@]}"; do
                 done
 
                 if [ "$REPAIRED" = true ]; then
+                    # Post-process: inject ONNX Runtime CUDA provider libraries.
+                    # auditwheel doesn't bundle these because onnxruntime loads them via dlopen().
+                    # Without them, ALIKED/LightGlue CUDA inference fails.
+                    if [ "$NO_CUDA" != true ]; then
+                        COLMAP_LIB_PATH="${COLMAP_INSTALL}/lib"
+                        REPAIRED_WHEEL=$(ls -t wheelhouse/pycolmap-*manylinux*.whl 2>/dev/null | head -n 1)
+
+                        if [ -n "$REPAIRED_WHEEL" ] && [ -f "$COLMAP_LIB_PATH/libonnxruntime_providers_shared.so" ]; then
+                            echo -e "  ${DARK_GRAY}Injecting ONNX Runtime CUDA providers...${NC}"
+                            "$python_cmd" -m pip install --quiet wheel
+
+                            TMPDIR=$(mktemp -d)
+                            "$python_cmd" -m wheel unpack "$REPAIRED_WHEEL" -d "$TMPDIR"
+                            WHEEL_DIR=$(ls -d "$TMPDIR"/pycolmap-*)
+                            LIBS_DIR=$(find "$WHEEL_DIR" -name "*.libs" -type d | head -1)
+                            if [ -z "$LIBS_DIR" ]; then
+                                LIBS_DIR="$WHEEL_DIR/pycolmap.libs"
+                                mkdir -p "$LIBS_DIR"
+                            fi
+
+                            cp "$COLMAP_LIB_PATH/libonnxruntime_providers_shared.so" "$LIBS_DIR/"
+                            cp "$COLMAP_LIB_PATH/libonnxruntime_providers_cuda.so" "$LIBS_DIR/"
+
+                            RENAMED_ORT=$(ls "$LIBS_DIR"/libonnxruntime-*.so.* 2>/dev/null | head -1)
+                            if [ -n "$RENAMED_ORT" ]; then
+                                ln -sf "$(basename "$RENAMED_ORT")" "$LIBS_DIR/libonnxruntime.so.1"
+                            fi
+
+                            patchelf --set-rpath '$ORIGIN' "$LIBS_DIR/libonnxruntime_providers_shared.so"
+                            patchelf --set-rpath '$ORIGIN' "$LIBS_DIR/libonnxruntime_providers_cuda.so"
+
+                            rm -f "$REPAIRED_WHEEL"
+                            "$python_cmd" -m wheel pack "$WHEEL_DIR" -d wheelhouse
+                            rm -rf "$TMPDIR"
+                            echo -e "  ${GREEN}ONNX CUDA providers injected${NC}"
+                        fi
+                    fi
                     exit 0
                 else
                     echo -e "${RED}FAILED: auditwheel repair failed for all platform targets${NC}"
