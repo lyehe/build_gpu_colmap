@@ -60,6 +60,37 @@ jobs:
             cudss: true
             bundle_cuda: false
             cuda_version: '12.8.1'
+          # CUDA 13.0 variants (Windows) - for PyTorch compatibility
+          - os: windows-latest
+            python-version: '3.10'
+            cuda: true
+            cudss: false
+            bundle_cuda: false
+            cuda_version: '13.0.2'
+          - os: windows-latest
+            python-version: '3.11'
+            cuda: true
+            cudss: false
+            bundle_cuda: false
+            cuda_version: '13.0.2'
+          - os: windows-latest
+            python-version: '3.12'
+            cuda: true
+            cudss: false
+            bundle_cuda: false
+            cuda_version: '13.0.2'
+          - os: windows-latest
+            python-version: '3.13'
+            cuda: true
+            cudss: false
+            bundle_cuda: false
+            cuda_version: '13.0.2'
+          - os: windows-latest
+            python-version: '3.14'
+            cuda: true
+            cudss: false
+            bundle_cuda: false
+            cuda_version: '13.0.2'
           # Self-contained CUDA variants (Linux only) - bundle CUDA runtime libs
           # so users don't need CUDA toolkit installed
           - os: ubuntu-22.04
@@ -733,6 +764,8 @@ jobs:
             VARIANT="+cuda.cudss"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
             VARIANT="+cu${CUDA_MAJOR}${CUDA_MINOR}.bundled"
+          elif [ "${{ matrix.cuda }}" = "true" ] && [ "$CUDA_MAJOR" != "12" ]; then
+            VARIANT="+cu${CUDA_MAJOR}${CUDA_MINOR}"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             VARIANT="+cuda"
           else
@@ -771,6 +804,8 @@ jobs:
             CUDA_SUFFIX="CUDA-cuDSS"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
             CUDA_SUFFIX="cu${CUDA_MAJOR}${CUDA_MINOR}-bundled"
+          elif [ "${{ matrix.cuda }}" = "true" ] && [ "$CUDA_MAJOR" != "12" ]; then
+            CUDA_SUFFIX="cu${CUDA_MAJOR}${CUDA_MINOR}"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             CUDA_SUFFIX="CUDA"
           else
