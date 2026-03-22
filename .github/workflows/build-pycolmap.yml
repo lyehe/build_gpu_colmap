@@ -92,6 +92,38 @@ jobs:
             cudss: false
             bundle_cuda: true
             cuda_version: '12.8.1'
+          # CUDA 13 self-contained variants (Linux only, bundled)
+          # Built with CUDA 13.1 + Blackwell arch 120, bundles CUDA runtime
+          - os: ubuntu-22.04
+            python-version: '3.10'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.11'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.13'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.14'
+            cuda: true
+            cudss: false
+            bundle_cuda: true
+            cuda_version: '13.1.0'
 
     steps:
       - name: Checkout repository
@@ -663,10 +695,11 @@ jobs:
         working-directory: third_party/colmap-for-pycolmap
         run: |
           # Determine variant suffix for wheel filename
+          CUDA_MAJOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)
           if [ "${{ matrix.cudss }}" = "true" ]; then
             VARIANT="+cuda.cudss"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
-            VARIANT="+cuda.bundled"
+            VARIANT="+cu${CUDA_MAJOR}.bundled"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             VARIANT="+cuda"
           else
@@ -699,10 +732,11 @@ jobs:
         id: artifact-name
         shell: bash
         run: |
+          CUDA_MAJOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)
           if [ "${{ matrix.cudss }}" = "true" ]; then
             CUDA_SUFFIX="CUDA-cuDSS"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
-            CUDA_SUFFIX="CUDA-bundled"
+            CUDA_SUFFIX="cu${CUDA_MAJOR}-bundled"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
             CUDA_SUFFIX="CUDA"
           else

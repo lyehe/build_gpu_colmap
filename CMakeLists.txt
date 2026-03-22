@@ -37,8 +37,13 @@ if(CUDA_ENABLED)
     find_package(CUDAToolkit REQUIRED)
     # Set CUDA architectures - use FORCE to override any cached values
     # Supports Turing (75), Ampere (80, 86), Ada Lovelace (89), Hopper (90)
-    # NOTE: Architecture 120 (Blackwell) requires CUDA 13+ and is excluded for CUDA 12.x compatibility
-    set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90" CACHE STRING "CUDA architectures" FORCE)
+    # Architecture 120 (Blackwell) requires CUDA 13+ and is only included for CUDA 13 builds
+    if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+        set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90;120" CACHE STRING "CUDA architectures" FORCE)
+        message(STATUS "CUDA 13+: Including Blackwell architecture 120")
+    else()
+        set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90" CACHE STRING "CUDA architectures" FORCE)
+    endif()
 
     # Determine CUDA major version for cuDSS compatibility
     # cuDSS libraries are organized by CUDA major version (11, 12, 13, etc.)
