@@ -187,6 +187,100 @@ jobs:
             cudss: false
             bundle_cuda: true
             cuda_version: '13.1.0'
+          # Self-contained CUDA + cuDSS variants (Linux only, bundled)
+          # CUDA 12.8 + cuDSS
+          - os: ubuntu-22.04
+            python-version: '3.10'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.11'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.13'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          - os: ubuntu-22.04
+            python-version: '3.14'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '12.8.1'
+          # CUDA 13.0 + cuDSS
+          - os: ubuntu-22.04
+            python-version: '3.10'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.11'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.13'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          - os: ubuntu-22.04
+            python-version: '3.14'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.0.2'
+          # CUDA 13.1 + cuDSS
+          - os: ubuntu-22.04
+            python-version: '3.10'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.11'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.13'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.1.0'
+          - os: ubuntu-22.04
+            python-version: '3.14'
+            cuda: true
+            cudss: true
+            bundle_cuda: true
+            cuda_version: '13.1.0'
 
     steps:
       - name: Checkout repository
@@ -760,10 +854,12 @@ jobs:
           # Determine variant suffix for wheel filename
           CUDA_MAJOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)
           CUDA_MINOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f2)
-          if [ "${{ matrix.cudss }}" = "true" ]; then
-            VARIANT="+cuda.cudss"
+          if [ "${{ matrix.bundle_cuda }}" = "true" ] && [ "${{ matrix.cudss }}" = "true" ]; then
+            VARIANT="+cu${CUDA_MAJOR}${CUDA_MINOR}.bundled.cudss"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
             VARIANT="+cu${CUDA_MAJOR}${CUDA_MINOR}.bundled"
+          elif [ "${{ matrix.cudss }}" = "true" ]; then
+            VARIANT="+cuda.cudss"
           elif [ "${{ matrix.cuda }}" = "true" ] && [ "$CUDA_MAJOR" != "12" ]; then
             VARIANT="+cu${CUDA_MAJOR}${CUDA_MINOR}"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
@@ -800,10 +896,12 @@ jobs:
         run: |
           CUDA_MAJOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f1)
           CUDA_MINOR=$(echo "${{ matrix.cuda_version }}" | cut -d. -f2)
-          if [ "${{ matrix.cudss }}" = "true" ]; then
-            CUDA_SUFFIX="CUDA-cuDSS"
+          if [ "${{ matrix.bundle_cuda }}" = "true" ] && [ "${{ matrix.cudss }}" = "true" ]; then
+            CUDA_SUFFIX="cu${CUDA_MAJOR}${CUDA_MINOR}-bundled-cuDSS"
           elif [ "${{ matrix.bundle_cuda }}" = "true" ]; then
             CUDA_SUFFIX="cu${CUDA_MAJOR}${CUDA_MINOR}-bundled"
+          elif [ "${{ matrix.cudss }}" = "true" ]; then
+            CUDA_SUFFIX="CUDA-cuDSS"
           elif [ "${{ matrix.cuda }}" = "true" ] && [ "$CUDA_MAJOR" != "12" ]; then
             CUDA_SUFFIX="cu${CUDA_MAJOR}${CUDA_MINOR}"
           elif [ "${{ matrix.cuda }}" = "true" ]; then
