@@ -129,5 +129,25 @@ if ($Failed -gt 0) {
 
 Write-Host ""
 Write-Host "All models ready!" -ForegroundColor Green
-Write-Host "COLMAP will automatically find them in $CacheDir" -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "Usage with pycolmap:" -ForegroundColor Cyan
+Write-Host ""
+Write-Host '  import pycolmap, os'
+Write-Host ''
+Write-Host '  MODEL_DIR = os.path.expanduser("~/.cache/colmap")'
+Write-Host '  MODELS = {'
+Write-Host '      "aliked-n16rot.onnx": "39c423d0a6f03d39ec89d3d1d61853765c2fb6a8b8381376c703e5758778a547",'
+Write-Host '      "aliked-n32.onnx": "a077728a02d2de1a775c66df6de8cfeb7c6b51ca57572c64c680131c988c8b3c",'
+Write-Host '      "aliked-lightglue.onnx": "b9a5de7204648b18a8cf5dcac819f9d30de1a5961ef03756803c8b86c2dceb8d",'
+Write-Host '      "bruteforce-matcher.onnx": "3c1282f96d83f5ffc861a873298d08bbe5219f59af59223f5ceab5c41a182a47",'
+Write-Host '  }'
+Write-Host ''
+Write-Host '  def model_path(name):'
+Write-Host '      return os.path.join(MODEL_DIR, f"{MODELS[name]}-{name}")'
+Write-Host ''
+Write-Host '  opts = pycolmap.FeatureExtractionOptions()'
+Write-Host '  opts.type = pycolmap.FeatureExtractorType.ALIKED_N32'
+Write-Host '  opts.aliked.n32_model_path = model_path("aliked-n32.onnx")'
+Write-Host '  pycolmap.extract_features("db.db", "images", extraction_options=opts)'
+Write-Host ""
 Write-Host "================================================================"
