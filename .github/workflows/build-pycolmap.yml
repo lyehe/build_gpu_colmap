@@ -319,7 +319,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel scikit-build-core[pyproject] "pybind11==3.0.1" delvewheel
 
       # ==================== CUDA Setup ====================
-      # CUDA 12.x uses short sub-package names; CUDA 13.x uses cuda_ prefix
+      # CUDA 13.x adds a new "crt" sub-package (contains crt/host_config.h)
       - name: Install CUDA Toolkit (Windows, CUDA 12.x)
         if: matrix.cuda && runner.os == 'Windows' && !startsWith(matrix.cuda_version, '13.')
         uses: Jimver/cuda-toolkit@v0.2.30
@@ -334,7 +334,8 @@ jobs:
         uses: Jimver/cuda-toolkit@v0.2.30
         with:
           cuda: ${{ matrix.cuda_version }}
-          method: 'local'
+          method: 'network'
+          sub-packages: '["nvcc", "crt", "nvtx", "cudart", "curand", "curand_dev", "nvrtc", "nvrtc_dev", "nvjitlink", "nvvm", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev", "visual_studio_integration"]'
           log-file-suffix: '-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda_version }}.log'
 
       - name: Install CUDA Toolkit (Linux)
