@@ -556,19 +556,28 @@ jobs:
           GUI_SUFFIX="${{ matrix.gui && '-GUI' || '' }}"
           echo "name=COLMAP-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}${GUI_SUFFIX}" >> $GITHUB_OUTPUT
 
-      - name: Upload COLMAP to release
-        if: inputs.release_tag != ''
-        shell: bash
+      - name: Upload COLMAP to release (Linux)
+        if: inputs.release_tag != '' && runner.os == 'Linux'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           ZIP_NAME="${{ steps.artifact-name.outputs.name }}.zip"
           echo "Packaging $ZIP_NAME..."
-          cd build/install/colmap
-          zip -qr "/tmp/$ZIP_NAME" .
-          cd -
-          echo "Uploading $ZIP_NAME to release ${{ inputs.release_tag }}..."
+          cd build/install/colmap && zip -qr "/tmp/$ZIP_NAME" . && cd -
+          echo "Uploading $ZIP_NAME..."
           gh release upload "${{ inputs.release_tag }}" "/tmp/$ZIP_NAME" --clobber --repo "${{ github.repository }}"
+
+      - name: Upload COLMAP to release (Windows)
+        if: inputs.release_tag != '' && runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zipName = "${{ steps.artifact-name.outputs.name }}.zip"
+          Write-Host "Packaging $zipName..."
+          Compress-Archive -Path "build\install\colmap\*" -DestinationPath $zipName -Force
+          Write-Host "Uploading $zipName..."
+          gh release upload "${{ inputs.release_tag }}" $zipName --clobber --repo "${{ github.repository }}"
 
       - name: Upload COLMAP artifacts
         if: inputs.release_tag == ''
