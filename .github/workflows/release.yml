@@ -4,18 +4,12 @@ on:
   push:
     tags:
       - 'v*'  # Auto-release on version tags
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
         description: 'Release tag (e.g., v4.0.2)'
         required: true
         type: string
-      skip_build:
-        description: 'Skip building and use existing artifacts'
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -26,50 +20,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ==================== Build Jobs ====================
-  build-colmap:
-    name: Build COLMAP
-    if: ${{ !inputs.skip_build }}
-    uses: ./.github/workflows/build-colmap.yml
-    secrets: inherit
-
-  build-pycolmap:
-    name: Build pycolmap
-    if: ${{ !inputs.skip_build }}
-    uses: ./.github/workflows/build-pycolmap.yml
-    secrets: inherit
-
-  # ==================== Package and Release ====================
-  create-release-packages:
-    name: Create Release Packages
-    needs: [build-colmap, build-pycolmap]
-    if: |
-      always() && (
-        (needs.build-colmap.result == 'success' &&
-         needs.build-pycolmap.result == 'success') ||
-        (inputs.skip_build &&
-         needs.build-colmap.result == 'skipped' &&
-         needs.build-pycolmap.result == 'skipped')
-      )
+  # ==================== Prepare Release ====================
+  prepare:
+    name: Prepare Release
     runs-on: ubuntu-latest
-
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /opt/microsoft /opt/google /usr/share/swift /usr/share/miniconda /imagegeneration || true
-          sudo docker system prune --all --force 2>/dev/null || true
-          sudo apt-get clean 2>/dev/null || true
-          echo "Free disk:" && df -h /
-
       - name: Get release tag
-        id: release-tag
+        id: tag
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "push" ]; then
+          if [ "${{ github.event_name }}" = "push" ]; then
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
@@ -79,100 +40,81 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ steps.release-tag.outputs.tag }}"
-          # Create or update draft release
-          gh release view "$TAG" 2>/dev/null && echo "Release exists" || \
-            gh release create "$TAG" --title "Release $TAG" --draft --notes "Building..."
+          TAG="${{ steps.tag.outputs.tag }}"
+          gh release view "$TAG" --repo "${{ github.repository }}" 2>/dev/null \
+            && echo "Release $TAG already exists" \
+            || gh release create "$TAG" --repo "${{ github.repository }}" \
+                 --title "COLMAP Build $TAG" --draft \
+                 --notes "Build in progress..."
+          echo "Draft release ready: $TAG"
 
-      # Stream artifacts one at a time: download, package, upload, delete.
-      # This avoids the ~45GB disk space problem from downloading all at once.
-      - name: Download, package, and upload artifacts
+  # ==================== Build Jobs ====================
+  # Each job uploads directly to the draft release — no artifacts needed.
+  build-colmap:
+    name: Build COLMAP
+    needs: prepare
+    uses: ./.github/workflows/build-colmap.yml
+    with:
+      release_tag: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit
+
+  build-pycolmap:
+    name: Build pycolmap
+    needs: prepare
+    uses: ./.github/workflows/build-pycolmap.yml
+    with:
+      release_tag: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit
+
+  # ==================== Finalize Release ====================
+  finalize:
+    name: Finalize Release
+    needs: [prepare, build-colmap, build-pycolmap]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate checksums
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ steps.release-tag.outputs.tag }}"
-          RUN_ID="${{ github.run_id }}"
-          UPLOADED=0
-          FAILED=0
-
-          echo "Listing artifacts from run $RUN_ID..."
-          ARTIFACTS=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts" --paginate --jq '.artifacts[] | "\(.id) \(.name)"')
-
-          echo "$ARTIFACTS" | while read -r ART_ID ART_NAME; do
-            [ -z "$ART_ID" ] && continue
-            echo ""
-            echo "=========================================="
-            echo "Processing: $ART_NAME (ID: $ART_ID)"
-
-            # Download single artifact
-            rm -rf /tmp/artifact_work
-            mkdir -p /tmp/artifact_work
-            gh api "repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > /tmp/artifact_work/artifact.zip
-            (cd /tmp/artifact_work && unzip -q artifact.zip)
-            rm -f /tmp/artifact_work/artifact.zip
-
-            # Determine what to upload
-            if [[ "$ART_NAME" == COLMAP-* ]]; then
-              # COLMAP package: zip the contents
-              ZIP_NAME="${ART_NAME}.zip"
-              echo "  Packaging COLMAP: $ZIP_NAME"
-              (cd /tmp/artifact_work && zip -qr "/tmp/$ZIP_NAME" .)
-              echo "  Uploading $ZIP_NAME..."
-              gh release upload "$TAG" "/tmp/$ZIP_NAME" --clobber || FAILED=$((FAILED + 1))
-              rm -f "/tmp/$ZIP_NAME"
-            elif [[ "$ART_NAME" == pycolmap-* ]]; then
-              # pycolmap wheel: upload directly
-              for whl in /tmp/artifact_work/*.whl; do
-                if [ -f "$whl" ]; then
-                  WHL_NAME=$(basename "$whl")
-                  echo "  Uploading wheel: $WHL_NAME"
-                  gh release upload "$TAG" "$whl" --clobber || FAILED=$((FAILED + 1))
-                fi
-              done
-            else
-              echo "  Skipping unknown artifact type"
-            fi
-
-            # Clean up immediately to free disk
-            rm -rf /tmp/artifact_work
-            UPLOADED=$((UPLOADED + 1))
-            echo "  Done. Free disk: $(df -h / | tail -1 | awk '{print $4}')"
-          done
-
-          echo ""
-          echo "=========================================="
-          echo "All artifacts processed."
-          echo "Free disk:" && df -h /
-
-      - name: Generate and upload checksums
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          TAG="${{ steps.release-tag.outputs.tag }}"
+          TAG="${{ needs.prepare.outputs.tag }}"
+          mkdir -p /tmp/checksum_work
 
           echo "# SHA256 Checksums" > SHA256SUMS.txt
           echo "# Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> SHA256SUMS.txt
           echo "" >> SHA256SUMS.txt
 
-          # Download asset list and generate checksums by downloading each file
-          # (we don't have them locally anymore since we streamed them)
-          gh release view "$TAG" --json assets --jq '.assets[].name' | sort | while read -r ASSET; do
-            echo "  Checksumming: $ASSET"
-            gh release download "$TAG" -p "$ASSET" -D /tmp/checksum_work 2>/dev/null || continue
+          gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[].name' | sort | while read -r ASSET; do
+            [ -z "$ASSET" ] && continue
+            echo "Checksumming: $ASSET"
+            gh release download "$TAG" --repo "${{ github.repository }}" -p "$ASSET" -D /tmp/checksum_work 2>/dev/null || continue
             (cd /tmp/checksum_work && sha256sum "$ASSET") >> SHA256SUMS.txt
             rm -f "/tmp/checksum_work/$ASSET"
           done
 
-          echo ""
-          echo "Checksums:"
           cat SHA256SUMS.txt
-          gh release upload "$TAG" SHA256SUMS.txt --clobber
+          gh release upload "$TAG" --repo "${{ github.repository }}" SHA256SUMS.txt --clobber
 
-      - name: Generate release summary
+      - name: Release summary
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ steps.release-tag.outputs.tag }}"
-          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          TAG="${{ needs.prepare.outputs.tag }}"
+          COLMAP_RESULT="${{ needs.build-colmap.result }}"
+          PYCOLMAP_RESULT="${{ needs.build-pycolmap.result }}"
+          ASSET_COUNT=$(gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets | length')
+
+          echo "## Release $TAG Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          gh release view "$TAG" --json assets --jq '.assets[] | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' >> $GITHUB_STEP_SUMMARY
+          echo "- Build COLMAP: **$COLMAP_RESULT**" >> $GITHUB_STEP_SUMMARY
+          echo "- Build pycolmap: **$PYCOLMAP_RESULT**" >> $GITHUB_STEP_SUMMARY
+          echo "- Release assets: **$ASSET_COUNT**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$COLMAP_RESULT" = "success" ] && [ "$PYCOLMAP_RESULT" = "success" ]; then
+            echo "All builds succeeded. Release is ready to publish." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Some builds failed. Review before publishing." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[] | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' >> $GITHUB_STEP_SUMMARY

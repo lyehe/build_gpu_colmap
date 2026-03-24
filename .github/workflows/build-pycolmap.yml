@@ -2,6 +2,11 @@ name: Build pycolmap Wheels
 
 on:
   workflow_call:
+    inputs:
+      release_tag:
+        description: 'Release tag to upload assets to (empty = no upload)'
+        type: string
+        default: ''
   pull_request:
     branches: [master, main]
   workflow_dispatch:
@@ -896,7 +901,22 @@ jobs:
           PYVER=$(echo "${{ matrix.python-version }}" | tr -d '.')
           echo "name=pycolmap-py${PYVER}-${{ matrix.os }}-${CUDA_SUFFIX}" >> $GITHUB_OUTPUT
 
+      - name: Upload wheel to release
+        if: inputs.release_tag != ''
+        shell: bash
+        working-directory: third_party/colmap-for-pycolmap
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for whl in wheelhouse/*.whl; do
+            if [ -f "$whl" ]; then
+              echo "Uploading $(basename "$whl") to release ${{ inputs.release_tag }}..."
+              gh release upload "${{ inputs.release_tag }}" "$whl" --clobber --repo "${{ github.repository }}"
+            fi
+          done
+
       - name: Upload wheel artifact
+        if: inputs.release_tag == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact-name.outputs.name }}

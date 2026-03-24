@@ -2,6 +2,11 @@ name: Build COLMAP
 
 on:
   workflow_call:
+    inputs:
+      release_tag:
+        description: 'Release tag to upload assets to (empty = no upload)'
+        type: string
+        default: ''
   pull_request:
     branches: [master, main]
   workflow_dispatch:
@@ -551,7 +556,22 @@ jobs:
           GUI_SUFFIX="${{ matrix.gui && '-GUI' || '' }}"
           echo "name=COLMAP-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}${GUI_SUFFIX}" >> $GITHUB_OUTPUT
 
+      - name: Upload COLMAP to release
+        if: inputs.release_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ZIP_NAME="${{ steps.artifact-name.outputs.name }}.zip"
+          echo "Packaging $ZIP_NAME..."
+          cd build/install/colmap
+          zip -qr "/tmp/$ZIP_NAME" .
+          cd -
+          echo "Uploading $ZIP_NAME to release ${{ inputs.release_tag }}..."
+          gh release upload "${{ inputs.release_tag }}" "/tmp/$ZIP_NAME" --clobber --repo "${{ github.repository }}"
+
       - name: Upload COLMAP artifacts
+        if: inputs.release_tag == ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact-name.outputs.name }}
