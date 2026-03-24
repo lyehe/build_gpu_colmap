@@ -299,6 +299,7 @@ jobs:
           cuda: ${{ matrix.cuda_version }}
           method: 'network'
           sub-packages: '["nvcc", "nvtx", "cudart", "curand", "curand_dev", "nvrtc", "nvrtc_dev", "nvjitlink", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          use-github-cache: false
           log-file-suffix: '-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda_version }}.log'
 
       - name: Install CUDA Toolkit (Windows, CUDA 13.x)
@@ -308,6 +309,7 @@ jobs:
           cuda: ${{ matrix.cuda_version }}
           method: 'network'
           sub-packages: '["nvcc", "crt", "nvtx", "cudart", "curand", "curand_dev", "nvrtc", "nvrtc_dev", "nvjitlink", "nvvm", "cublas", "cublas_dev", "cusparse", "cusparse_dev", "cusolver", "cusolver_dev", "cufft", "cufft_dev"]'
+          use-github-cache: false
           log-file-suffix: '-windows-py${{ matrix.python-version }}-cuda${{ matrix.cuda_version }}.log'
 
       - name: Install CUDA Toolkit (Linux)
