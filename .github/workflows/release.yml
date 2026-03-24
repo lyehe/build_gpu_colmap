@@ -57,286 +57,122 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Free disk space (aggressive)
+      - name: Free disk space
         run: |
-          echo "Disk space before cleanup:"
-          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /opt/microsoft /opt/google /usr/share/swift /usr/share/miniconda /imagegeneration || true
+          sudo docker system prune --all --force 2>/dev/null || true
+          sudo apt-get clean 2>/dev/null || true
+          echo "Free disk:" && df -h /
 
-          # Remove unnecessary packages to free maximum disk space
-          # This is needed because we download 32+ large artifacts (some 100MB+ each)
-          echo "Removing large unnecessary directories..."
-          sudo rm -rf /usr/share/dotnet || true
-          sudo rm -rf /usr/local/lib/android || true
-          sudo rm -rf /opt/ghc || true
-          sudo rm -rf /opt/hostedtoolcache/CodeQL || true
-          sudo rm -rf /opt/hostedtoolcache/go || true
-          sudo rm -rf /opt/hostedtoolcache/node || true
-          sudo rm -rf /opt/hostedtoolcache/Python || true
-          sudo rm -rf /opt/hostedtoolcache/Ruby || true
-          sudo rm -rf /opt/microsoft || true
-          sudo rm -rf /opt/google || true
-          sudo rm -rf /opt/pipx || true
-          sudo rm -rf /usr/local/share/boost || true
-          sudo rm -rf /usr/local/share/chromium || true
-          sudo rm -rf /usr/local/share/powershell || true
-          sudo rm -rf /usr/share/swift || true
-          sudo rm -rf /usr/share/miniconda || true
-          sudo rm -rf /imagegeneration || true
-
-          # Clean Docker images
-          echo "Cleaning Docker..."
-          sudo docker image prune --all --force || true
-          sudo docker system prune --all --force || true
-
-          # Clean apt cache
-          echo "Cleaning apt..."
-          sudo apt-get clean
-          sudo apt-get autoremove -y || true
-
-          echo "Disk space after cleanup:"
-          df -h
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-
-      - name: List downloaded artifacts
-        run: |
-          echo "Disk space after download:"
-          df -h /
-          echo ""
-          echo "Total artifacts size:"
-          du -sh artifacts/ || true
-          echo ""
-          echo "Downloaded artifacts:"
-          find artifacts/ -type f \( -name "*.whl" -o -name "*.zip" -o -name "*.tar.gz" \) | head -100
-          echo ""
-          echo "Directory structure:"
-          ls -la artifacts/
-          echo ""
-          echo "Largest directories:"
-          du -sh artifacts/*/ 2>/dev/null | sort -hr | head -20
-
-      # ==================== Package COLMAP ====================
-      - name: Package COLMAP artifacts
-        run: |
-          mkdir -p packages
-
-          for dir in artifacts/COLMAP-*; do
-            if [ -d "$dir" ]; then
-              name=$(basename "$dir")
-              echo "Packaging $name..."
-              cd "$dir"
-              zip -r "../../packages/${name}.zip" .
-              cd ../..
-              # Delete raw artifact after packaging to save space
-              rm -rf "$dir"
-            fi
-          done
-
-          echo "COLMAP packages created:"
-          ls -la packages/COLMAP-* || echo "No COLMAP packages"
-          echo ""
-          echo "Disk space after COLMAP packaging:"
-          df -h /
-
-      # ==================== Collect pycolmap wheels ====================
-      # Wheels now have unique names with variant suffix (+cpu, +cuda, +cuda.cudss)
-      # so we just collect them all into one folder
-      - name: Collect pycolmap wheels
-        run: |
-          mkdir -p packages/wheels
-
-          # Find and copy all wheel files (they have unique names now)
-          # Process one at a time and delete source to save space
-          for whl in $(find artifacts/ -name "*.whl" 2>/dev/null); do
-            echo "Collecting: $(basename "$whl")"
-            cp "$whl" packages/wheels/
-            rm -f "$whl"
-          done
-
-          # Clean up remaining artifact directories
-          rm -rf artifacts/pycolmap-* 2>/dev/null || true
-
-          echo ""
-          echo "All pycolmap wheels:"
-          ls -la packages/wheels/*.whl || echo "No wheels found"
-
-          echo ""
-          echo "Wheel count by variant:"
-          echo "  CPU:        $(ls packages/wheels/*+cpu*.whl 2>/dev/null | wc -l)"
-          echo "  CUDA:       $(ls packages/wheels/*+cuda-*.whl 2>/dev/null | wc -l)"
-          echo "  CUDA+cuDSS: $(ls packages/wheels/*+cuda.cudss*.whl 2>/dev/null | wc -l)"
-          echo ""
-          echo "Disk space after wheel collection:"
-          df -h /
-
-      # ==================== Generate Checksums ====================
-      - name: Generate SHA256 checksums
-        run: |
-          cd packages
-
-          # Create checksums file
-          echo "# SHA256 Checksums" > SHA256SUMS.txt
-          echo "# Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> SHA256SUMS.txt
-          echo "" >> SHA256SUMS.txt
-
-          # COLMAP packages
-          if ls COLMAP-*.zip 1>/dev/null 2>&1; then
-            echo "## COLMAP" >> SHA256SUMS.txt
-            sha256sum COLMAP-*.zip >> SHA256SUMS.txt
-            echo "" >> SHA256SUMS.txt
-          fi
-
-          # pycolmap wheels (all variants in one folder with unique names)
-          if ls wheels/*.whl 1>/dev/null 2>&1; then
-            echo "## pycolmap wheels" >> SHA256SUMS.txt
-            (cd wheels && sha256sum *.whl) >> SHA256SUMS.txt
-          fi
-
-          echo "Generated checksums:"
-          cat SHA256SUMS.txt
-
-      # ==================== Upload Release Assets ====================
       - name: Get release tag
         id: release-tag
         run: |
           if [ "${{ github.event_name }}" = "release" ]; then
             echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "push" ]; then
-            # Extract tag from ref (refs/tags/v4.0.2 -> v4.0.2)
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
             echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
           fi
 
-      # ==================== Generate release notes ====================
-      - name: Generate release notes
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          cat > release_notes.md << 'RELEASE_EOF'
-          Pre-built COLMAP 4.0.2 and pycolmap binaries with CUDA 12.8 support.
+          TAG="${{ steps.release-tag.outputs.tag }}"
+          # Create or update draft release
+          gh release view "$TAG" 2>/dev/null && echo "Release exists" || \
+            gh release create "$TAG" --title "Release $TAG" --draft --notes "Building..."
 
-          ## Highlights
+      # Stream artifacts one at a time: download, package, upload, delete.
+      # This avoids the ~45GB disk space problem from downloading all at once.
+      - name: Download, package, and upload artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release-tag.outputs.tag }}"
+          RUN_ID="${{ github.run_id }}"
+          UPLOADED=0
+          FAILED=0
 
-          - **COLMAP 4.0.2** — Major release
-          - **ONNX support enabled** — LightGlue and ALIKED learned feature matching/detection
-          - **Global SfM built-in** — Use `colmap global_mapper` (previously standalone GLOMAP)
-          - **Global mapping Python bindings** — `pycolmap.global_mapper`
-          - **Cross-platform** — 8 COLMAP packages + 25 pycolmap wheels
+          echo "Listing artifacts from run $RUN_ID..."
+          ARTIFACTS=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts" --paginate --jq '.artifacts[] | "\(.id) \(.name)"')
 
-          ## Installation
+          echo "$ARTIFACTS" | while read -r ART_ID ART_NAME; do
+            [ -z "$ART_ID" ] && continue
+            echo ""
+            echo "=========================================="
+            echo "Processing: $ART_NAME (ID: $ART_ID)"
 
-          ### COLMAP
+            # Download single artifact
+            rm -rf /tmp/artifact_work
+            mkdir -p /tmp/artifact_work
+            gh api "repos/${{ github.repository }}/actions/artifacts/$ART_ID/zip" > /tmp/artifact_work/artifact.zip
+            (cd /tmp/artifact_work && unzip -q artifact.zip)
+            rm -f /tmp/artifact_work/artifact.zip
 
-          **Windows:**
-          ```powershell
-          Expand-Archive COLMAP-windows-latest-CUDA.zip -DestinationPath C:\Tools\COLMAP
-          C:\Tools\COLMAP\bin\colmap.exe gui
-          ```
+            # Determine what to upload
+            if [[ "$ART_NAME" == COLMAP-* ]]; then
+              # COLMAP package: zip the contents
+              ZIP_NAME="${ART_NAME}.zip"
+              echo "  Packaging COLMAP: $ZIP_NAME"
+              (cd /tmp/artifact_work && zip -qr "/tmp/$ZIP_NAME" .)
+              echo "  Uploading $ZIP_NAME..."
+              gh release upload "$TAG" "/tmp/$ZIP_NAME" --clobber || FAILED=$((FAILED + 1))
+              rm -f "/tmp/$ZIP_NAME"
+            elif [[ "$ART_NAME" == pycolmap-* ]]; then
+              # pycolmap wheel: upload directly
+              for whl in /tmp/artifact_work/*.whl; do
+                if [ -f "$whl" ]; then
+                  WHL_NAME=$(basename "$whl")
+                  echo "  Uploading wheel: $WHL_NAME"
+                  gh release upload "$TAG" "$whl" --clobber || FAILED=$((FAILED + 1))
+                fi
+              done
+            else
+              echo "  Skipping unknown artifact type"
+            fi
 
-          **Linux:**
-          ```bash
-          unzip COLMAP-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
-          ~/tools/colmap/bin/colmap gui
-          ```
+            # Clean up immediately to free disk
+            rm -rf /tmp/artifact_work
+            UPLOADED=$((UPLOADED + 1))
+            echo "  Done. Free disk: $(df -h / | tail -1 | awk '{print $4}')"
+          done
 
-          ### pycolmap
+          echo ""
+          echo "=========================================="
+          echo "All artifacts processed."
+          echo "Free disk:" && df -h /
 
-          Download the appropriate wheel for your Python version and platform, then install:
-          ```bash
-          pip install pycolmap-4.0.2+cuda-cp312-cp312-win_amd64.whl
-          ```
+      - name: Generate and upload checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release-tag.outputs.tag }}"
 
-          ## Package Variants
+          echo "# SHA256 Checksums" > SHA256SUMS.txt
+          echo "# Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> SHA256SUMS.txt
+          echo "" >> SHA256SUMS.txt
 
-          | Variant | Description |
-          |---------|-------------|
-          | `CPU` | CPU-only (no NVIDIA GPU required) |
-          | `CUDA` | GPU-accelerated (Windows: self-contained, Linux: requires CUDA Toolkit) |
-          | `CUDA+cuDSS` | CUDA + cuDSS sparse solver (faster bundle adjustment) |
+          # Download asset list and generate checksums by downloading each file
+          # (we don't have them locally anymore since we streamed them)
+          gh release view "$TAG" --json assets --jq '.assets[].name' | sort | while read -r ASSET; do
+            echo "  Checksumming: $ASSET"
+            gh release download "$TAG" -p "$ASSET" -D /tmp/checksum_work 2>/dev/null || continue
+            (cd /tmp/checksum_work && sha256sum "$ASSET") >> SHA256SUMS.txt
+            rm -f "/tmp/checksum_work/$ASSET"
+          done
 
-          ## System Requirements
+          echo ""
+          echo "Checksums:"
+          cat SHA256SUMS.txt
+          gh release upload "$TAG" SHA256SUMS.txt --clobber
 
-          - **GPU:** NVIDIA RTX 20 series or newer (Compute Capability 7.5+)
-          - **Driver:** 570+ (Windows), 570+ (Linux) - CUDA 12.8 requires driver 570+
-          - **Python:** 3.10, 3.11, 3.12, 3.13, or 3.14 (for pycolmap)
-          RELEASE_EOF
-
-      - name: Upload assets and update release notes
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: release_notes.md
-          append_body: true
-          files: |
-            packages/COLMAP-*.zip
-            packages/wheels/*.whl
-            packages/SHA256SUMS.txt
-          fail_on_unmatched_files: false
-
-      # ==================== Tag push: create draft release ====================
-      - name: Create draft release (tag push)
-        if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release-tag.outputs.tag }}
-          name: Release ${{ steps.release-tag.outputs.tag }}
-          draft: true
-          body_path: release_notes.md
-          files: |
-            packages/COLMAP-*.zip
-            packages/wheels/*.whl
-            packages/SHA256SUMS.txt
-          fail_on_unmatched_files: false
-
-      # ==================== Manual dispatch: create draft release ====================
-      - name: Create draft release (manual dispatch)
-        if: github.event_name == 'workflow_dispatch'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release-tag.outputs.tag }}
-          name: Release ${{ steps.release-tag.outputs.tag }}
-          draft: true
-          body_path: release_notes.md
-          files: |
-            packages/COLMAP-*.zip
-            packages/wheels/*.whl
-            packages/SHA256SUMS.txt
-          fail_on_unmatched_files: false
-
-      # ==================== Summary ====================
       - name: Generate release summary
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          TAG="${{ steps.release-tag.outputs.tag }}"
           echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### COLMAP Packages" >> $GITHUB_STEP_SUMMARY
-          for f in packages/COLMAP-*.zip; do
-            if [ -f "$f" ]; then
-              size=$(du -h "$f" | cut -f1)
-              name=$(basename "$f")
-              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### pycolmap Wheels" >> $GITHUB_STEP_SUMMARY
-          for f in packages/wheels/*.whl; do
-            if [ -f "$f" ]; then
-              size=$(du -h "$f" | cut -f1)
-              name=$(basename "$f")
-              echo "- \`$name\` ($size)" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          echo "### Checksums" >> $GITHUB_STEP_SUMMARY
-          echo "SHA256SUMS.txt included in release for verification" >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload all packages as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-packages-${{ steps.release-tag.outputs.tag }}
-          path: packages/
-          retention-days: 30
+          gh release view "$TAG" --json assets --jq '.assets[] | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' >> $GITHUB_STEP_SUMMARY
