@@ -306,7 +306,7 @@ jobs:
 
       - name: Install Python build dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel scikit-build-core[pyproject] "pybind11==3.0.1" delvewheel
+          python -m pip install --upgrade pip setuptools wheel scikit-build-core[pyproject] "pybind11>=3.0.2" delvewheel
 
       # ==================== CUDA Setup ====================
       # CUDA 13.x adds a new "crt" sub-package (contains crt/host_config.h)
