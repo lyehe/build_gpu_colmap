@@ -47,7 +47,8 @@
                                  "description":  "Enable Qt6 GUI support for COLMAP",
                                  "dependencies":  [
                                                       "qtbase",
-                                                      "qt3d"
+                                                      "qt3d",
+                                                      "qtsvg"
                                                   ]
                              },
                      "opencv":  {
