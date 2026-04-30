@@ -514,6 +514,7 @@ jobs:
           if (Test-Path "$platformsDir/qwindows.dll") {
             Write-Host "Qt platforms plugin bundled successfully:" -ForegroundColor Green
             Get-ChildItem $platformsDir
+            $global:LASTEXITCODE = 0
           } else {
             Write-Host "ERROR: Qt platforms plugin not found anywhere!" -ForegroundColor Red
             Write-Host "Searched in: $vcpkgInstalled" -ForegroundColor Yellow
