@@ -7,6 +7,19 @@ on:
         description: 'Release tag to upload assets to (empty = no upload)'
         type: string
         default: ''
+  push:
+    branches: [master, main]
+    paths:
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
+      - 'third_party/colmap-for-pycolmap'
+      - 'third_party/colmap-for-pycolmap/**'
+      - 'third_party/ceres-solver'
+      - 'third_party/ceres-solver/**'
+      - 'third_party/vcpkg'
+      - 'scripts_windows/**'
+      - 'scripts_linux/**'
+      - '.github/workflows/build-pycolmap.yml'
   pull_request:
     branches: [master, main]
   workflow_dispatch:
@@ -454,6 +467,29 @@ jobs:
               "-DBUILD_COLMAP_FOR_PYCOLMAP=ON"
             )
 
+            if ("${{ matrix.cuda }}" -eq "true") {
+              $cudaRoot = $env:CUDA_PATH
+              if (-not $cudaRoot) {
+                $versionParts = "${{ matrix.cuda_version }}".Split(".")
+                $cudaMajorMinor = "$($versionParts[0]).$($versionParts[1])"
+                $cudaRoot = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v$cudaMajorMinor"
+              }
+
+              $cudaCompiler = Join-Path $cudaRoot "bin\nvcc.exe"
+              if (-not (Test-Path $cudaCompiler)) {
+                Write-Host "ERROR: CUDA compiler not found at $cudaCompiler" -ForegroundColor Red
+                exit 1
+              }
+
+              $cudaRoot = $cudaRoot.Replace('\', '/')
+              $cudaCompiler = $cudaCompiler.Replace('\', '/')
+              Write-Host "Using CUDA root: $cudaRoot"
+              Write-Host "Using CUDA compiler: $cudaCompiler"
+              $cmakeArgs += "-DCMAKE_CUDA_COMPILER=$cudaCompiler"
+              $cmakeArgs += "-DCUDAToolkit_ROOT=$cudaRoot"
+              $cmakeArgs += "-DCUDA_TOOLKIT_ROOT_DIR=$cudaRoot"
+            }
+
             # Add cuDSS paths if enabled
             if ("${{ matrix.cudss }}" -eq "true" -and $env:cudss_DIR) {
               Write-Host "Adding cuDSS from: $env:cudss_DIR"
@@ -495,6 +531,22 @@ jobs:
               -DBUILD_CERES=ON
             )
 
+            if [ "$CUDA_FLAG" = "ON" ]; then
+              CUDA_ROOT="${CUDA_PATH:-/usr/local/cuda}"
+              CUDA_COMPILER="$CUDA_ROOT/bin/nvcc"
+              if [ ! -x "$CUDA_COMPILER" ]; then
+                echo "ERROR: CUDA compiler not found at $CUDA_COMPILER"
+                exit 1
+              fi
+              echo "Using CUDA root: $CUDA_ROOT"
+              echo "Using CUDA compiler: $CUDA_COMPILER"
+              CMAKE_ARGS+=(
+                -DCMAKE_CUDA_COMPILER="$CUDA_COMPILER"
+                -DCUDAToolkit_ROOT="$CUDA_ROOT"
+                -DCUDA_TOOLKIT_ROOT_DIR="$CUDA_ROOT"
+              )
+            fi
+
             # Add cuDSS paths if enabled
             if [ "$CUDSS_FLAG" = "true" ] && [ -n "$cudss_DIR" ]; then
               echo "Adding cuDSS from: $cudss_DIR"
@@ -534,11 +586,28 @@ jobs:
           # requires CUDA Visual Studio toolset integration which isn't reliably available
           $cudaArgs = @()
           if ("${{ matrix.cuda }}" -eq "true") {
-            $cudaCompiler = "$env:CUDA_PATH/bin/nvcc.exe".Replace('\', '/')
+            $cudaRoot = $env:CUDA_PATH
+            if (-not $cudaRoot) {
+              $versionParts = "${{ matrix.cuda_version }}".Split(".")
+              $cudaMajorMinor = "$($versionParts[0]).$($versionParts[1])"
+              $cudaRoot = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v$cudaMajorMinor"
+            }
+
+            $cudaCompiler = Join-Path $cudaRoot "bin\nvcc.exe"
+            if (-not (Test-Path $cudaCompiler)) {
+              Write-Host "ERROR: CUDA compiler not found at $cudaCompiler" -ForegroundColor Red
+              exit 1
+            }
+
+            $cudaRoot = $cudaRoot.Replace('\', '/')
+            $cudaCompiler = $cudaCompiler.Replace('\', '/')
             Write-Host "Setting CMAKE_CUDA_COMPILER: $cudaCompiler"
+            Write-Host "Setting CUDAToolkit_ROOT: $cudaRoot"
             Write-Host "Using Ninja generator to avoid VS CUDA toolset requirement"
             $cudaArgs = @(
               "--config-settings=cmake.define.CMAKE_CUDA_COMPILER=${cudaCompiler}",
+              "--config-settings=cmake.define.CUDAToolkit_ROOT=${cudaRoot}",
+              "--config-settings=cmake.define.CUDA_TOOLKIT_ROOT_DIR=${cudaRoot}",
               "--config-settings=cmake.args=-G Ninja"
             )
           }
@@ -570,6 +639,23 @@ jobs:
           echo "CMAKE_PREFIX_PATH: $CMAKE_PREFIX_PATH"
           echo "Note: CUDA_ENABLED=OFF for wheel build (uses pre-built CUDA-enabled COLMAP)"
 
+          CUDA_ARGS=()
+          if [ "${{ matrix.cuda }}" = "true" ]; then
+            CUDA_ROOT="${CUDA_PATH:-/usr/local/cuda}"
+            CUDA_COMPILER="$CUDA_ROOT/bin/nvcc"
+            if [ ! -x "$CUDA_COMPILER" ]; then
+              echo "ERROR: CUDA compiler not found at $CUDA_COMPILER"
+              exit 1
+            fi
+            echo "Setting CMAKE_CUDA_COMPILER: $CUDA_COMPILER"
+            echo "Setting CUDAToolkit_ROOT: $CUDA_ROOT"
+            CUDA_ARGS+=(
+              --config-settings="cmake.define.CMAKE_CUDA_COMPILER=${CUDA_COMPILER}"
+              --config-settings="cmake.define.CUDAToolkit_ROOT=${CUDA_ROOT}"
+              --config-settings="cmake.define.CUDA_TOOLKIT_ROOT_DIR=${CUDA_ROOT}"
+            )
+          fi
+
           # Build wheel - CUDA_ENABLED=OFF because we link against pre-built COLMAP
           # The COLMAP library already has CUDA support, wheel doesn't compile CUDA code
           python -m pip wheel . --no-deps -w wheelhouse \
@@ -577,7 +663,8 @@ jobs:
             --config-settings="cmake.define.VCPKG_INSTALLED_DIR=${VCPKG_INSTALLED}" \
             --config-settings="cmake.define.CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}" \
             --config-settings="cmake.define.VCPKG_TARGET_TRIPLET=x64-linux" \
-            --config-settings="cmake.define.CUDA_ENABLED=OFF"
+            --config-settings="cmake.define.CUDA_ENABLED=OFF" \
+            "${CUDA_ARGS[@]}"
 
       # ==================== Repair Wheel ====================
       - name: Repair wheel with delvewheel (Windows)
@@ -595,8 +682,18 @@ jobs:
           )
 
           # Add CUDA bin path for CUDA builds (contains nvjitlink, cudart, etc.)
-          if ("${{ matrix.cuda }}" -eq "true" -and $env:CUDA_PATH) {
-            $cudaBin = "$env:CUDA_PATH\bin"
+          if ("${{ matrix.cuda }}" -eq "true") {
+            $cudaRoot = $env:CUDA_PATH
+            if (-not $cudaRoot) {
+              $versionParts = "${{ matrix.cuda_version }}".Split(".")
+              $cudaMajorMinor = "$($versionParts[0]).$($versionParts[1])"
+              $cudaRoot = "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v$cudaMajorMinor"
+            }
+            $cudaBin = Join-Path $cudaRoot "bin"
+            if (-not (Test-Path $cudaBin)) {
+              Write-Host "ERROR: CUDA bin path not found at $cudaBin" -ForegroundColor Red
+              exit 1
+            }
             Write-Host "Adding CUDA bin path: $cudaBin"
             $addPaths += @("--add-path", "$cudaBin")
           }
@@ -860,14 +957,14 @@ jobs:
           echo "Renaming wheels with variant: $VARIANT"
 
           # Rename each wheel to include variant in version
-          # e.g., pycolmap-4.0.2-cp310-cp310-win_amd64.whl
-          #    -> pycolmap-4.0.2+cuda-cp310-cp310-win_amd64.whl
+          # e.g., pycolmap-4.1.0.dev0-cp310-cp310-win_amd64.whl
+          #    -> pycolmap-4.1.0.dev0+cuda-cp310-cp310-win_amd64.whl
           for wheel in wheelhouse/*.whl; do
             if [ -f "$wheel" ]; then
               filename=$(basename "$wheel")
               # Extract parts: name-version-pytag-abitag-platform.whl
               # Insert variant after version (before first -cp)
-              # Matches both release versions (4.0.2) and dev versions (4.0.2.dev0)
+              # Matches both release versions and dev versions.
               newname=$(echo "$filename" | sed "s/\(pycolmap-[0-9][^-]*\)\(-cp\)/\1${VARIANT}\2/")
               if [ "$filename" != "$newname" ]; then
                 echo "  $filename -> $newname"

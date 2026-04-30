@@ -149,6 +149,7 @@ try {
         -DGUI_ENABLED="$GuiEnabled" `
         -DBUILD_CERES=ON `
         -DBUILD_COLMAP=ON `
+        -DBUILD_COLMAP_FOR_PYCOLMAP=OFF `
         -DBUILD_GLOMAP=OFF `
         -DVCPKG_MANIFEST_FEATURES="$VcpkgFeatures" `
         -DGFLAGS_USE_TARGET_NAMESPACE=ON
@@ -186,6 +187,7 @@ try {
         foreach ($CudaBinPath in $CudaBinPaths) {
             if (Test-Path $CudaBinPath) {
                 Write-Host "  Copying CUDA runtime DLLs from: $CudaBinPath" -ForegroundColor DarkGray
+                $CopiedCudaDlls = 0
 
                 # Copy essential CUDA runtime DLLs
                 $CudaDlls = @(
@@ -201,12 +203,17 @@ try {
                 foreach ($pattern in $CudaDlls) {
                     Get-ChildItem "$CudaBinPath\$pattern" -ErrorAction SilentlyContinue | ForEach-Object {
                         Copy-Item $_.FullName $ColmapBin -Force -ErrorAction SilentlyContinue
+                        $CopiedCudaDlls++
                     }
                 }
 
-                $CudaBinFound = $true
-                Write-Host "    CUDA runtime DLLs copied" -ForegroundColor Green
-                break
+                if ($CopiedCudaDlls -gt 0) {
+                    $CudaBinFound = $true
+                    Write-Host "    CUDA runtime DLLs copied ($CopiedCudaDlls files)" -ForegroundColor Green
+                    break
+                } else {
+                    Write-Host "    No matching CUDA runtime DLLs found in this path" -ForegroundColor DarkGray
+                }
             }
         }
 

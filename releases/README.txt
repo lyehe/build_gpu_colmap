@@ -2,70 +2,36 @@
                     COLMAP GPU Builder - Release Package
 ================================================================================
 
-This directory contains packaged builds ready for GitHub release.
+This directory contains packaged builds ready for release.
 
-NOTE: GLOMAP has been merged into COLMAP. Use `colmap global_mapper`
-      for global Structure-from-Motion.
+CURRENT LOCAL PACKAGE
+---------------------
 
-CONTENTS:
----------
-1. COLMAP-4.0.2-Windows-x64-CUDA.zip
-   - COLMAP 4.0.2 with CUDA support
-   - All dependencies bundled
-   - Latest features and improvements
-   - Includes global SfM (previously GLOMAP)
+COLMAP-4.1.0.dev0-Windows-x64-CUDA-cuDSS.zip
+  - COLMAP 4.1.0.dev0
+  - Upstream commit 976c0dec from 2026-04-29
+  - Windows x64
+  - CUDA 12.8 + cuDSS 0.7
+  - SHA256 listed in SHA256SUMS.txt
 
-2. pycolmap-4.0.2-cp310-cp310-win_amd64.whl
-   - Python 3.10 wheel with all dependencies
-
-3. pycolmap-4.0.2-cp311-cp311-win_amd64.whl
-   - Python 3.11 wheel with all dependencies
-
-4. pycolmap-4.0.2-cp312-cp312-win_amd64.whl
-   - Python 3.12 wheel with all dependencies
-
-5. pycolmap-4.0.2-cp313-cp313-win_amd64.whl
-   - Python 3.13 wheel with all dependencies
-
-6. pycolmap-4.0.2-cp314-cp314-win_amd64.whl
-   - Python 3.14 wheel with all dependencies
-
-CREATING THE RELEASE:
---------------------
-
-Option 1: Automated (Recommended)
-----------------------------------
-1. Authenticate with GitHub CLI:
-   > "C:\Program Files\GitHub CLI\gh.exe" auth login
-
-2. Run the release script from project root:
-   > .\scripts_windows\create_github_release.ps1
-
-3. Follow the prompts
-
-
-Option 2: Manual Upload
-------------------------
-1. Go to: https://github.com/lyehe/build_gpu_colmap/releases/new
-
-2. Create a new tag: v1.0.0
-
-3. Set release title: Point Cloud Tools v1.0.0 - Windows CUDA Build
-
-4. Copy the content from RELEASE_NOTES.md into the description
-
-5. Upload all files:
-   - COLMAP-4.0.2-Windows-x64-CUDA.zip
-   - pycolmap-*.whl files
-
-6. Click "Publish release"
-
-
-NOTES:
+VERIFY
 ------
-- The upload may take several minutes due to file size
-- Ensure you have a stable internet connection
-- The release will be publicly visible on GitHub
-- You can edit the release later if needed
+
+After extracting:
+
+  .\bin\colmap.exe version
+
+Expected:
+
+  COLMAP 4.1.0.dev0 (Commit 976c0dec on 2026-04-29 with CUDA)
+
+NOTES
+-----
+
+- Use `colmap global_mapper` for global Structure-from-Motion.
+- Matching pycolmap 4.1.0.dev0 wheels were not present when this package was
+  created. Build them separately with:
+
+  .\scripts_windows\build_pycolmap_wheels.ps1
 
 ================================================================================

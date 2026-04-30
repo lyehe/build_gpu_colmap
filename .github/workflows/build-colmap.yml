@@ -7,6 +7,19 @@ on:
         description: 'Release tag to upload assets to (empty = no upload)'
         type: string
         default: ''
+  push:
+    branches: [master, main]
+    paths:
+      - 'CMakeLists.txt'
+      - 'vcpkg.json'
+      - 'third_party/colmap'
+      - 'third_party/colmap/**'
+      - 'third_party/ceres-solver'
+      - 'third_party/ceres-solver/**'
+      - 'third_party/vcpkg'
+      - 'scripts_windows/**'
+      - 'scripts_linux/**'
+      - '.github/workflows/build-colmap.yml'
   pull_request:
     branches: [master, main]
   workflow_dispatch:
@@ -300,18 +313,6 @@ jobs:
         shell: pwsh
         run: |
           $installBin = "build/install/colmap/bin"
-          $cudaBin = "$env:CUDA_PATH\bin"
-
-          if (-not (Test-Path $cudaBin)) {
-            Write-Host "ERROR: CUDA bin directory not found at $cudaBin" -ForegroundColor Red
-            exit 1
-          }
-
-          Write-Host "Copying CUDA runtime DLLs from: $cudaBin"
-          Write-Host "Available CUDA DLLs in toolkit:"
-          Get-ChildItem -Path $cudaBin -Filter "*.dll" | Where-Object { $_.Name -match "^(cu|nv)" } | Select-Object Name | Format-Table -HideTableHeaders
-
-          # Copy essential CUDA runtime DLLs using -Filter for proper wildcard handling
           $cudaPatterns = @(
             "cudart64_*",
             "cublas64_*",
@@ -325,14 +326,52 @@ jobs:
             "nvJitLink_*"
           )
 
+          $versionParts = "${{ matrix.cuda_version }}".Split(".")
+          $cudaMajorMinor = "$($versionParts[0]).$($versionParts[1])"
+          $candidateBins = @()
+          if ($env:CUDA_PATH) {
+            $candidateBins += (Join-Path $env:CUDA_PATH "bin")
+          }
+          $candidateBins += @(
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v$cudaMajorMinor\bin",
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.8\bin",
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin",
+            "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.0\bin"
+          )
+          $candidateBins = $candidateBins | Select-Object -Unique
+
           $copiedCount = 0
-          foreach ($pattern in $cudaPatterns) {
-            $dlls = Get-ChildItem -Path $cudaBin -Filter "$pattern.dll" -ErrorAction SilentlyContinue
-            foreach ($dll in $dlls) {
-              Write-Host "  Copying: $($dll.Name)"
-              Copy-Item $dll.FullName $installBin -Force
-              $copiedCount++
+          foreach ($cudaBin in $candidateBins) {
+            if (-not (Test-Path $cudaBin)) {
+              Write-Host "Skipping missing CUDA bin directory: $cudaBin"
+              continue
             }
+
+            Write-Host "Checking CUDA runtime DLLs in: $cudaBin"
+            Get-ChildItem -Path $cudaBin -Filter "*.dll" | Where-Object { $_.Name -match "^(cu|nv)" } | Select-Object Name | Format-Table -HideTableHeaders
+
+            $dirCopiedCount = 0
+            foreach ($pattern in $cudaPatterns) {
+              $dlls = Get-ChildItem -Path $cudaBin -Filter "$pattern.dll" -ErrorAction SilentlyContinue
+              foreach ($dll in $dlls) {
+                Write-Host "  Copying: $($dll.Name)"
+                Copy-Item -LiteralPath $dll.FullName -Destination $installBin -Force
+                $copiedCount++
+                $dirCopiedCount++
+              }
+            }
+
+            if ($dirCopiedCount -gt 0) {
+              Write-Host "Copied $dirCopiedCount CUDA DLLs from $cudaBin" -ForegroundColor Green
+              break
+            }
+
+            Write-Host "No matching CUDA runtime DLLs found in: $cudaBin"
+          }
+
+          if ($copiedCount -eq 0) {
+            Write-Host "ERROR: No CUDA runtime DLLs were copied from any candidate CUDA toolkit path." -ForegroundColor Red
+            exit 1
           }
 
           Write-Host "Copied $copiedCount CUDA DLLs" -ForegroundColor Green
@@ -551,10 +590,23 @@ jobs:
         id: artifact-name
         shell: bash
         run: |
+          VERSION=""
+          if [ -f "build/install/colmap/bin/colmap.exe" ]; then
+            VERSION=$(build/install/colmap/bin/colmap.exe version | sed -n 's/^COLMAP \([^ ]*\).*/\1/p' | head -n 1 || true)
+          elif [ -f "build/install/colmap/bin/colmap" ]; then
+            VERSION=$(build/install/colmap/bin/colmap version | sed -n 's/^COLMAP \([^ ]*\).*/\1/p' | head -n 1 || true)
+          fi
+          if [ -z "$VERSION" ] && [ -f "third_party/colmap/CMakeLists.txt" ]; then
+            VERSION=$(grep -E 'set\(COLMAP_VERSION ' third_party/colmap/CMakeLists.txt | sed -n 's/.*"\([^"]*\)".*/\1/p' | head -n 1)
+          fi
+          if [ -z "$VERSION" ]; then
+            VERSION="unknown"
+          fi
+
           CUDA_SUFFIX="${{ matrix.cuda && 'CUDA' || 'CPU' }}"
           CUDSS_SUFFIX="${{ matrix.cudss && '-cuDSS' || '' }}"
           GUI_SUFFIX="${{ matrix.gui && '-GUI' || '' }}"
-          echo "name=COLMAP-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}${GUI_SUFFIX}" >> $GITHUB_OUTPUT
+          echo "name=COLMAP-${VERSION}-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}${GUI_SUFFIX}" >> $GITHUB_OUTPUT
 
       - name: Upload COLMAP to release (Linux)
         if: inputs.release_tag != '' && runner.os == 'Linux'

@@ -32,9 +32,17 @@ option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
 
 # CUDA configuration
+set(PROJECT_CUDA_CMAKE_ARGS "")
 if(CUDA_ENABLED)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
+    get_filename_component(PROJECT_CUDA_BIN_DIR "${CMAKE_CUDA_COMPILER}" DIRECTORY)
+    get_filename_component(PROJECT_CUDA_ROOT "${PROJECT_CUDA_BIN_DIR}" DIRECTORY)
+    list(APPEND PROJECT_CUDA_CMAKE_ARGS
+        -DCMAKE_CUDA_COMPILER=${CMAKE_CUDA_COMPILER}
+        -DCUDAToolkit_ROOT=${PROJECT_CUDA_ROOT}
+        -DCUDA_TOOLKIT_ROOT_DIR=${PROJECT_CUDA_ROOT}
+    )
     # Set CUDA architectures - use FORCE to override any cached values
     # Supports Turing (75), Ampere (80, 86), Ada Lovelace (89), Hopper (90)
     # Architecture 120 (Blackwell) requires CUDA 13+ and is only included for CUDA 13 builds
@@ -308,6 +316,7 @@ if(BUILD_CERES)
 
     set(CERES_CMAKE_ARGS
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+        ${PROJECT_CUDA_CMAKE_ARGS}
         -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
         -DVCPKG_MANIFEST_MODE=OFF
         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -395,6 +404,7 @@ if(BUILD_COLMAP)
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_onnx_install.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+            ${PROJECT_CUDA_CMAKE_ARGS}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
             -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
             -DVCPKG_MANIFEST_MODE=OFF
@@ -463,6 +473,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_onnx_install.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+            ${PROJECT_CUDA_CMAKE_ARGS}
             -DVCPKG_OVERLAY_PORTS=${VCPKG_OVERLAY_PORTS}
             -DVCPKG_INSTALLED_DIR=${CMAKE_BINARY_DIR}/vcpkg_installed
             -DVCPKG_MANIFEST_MODE=OFF
