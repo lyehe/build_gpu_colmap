@@ -1,6 +1,8 @@
-# Patch COLMAP's generated Caspar CUDA sources for MSVC/NVCC.
+# Patch COLMAP's generated Caspar sources for MSVC/NVCC.
 # Several generated files use the non-standard uint typedef, which is
 # available on Linux but not defined by MSVC's CUDA host compilation path.
+# Generated solver.cc also uses std::to_string without including <string>,
+# which MSVC does not expose through the current transitive includes.
 #
 # Usage: cmake -DCOLMAP_SOURCE_DIR=<path> -P patch_colmap_caspar_uint.cmake
 
@@ -57,4 +59,37 @@ foreach(PRECISION IN ITEMS f32 f64)
         file(WRITE "${TARGET_FILE}" "${CONTENT}")
         message(STATUS "Patched ${TARGET_FILE} to define uint for Caspar CUDA sources")
     endforeach()
+endforeach()
+
+foreach(PRECISION IN ITEMS f32 f64)
+    set(SOLVER_FILE "${CASPAR_GENERATED_DIR}/${PRECISION}/solver.cc")
+
+    if(NOT EXISTS "${SOLVER_FILE}")
+        message(STATUS "Caspar ${PRECISION} solver.cc not found - skipping <string> patch")
+        continue()
+    endif()
+
+    file(READ "${SOLVER_FILE}" CONTENT)
+
+    if(NOT CONTENT MATCHES "std::to_string")
+        continue()
+    endif()
+
+    if(CONTENT MATCHES "#include <string>")
+        message(STATUS "Caspar ${PRECISION} solver.cc already includes <string>")
+        continue()
+    endif()
+
+    if(NOT CONTENT MATCHES "#include <stdexcept>")
+        message(FATAL_ERROR "Could not find '#include <stdexcept>' in ${SOLVER_FILE}")
+    endif()
+
+    string(REPLACE
+        "#include <stdexcept>"
+        "#include <stdexcept>\n#include <string>"
+        CONTENT "${CONTENT}"
+    )
+
+    file(WRITE "${SOLVER_FILE}" "${CONTENT}")
+    message(STATUS "Patched ${SOLVER_FILE} to include <string> for std::to_string")
 endforeach()
