@@ -8,6 +8,7 @@ param(
     [string]$Configuration = 'Release',
 
     [switch]$NoCuda,
+    [switch]$NoCaspar,
     [switch]$Clean,
     [switch]$Help
 )
@@ -27,6 +28,7 @@ Usage: .\build_pycolmap_wheels.ps1 [options]
 Options:
   -Configuration <Debug|Release>  Build configuration (default: Release)
   -NoCuda                         Build without CUDA support
+  -NoCaspar                       Disable Caspar bundle adjustment
   -Clean                          Clean build before building
   -Help                           Show this help message
 
@@ -71,6 +73,7 @@ Write-Host "Build pycolmap Wheels for All Python Versions" -ForegroundColor Cyan
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host "Configuration: $Configuration" -ForegroundColor White
 Write-Host "CUDA: $(if ($NoCuda) { 'Disabled' } else { 'Enabled' })" -ForegroundColor White
+Write-Host "Caspar: $(if ($NoCuda -or $NoCaspar) { 'Disabled' } else { 'Enabled' })" -ForegroundColor White
 Write-Host "COLMAP Source: $ColmapSource" -ForegroundColor White
 Write-Host "================================================================" -ForegroundColor Cyan
 
@@ -182,6 +185,7 @@ if ($NeedsBuild) {
     try {
         $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
         $CudaEnabled = if ($NoCuda) { "OFF" } else { "ON" }
+        $CasparEnabled = if ($NoCuda -or $NoCaspar) { "OFF" } else { "ON" }
 
         Write-Host "Configuring CMake with Ninja..." -ForegroundColor Cyan
         cmake .. `
@@ -189,6 +193,7 @@ if ($NeedsBuild) {
             -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
             -DCMAKE_BUILD_TYPE="$Configuration" `
             -DCUDA_ENABLED="$CudaEnabled" `
+            -DCASPAR_ENABLED="$CasparEnabled" `
             -DBUILD_COLMAP=OFF `
             -DBUILD_COLMAP_FOR_PYCOLMAP=ON `
             -DBUILD_GLOMAP=OFF `

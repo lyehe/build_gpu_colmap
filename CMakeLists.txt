@@ -31,8 +31,20 @@ option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF
 option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
 
+set(DEFAULT_CASPAR_ENABLED OFF)
+if(CUDA_ENABLED)
+    set(DEFAULT_CASPAR_ENABLED ON)
+endif()
+option(CASPAR_ENABLED "Enable COLMAP Caspar-accelerated bundle adjustment" ${DEFAULT_CASPAR_ENABLED})
+option(CASPAR_USE_DOUBLE "Build Caspar with double precision kernels" OFF)
+
+if(CASPAR_ENABLED AND NOT CUDA_ENABLED)
+    message(FATAL_ERROR "CASPAR_ENABLED requires CUDA_ENABLED=ON")
+endif()
+
 # CUDA configuration
 set(PROJECT_CUDA_CMAKE_ARGS "")
+set(COLMAP_CUDA_STANDARD "")
 if(CUDA_ENABLED)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
@@ -76,6 +88,10 @@ if(CUDA_ENABLED)
         set(CUDA13_CUDA_STANDARD "")
         set(CUDA13_THRUST_FLAGS "")
     endif()
+
+    # COLMAP's Caspar-generated CUDA sources require C++17. Keep this explicit
+    # for CUDA 12 as well as CUDA 13.
+    set(COLMAP_CUDA_STANDARD "17")
 
     # Force consistent CUDA runtime linkage to avoid static/dynamic conflicts on Windows
     # Without this, some components may link cudart_static.lib while others use cudart.lib
@@ -384,6 +400,11 @@ if(BUILD_COLMAP)
         set(COLMAP_CUDSS_ARGS "-Dcudss_DIR=${cudss_DIR}")
     endif()
 
+    set(COLMAP_CASPAR_ARGS
+        -DCASPAR_ENABLED=${CASPAR_ENABLED}
+        -DCASPAR_USE_DOUBLE=${CASPAR_USE_DOUBLE}
+    )
+
     # Escape semicolons for ExternalProject_Add LIST_SEPARATOR
     string(REPLACE ";" "|" COLMAP_PREFIX_PATH_EP "${COLMAP_PREFIX_PATH}")
     string(REPLACE ";" "|" CUDA_ARCHS_EP "${CMAKE_CUDA_ARCHITECTURES}")
@@ -413,12 +434,13 @@ if(BUILD_COLMAP)
             -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH_EP}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS_EP}
-            -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
+            -DCMAKE_CUDA_STANDARD=${COLMAP_CUDA_STANDARD}
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
             -DTESTS_ENABLED=OFF
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+            ${COLMAP_CASPAR_ARGS}
             ${COLMAP_CUDSS_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
@@ -447,6 +469,12 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
         if(CUDSS_FOUND AND cudss_DIR)
             set(COLMAP_CUDSS_ARGS "-Dcudss_DIR=${cudss_DIR}")
         endif()
+    endif()
+    if(NOT DEFINED COLMAP_CASPAR_ARGS)
+        set(COLMAP_CASPAR_ARGS
+            -DCASPAR_ENABLED=${CASPAR_ENABLED}
+            -DCASPAR_USE_DOUBLE=${CASPAR_USE_DOUBLE}
+        )
     endif()
 
     # Escape semicolons for ExternalProject_Add LIST_SEPARATOR
@@ -482,7 +510,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_PREFIX_PATH=${COLMAP_PREFIX_PATH_EP}
             -DCUDA_ENABLED=${CUDA_ENABLED}
             -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS_EP}
-            -DCMAKE_CUDA_STANDARD=${CUDA13_CUDA_STANDARD}
+            -DCMAKE_CUDA_STANDARD=${COLMAP_CUDA_STANDARD}
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
@@ -491,6 +519,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DOPENGL_ENABLED=OFF
             -DGFLAGS_USE_TARGET_NAMESPACE=ON
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
+            ${COLMAP_CASPAR_ARGS}
             ${COLMAP_CUDSS_ARGS}
         BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE}
         INSTALL_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config ${CMAKE_BUILD_TYPE} --target install
@@ -507,6 +536,14 @@ message(STATUS "CUDA Support: ${CUDA_ENABLED}")
 if(CUDA_ENABLED)
     message(STATUS "CUDA Version: ${CUDAToolkit_VERSION}")
     message(STATUS "CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+    message(STATUS "Caspar Support: ${CASPAR_ENABLED}")
+    if(CASPAR_ENABLED)
+        if(CASPAR_USE_DOUBLE)
+            message(STATUS "Caspar Precision: double")
+        else()
+            message(STATUS "Caspar Precision: float")
+        endif()
+    endif()
     if(CUDSS_FOUND)
         message(STATUS "cuDSS Support: ENABLED (${CUDSS_INSTALL_PATH})")
     else()

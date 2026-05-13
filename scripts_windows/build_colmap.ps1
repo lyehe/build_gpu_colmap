@@ -8,6 +8,7 @@ param(
     [string]$Configuration = 'Release',
 
     [switch]$NoCuda,
+    [switch]$NoCaspar,
     [switch]$Gui,
     [switch]$Clean,
     [switch]$Help
@@ -26,6 +27,7 @@ This script builds:
 Options:
   -Configuration <Debug|Release>  Build configuration (default: Release)
   -NoCuda                         Disable CUDA support
+  -NoCaspar                       Disable Caspar bundle adjustment
   -Gui                            Enable GUI support (requires Qt)
   -Clean                          Clean build directory before building
   -Help                           Show this help message
@@ -44,6 +46,7 @@ $ProjectRoot = Split-Path -Parent $ScriptDir
 $BuildDir = Join-Path $ProjectRoot "build"
 $VcpkgRoot = Join-Path $ProjectRoot "third_party\vcpkg"
 $CudaEnabled = if ($NoCuda) { "OFF" } else { "ON" }
+$CasparEnabled = if ($NoCuda -or $NoCaspar) { "OFF" } else { "ON" }
 $GuiEnabled = if ($Gui) { "ON" } else { "OFF" }
 
 # Calculate optimal job count (25% of cores for stability)
@@ -97,6 +100,7 @@ Write-Host "================================================================" -F
 Write-Host "Modules: Ceres Solver + COLMAP (latest)" -ForegroundColor White
 Write-Host "Configuration: $Configuration" -ForegroundColor White
 Write-Host "CUDA Enabled: $CudaEnabled" -ForegroundColor White
+Write-Host "Caspar Enabled: $CasparEnabled" -ForegroundColor White
 Write-Host "Parallel Jobs: $OptimalJobs (of $CpuCores cores)" -ForegroundColor White
 Write-Host "Generator: Ninja" -ForegroundColor White
 Write-Host "================================================================" -ForegroundColor Cyan
@@ -146,6 +150,7 @@ try {
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_BUILD_TYPE="$Configuration" `
         -DCUDA_ENABLED="$CudaEnabled" `
+        -DCASPAR_ENABLED="$CasparEnabled" `
         -DGUI_ENABLED="$GuiEnabled" `
         -DBUILD_CERES=ON `
         -DBUILD_COLMAP=ON `

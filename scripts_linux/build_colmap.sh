@@ -7,6 +7,7 @@ set -e
 # Default configuration
 BUILD_TYPE="Release"
 CUDA_ENABLED="ON"
+CASPAR_ENABLED="ON"
 BUILD_DIR="build"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -40,6 +41,11 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-cuda)
             CUDA_ENABLED="OFF"
+            CASPAR_ENABLED="OFF"
+            shift
+            ;;
+        --no-caspar)
+            CASPAR_ENABLED="OFF"
             shift
             ;;
         --clean)
@@ -63,6 +69,7 @@ while [[ $# -gt 0 ]]; do
             echo "  Debug           Build in Debug mode"
             echo "  Release         Build in Release mode (default)"
             echo "  --no-cuda       Disable CUDA support"
+            echo "  --no-caspar     Disable Caspar bundle adjustment"
             echo "  --clean         Clean build directory before building"
             echo "  --jobs N, -j N  Use N parallel jobs (default: $NUM_JOBS)"
             echo "  --help, -h      Show this help message"
@@ -125,6 +132,7 @@ echo "================================================================"
 echo "Modules: Ceres Solver + COLMAP (latest)"
 echo "Configuration: $BUILD_TYPE"
 echo "CUDA Enabled: $CUDA_ENABLED"
+echo "Caspar Enabled: $CASPAR_ENABLED"
 echo "Parallel Jobs: $OPTIMAL_JOBS (of $NUM_JOBS cores)"
 
 # Check if Ninja is available
@@ -213,6 +221,7 @@ cmake .. \
     -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCUDA_ENABLED="$CUDA_ENABLED" \
+    -DCASPAR_ENABLED="$CASPAR_ENABLED" \
     -DBUILD_CERES=ON \
     -DBUILD_COLMAP=ON \
     -DBUILD_GLOMAP=OFF \

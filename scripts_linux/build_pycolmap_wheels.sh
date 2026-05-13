@@ -7,6 +7,7 @@ set -e
 # Default configuration
 BUILD_TYPE="Release"
 NO_CUDA=false
+NO_CASPAR=false
 CLEAN_BUILD=false
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -38,6 +39,10 @@ while [[ $# -gt 0 ]]; do
             NO_CUDA=true
             shift
             ;;
+        --no-caspar)
+            NO_CASPAR=true
+            shift
+            ;;
         --clean)
             CLEAN_BUILD=true
             shift
@@ -57,6 +62,7 @@ while [[ $# -gt 0 ]]; do
             echo "  Debug              Build in Debug mode"
             echo "  Release            Build in Release mode (default)"
             echo "  --no-cuda          Build without CUDA support"
+            echo "  --no-caspar        Disable Caspar bundle adjustment"
             echo "  --clean            Clean build before building"
             echo "  --help, -h         Show this help message"
             echo ""
@@ -98,6 +104,7 @@ echo -e "${CYAN}Build pycolmap Wheels for All Python Versions${NC}"
 echo "================================================================"
 echo "Configuration: $BUILD_TYPE"
 echo "CUDA: $(if [ "$NO_CUDA" = true ]; then echo 'Disabled'; else echo 'Enabled'; fi)"
+echo "Caspar: $(if [ "$NO_CUDA" = true ] || [ "$NO_CASPAR" = true ]; then echo 'Disabled'; else echo 'Enabled'; fi)"
 echo "COLMAP Source: $COLMAP_SOURCE"
 echo "================================================================"
 
@@ -211,6 +218,10 @@ if [ "$NEEDS_BUILD" = true ]; then
     if [ "$NO_CUDA" = true ]; then
         CUDA_ENABLED="OFF"
     fi
+    CASPAR_ENABLED="ON"
+    if [ "$NO_CUDA" = true ] || [ "$NO_CASPAR" = true ]; then
+        CASPAR_ENABLED="OFF"
+    fi
 
     echo -e "${CYAN}Configuring CMake with ${GENERATOR}...${NC}"
     cmake .. \
@@ -218,6 +229,7 @@ if [ "$NEEDS_BUILD" = true ]; then
         -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TOOLCHAIN" \
         -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
         -DCUDA_ENABLED="$CUDA_ENABLED" \
+        -DCASPAR_ENABLED="$CASPAR_ENABLED" \
         -DBUILD_COLMAP=OFF \
         -DBUILD_COLMAP_FOR_PYCOLMAP=ON \
         -DBUILD_GLOMAP=OFF \
