@@ -11,6 +11,7 @@ on:
     branches: [master, main]
     paths:
       - 'CMakeLists.txt'
+      - 'cmake/**'
       - 'vcpkg.json'
       - 'third_party/colmap'
       - 'third_party/colmap/**'
