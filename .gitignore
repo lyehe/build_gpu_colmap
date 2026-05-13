@@ -59,6 +59,7 @@ prefix/
 *.log
 *.tmp
 *.temp
+CI_LOGS.txt
 
 # Python (if any python scripts generate cache)
 __pycache__/
@@ -75,10 +76,14 @@ _skbuild/
 # Release packages (binaries only, keep documentation)
 releases/*.zip
 releases/*.whl
+releases/*-artifacts/
+releases/temp/
+releases/temp-*/
 
 # Windows specific
 Thumbs.db
 Desktop.ini
+nul
 
 # Visual Studio
 *.user
