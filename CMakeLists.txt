@@ -415,14 +415,17 @@ if(BUILD_COLMAP)
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
         LIST_SEPARATOR "|"
-        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
-        # and fix ONNX install on Windows (share/ directory doesn't exist)
+        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies,
+        # fix ONNX install on Windows, and make Caspar CUDA headers MSVC-safe.
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_onnx_install.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_caspar_uint.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             ${PROJECT_CUDA_CMAKE_ARGS}
@@ -491,14 +494,17 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
         LIST_SEPARATOR "|"
-        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies
-        # and fix ONNX install on Windows (share/ directory doesn't exist)
+        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies,
+        # fix ONNX install on Windows, and make Caspar CUDA headers MSVC-safe.
         PATCH_COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_onnx_install.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_caspar_uint.cmake
         CMAKE_ARGS
             -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
             ${PROJECT_CUDA_CMAKE_ARGS}
