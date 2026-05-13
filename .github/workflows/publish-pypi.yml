@@ -48,9 +48,10 @@ jobs:
         with:
           path: artifacts/
 
-      # If no artifacts from workflow, download from release assets
+      # If no artifacts from workflow, download from release assets.
+      # Release events do not carry build artifacts, so always use assets there.
       - name: Download release assets
-        if: steps.download-workflow.outcome == 'failure' || github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch' || steps.download-workflow.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -60,9 +61,9 @@ jobs:
           mkdir -p artifacts/cpu-wheels
 
           # Download all CPU wheel files from the release
-          # CPU wheels have smaller file sizes compared to CUDA wheels
+          # CPU wheels use the +cpu local-version suffix; avoid pulling CUDA assets.
           gh release download "$TAG" \
-            --pattern "pycolmap-*-cp*-cp*-*.whl" \
+            --pattern "pycolmap-*+cpu-*.whl" \
             --dir artifacts/cpu-wheels \
             --skip-existing || true
 
