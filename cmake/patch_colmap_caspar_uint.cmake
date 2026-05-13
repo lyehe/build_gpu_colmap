@@ -1,5 +1,5 @@
-# Patch COLMAP's generated Caspar CUDA headers for MSVC/NVCC.
-# The generated memops.cuh uses the non-standard uint typedef, which is
+# Patch COLMAP's generated Caspar CUDA sources for MSVC/NVCC.
+# Several generated files use the non-standard uint typedef, which is
 # available on Linux but not defined by MSVC's CUDA host compilation path.
 #
 # Usage: cmake -DCOLMAP_SOURCE_DIR=<path> -P patch_colmap_caspar_uint.cmake
@@ -8,32 +8,53 @@ if(NOT DEFINED COLMAP_SOURCE_DIR)
     message(FATAL_ERROR "COLMAP_SOURCE_DIR must be defined")
 endif()
 
+set(CASPAR_GENERATED_DIR "${COLMAP_SOURCE_DIR}/src/thirdparty/Symforce-Caspar/generated")
+
+set(UINT_COMPAT_BLOCK [=[
+#if defined(_MSC_VER) && !defined(CASPAR_UINT_COMPAT_DEFINED)
+#define CASPAR_UINT_COMPAT_DEFINED
+using uint = unsigned int;
+#endif
+
+]=])
+
 foreach(PRECISION IN ITEMS f32 f64)
-    set(MEMOPS_FILE "${COLMAP_SOURCE_DIR}/src/thirdparty/Symforce-Caspar/generated/${PRECISION}/memops.cuh")
+    set(PRECISION_DIR "${CASPAR_GENERATED_DIR}/${PRECISION}")
 
-    if(NOT EXISTS "${MEMOPS_FILE}")
-        message(STATUS "Caspar ${PRECISION} memops.cuh not found - skipping uint patch")
+    if(NOT EXISTS "${PRECISION_DIR}")
+        message(STATUS "Caspar ${PRECISION} generated directory not found - skipping uint patch")
         continue()
     endif()
 
-    file(READ "${MEMOPS_FILE}" CONTENT)
-
-    if(CONTENT MATCHES "using uint = unsigned int;" OR
-       CONTENT MATCHES "typedef unsigned int uint;")
-        message(STATUS "Caspar ${PRECISION} memops.cuh already defines uint")
-        continue()
-    endif()
-
-    if(NOT CONTENT MATCHES "namespace caspar \\{")
-        message(FATAL_ERROR "Could not find 'namespace caspar {' in ${MEMOPS_FILE}")
-    endif()
-
-    string(REPLACE
-        "namespace caspar {"
-        "namespace caspar {\n\nusing uint = unsigned int;"
-        CONTENT "${CONTENT}"
+    file(GLOB CASPAR_GENERATED_FILES
+        "${PRECISION_DIR}/*.cu"
+        "${PRECISION_DIR}/*.cuh"
+        "${PRECISION_DIR}/*.h"
     )
 
-    file(WRITE "${MEMOPS_FILE}" "${CONTENT}")
-    message(STATUS "Patched ${MEMOPS_FILE} to define uint for Caspar CUDA sources")
+    foreach(TARGET_FILE IN LISTS CASPAR_GENERATED_FILES)
+        file(READ "${TARGET_FILE}" CONTENT)
+
+        if(CONTENT MATCHES "CASPAR_UINT_COMPAT_DEFINED")
+            message(STATUS "Caspar uint compatibility already patched in ${TARGET_FILE}")
+            continue()
+        endif()
+
+        if(NOT CONTENT MATCHES "(^|[^A-Za-z0-9_])uint([^A-Za-z0-9_]|$)")
+            continue()
+        endif()
+
+        string(FIND "${CONTENT}" "\nnamespace " NAMESPACE_POS)
+        if(NAMESPACE_POS EQUAL -1)
+            message(FATAL_ERROR "Could not find namespace insertion point in ${TARGET_FILE}")
+        endif()
+
+        math(EXPR INSERT_POS "${NAMESPACE_POS} + 1")
+        string(SUBSTRING "${CONTENT}" 0 ${INSERT_POS} CONTENT_PREFIX)
+        string(SUBSTRING "${CONTENT}" ${INSERT_POS} -1 CONTENT_SUFFIX)
+        set(CONTENT "${CONTENT_PREFIX}${UINT_COMPAT_BLOCK}${CONTENT_SUFFIX}")
+
+        file(WRITE "${TARGET_FILE}" "${CONTENT}")
+        message(STATUS "Patched ${TARGET_FILE} to define uint for Caspar CUDA sources")
+    endforeach()
 endforeach()
