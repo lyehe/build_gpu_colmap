@@ -21,6 +21,7 @@ permissions:
 jobs:
   publish:
     name: Publish CPU wheels to PyPI
+    if: github.event_name != 'release' || github.event.release.prerelease == false
     runs-on: ubuntu-latest
     environment: pypi  # For trusted publisher
 
