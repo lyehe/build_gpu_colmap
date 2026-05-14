@@ -1,45 +1,47 @@
-# COLMAP Build v4.1.0-dev0
+# COLMAP Build v4.1.0-dev2
 
-Development snapshot of COLMAP and pycolmap built from upstream COLMAP
-`4.1.0.dev0` at commit `976c0dec` from April 29, 2026.
+Replacement prerelease for the obsolete `v4.1.0-dev1` asset set. This build is
+stamped as `4.1.0.dev2` and keeps the full bundled COLMAP and pycolmap matrix,
+with Caspar bundle-adjustment support included in the CUDA/Caspar variants.
 
-This release updates the previous `v4.0.2` package set with newer COLMAP,
-pycolmap, CUDA build plumbing, and release automation. Use `v4.0.2` if you need
-a stable COLMAP release tag rather than a development snapshot.
+Use this prerelease when you need the current COLMAP development build with
+bundled CUDA runtime packages. Use `v4.0.2` if you need a stable COLMAP release
+tag rather than a development snapshot.
 
 ## Highlights
 
-- COLMAP updated from `4.0.2` to `4.1.0.dev0`.
-- pycolmap wheels updated to `4.1.0.dev0` for Python `3.10` through `3.14`.
+- COLMAP and pycolmap are stamped as `4.1.0.dev2`.
 - Full package matrix is available: 8 COLMAP archives, 55 pycolmap wheels, and
   `SHA256SUMS.txt`.
-- Windows and Linux COLMAP packages are versioned in the asset names.
-- Windows GUI packages include the Qt SVG dependency required by current COLMAP.
-- CUDA build configuration now passes the selected CUDA compiler and toolkit
-  root through Ceres, COLMAP, and COLMAP-for-pycolmap.
+- CUDA COLMAP archives include Caspar-enabled bundle-adjustment variants.
+- Windows CUDA packages are self-contained with bundled CUDA runtime DLLs.
+- Linux bundled pycolmap wheels are available for CUDA `12.8`, `13.0`, and
+  `13.1`, including cuDSS variants.
+- pycolmap wheels now expose the Caspar bundle-adjustment API:
+  `BundleAdjustmentBackend.CASPAR`, `BundleAdjustmentOptions.caspar`, and
+  `CasparBundleAdjustmentOptions`.
+- The pycolmap CI smoke test now fails if the Caspar Python API is missing.
+- Added a deterministic Caspar sample validation script for release binaries.
+- PyPI publishing has been removed from this repository; releases publish GitHub
+  assets only.
 
-## Upstream COLMAP Changes Since v4.0.2
+## Changes Since v4.1.0-dev1
 
-- Added `colmap version` for easier binary verification.
-- Fixed empty PatchMatch results on Blackwell-class GPUs.
-- Improved global mapping:
-  - inherited bundle adjustment options in the global mapper
-  - added rotation averaging options
-  - fixed crashes and bookkeeping issues around global/incremental mapping
-- Improved exhaustive matching performance by switching FAISS usage to
-  `IndexIVFScalarQuantizer`.
-- Improved benchmark tooling with fast mode, live progress, better parallelism,
-  per-step logging, and summary rows.
-- Improved pycolmap bindings and reliability:
-  - added `ReprojectionErrorType` bindings and additional point filter methods
-  - fixed ALIKED feature extraction through pycolmap
-  - fixed `pyceres.problem` on bundle adjuster factory results
-  - added broader pycolmap smoke tests upstream
-- Updated upstream dependencies including ONNX Runtime `1.24.4`, PoseLib
-  `2.0.5`, and pybind11 `3.0.2`.
-- Added and fixed camera/model, MVS, PoissonRecon, EXIF, locale parsing,
-  observation graph, and hierarchical mapper behavior from upstream COLMAP.
-- GUI updates include Material Symbols icons and viewer camera up-vector display.
+- Fixed the pycolmap Caspar binding gap. The previous prerelease contained
+  Caspar-enabled native code, but Python only exposed the Ceres backend.
+- Added repo-owned patching for the pycolmap submodule so GitHub Actions and
+  local wheel builds apply the same Caspar binding fix without dirtying the
+  upstream submodule pointer.
+- Added Windows and Linux build-script guards that treat the pycolmap Caspar
+  patch as idempotent.
+- Added CI assertions for:
+  - `pycolmap.BundleAdjustmentBackend.CASPAR`
+  - string construction from `"CASPAR"`
+  - `BundleAdjustmentOptions.caspar`
+  - `CasparBundleAdjustmentOptions`
+- Added `scripts/validate_caspar_sample.py` to generate a deterministic COLMAP
+  text model, run `colmap bundle_adjuster --BundleAdjustment.backend CASPAR`,
+  verify output model files, and assert reprojection error improves.
 
 ## Package Matrix
 
@@ -47,8 +49,8 @@ a stable COLMAP release tag rather than a development snapshot.
 
 | Platform | Variants |
 | --- | --- |
-| Ubuntu 22.04 | `CPU`, `CUDA`, `CUDA-cuDSS` |
-| Windows | `CPU`, `CUDA`, `CUDA-cuDSS`, `CUDA-GUI`, `CUDA-cuDSS-GUI` |
+| Ubuntu 22.04 | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar` |
+| Windows | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar`, `CUDA-Caspar-GUI`, `CUDA-cuDSS-Caspar-GUI` |
 
 ### pycolmap Wheels
 
@@ -67,14 +69,14 @@ a stable COLMAP release tag rather than a development snapshot.
 Windows:
 
 ```powershell
-Expand-Archive COLMAP-4.1.0.dev0-windows-latest-CUDA-GUI.zip -DestinationPath C:\Tools\COLMAP
-C:\Tools\COLMAP\bin\colmap.exe gui
+Expand-Archive COLMAP-4.1.0.dev2-windows-latest-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
+C:\Tools\COLMAP\bin\colmap.exe version
 ```
 
 Linux:
 
 ```bash
-unzip COLMAP-4.1.0.dev0-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
+unzip COLMAP-4.1.0.dev2-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
 ~/tools/colmap/bin/colmap version
 ```
 
@@ -84,7 +86,44 @@ Download the wheel matching your Python version, platform, and CUDA/runtime
 needs, then install it directly:
 
 ```bash
-pip install pycolmap-4.1.0.dev0+cuda-cp312-cp312-win_amd64.whl
+pip install pycolmap-4.1.0.dev2+cuda-cp312-cp312-win_amd64.whl
+```
+
+## Validation
+
+Check the COLMAP binary version:
+
+```powershell
+.\bin\colmap.exe version
+```
+
+Expected output includes:
+
+```text
+COLMAP 4.1.0.dev2
+```
+
+Validate the CLI Caspar backend on a deterministic sample:
+
+```bash
+python scripts/validate_caspar_sample.py --colmap /path/to/colmap
+```
+
+Validate both the CLI Caspar backend and a rebuilt pycolmap wheel:
+
+```bash
+python scripts/validate_caspar_sample.py --colmap /path/to/colmap --require-pycolmap
+```
+
+Verify pycolmap exposes the Caspar API:
+
+```python
+import pycolmap
+
+assert pycolmap.BundleAdjustmentBackend.CASPAR == pycolmap.BundleAdjustmentBackend("CASPAR")
+opts = pycolmap.BundleAdjustmentOptions()
+opts.backend = pycolmap.BundleAdjustmentBackend.CASPAR
+opts.caspar.gpu_index = "0"
 ```
 
 ## Runtime Notes
@@ -98,31 +137,7 @@ pip install pycolmap-4.1.0.dev0+cuda-cp312-cp312-win_amd64.whl
 - Linux `pycolmap` wheels with `.bundled` in the filename include CUDA runtime
   libraries inside the wheel.
 - `CUDA-cuDSS` variants include cuDSS sparse solver support for supported
-  bundle adjustment workloads.
-
-## Build And Release Changes
-
-- Restored push-triggered auto builds for COLMAP and pycolmap workflow changes.
-- Added versioned COLMAP artifact names based on `colmap version`.
-- Improved Windows CUDA DLL discovery and bundling across CUDA install paths.
-- Fixed pycolmap workflow dependency resolution for upstream pybind11 `3.0.2`.
-- Added Qt SVG to the Qt6 GUI dependency set.
-- Fixed Qt deployment handling so a benign `windeployqt` warning does not fail
-  the job after the required `qwindows.dll` platform plugin is verified.
-- Regenerated checksums for all release assets.
-
-## Verification
-
-Check the COLMAP binary version:
-
-```powershell
-.\bin\colmap.exe version
-```
-
-Expected version:
-
-```text
-COLMAP 4.1.0.dev0 (Commit 976c0dec on 2026-04-29 with CUDA)
-```
-
-All release assets are covered by `SHA256SUMS.txt`.
+  Ceres bundle-adjustment workloads.
+- Caspar bundle adjustment is selected with
+  `--BundleAdjustment.backend CASPAR` in the `colmap bundle_adjuster` command
+  and through `pycolmap.BundleAdjustmentBackend.CASPAR` in rebuilt wheels.

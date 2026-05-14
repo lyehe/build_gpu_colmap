@@ -27,6 +27,9 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Get release tag
         id: tag
         run: |
@@ -41,11 +44,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ steps.tag.outputs.tag }}"
-          gh release view "$TAG" --repo "${{ github.repository }}" 2>/dev/null \
-            && echo "Release $TAG already exists" \
-            || gh release create "$TAG" --repo "${{ github.repository }}" \
-                 --title "COLMAP Build $TAG" --draft \
-                 --notes "Build in progress..."
+          NOTES_ARGS=(--notes "Build in progress...")
+          if [ -f releases/RELEASE_NOTES.md ]; then
+            NOTES_ARGS=(--notes-file releases/RELEASE_NOTES.md)
+          fi
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" 2>/dev/null; then
+            echo "Release $TAG already exists; refreshing title and notes"
+            gh release edit "$TAG" --repo "${{ github.repository }}" \
+              --title "COLMAP Build $TAG" "${NOTES_ARGS[@]}"
+          else
+            gh release create "$TAG" --repo "${{ github.repository }}" \
+              --title "COLMAP Build $TAG" --draft "${NOTES_ARGS[@]}"
+          fi
           echo "Draft release ready: $TAG"
 
   # ==================== Build Jobs ====================

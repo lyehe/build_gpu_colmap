@@ -110,6 +110,24 @@ fi
 echo ""
 echo -e "${GREEN}Found COLMAP installation at $COLMAP_INSTALL${NC}"
 
+PYCOLMAP_CASPAR_PATCH="${PROJECT_ROOT}/patches/pycolmap-caspar-bindings.patch"
+if [ -f "$PYCOLMAP_CASPAR_PATCH" ]; then
+    echo -e "${CYAN}Applying pycolmap Caspar bindings patch...${NC}"
+    pushd "$COLMAP_SOURCE" >/dev/null
+    if git apply --check "$PYCOLMAP_CASPAR_PATCH"; then
+        git apply "$PYCOLMAP_CASPAR_PATCH"
+        echo -e "${GREEN}  Patch applied${NC}"
+    elif git apply --reverse --check "$PYCOLMAP_CASPAR_PATCH"; then
+        echo -e "${GREEN}  Patch already applied${NC}"
+    else
+        echo -e "${RED}ERROR: pycolmap Caspar bindings patch does not apply cleanly${NC}"
+        popd >/dev/null
+        exit 1
+    fi
+    popd >/dev/null
+    echo ""
+fi
+
 # Check Python installation
 echo ""
 echo -e "${YELLOW}Checking Python installation...${NC}"

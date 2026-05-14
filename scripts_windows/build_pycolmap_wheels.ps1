@@ -108,6 +108,32 @@ Initialize-Submodule "third_party\ceres-solver" "Ceres Solver"
 Initialize-Submodule "third_party\colmap-for-pycolmap" "COLMAP for pycolmap"
 Write-Host ""
 
+$PycolmapCasparPatch = Join-Path $ProjectRoot "patches\pycolmap-caspar-bindings.patch"
+if (Test-Path $PycolmapCasparPatch) {
+    Write-Host "Applying pycolmap Caspar bindings patch..." -ForegroundColor Cyan
+    Push-Location $ColmapSource
+    try {
+        git apply --check $PycolmapCasparPatch 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            git apply $PycolmapCasparPatch
+            if ($LASTEXITCODE -ne 0) {
+                throw "Failed to apply pycolmap Caspar bindings patch"
+            }
+            Write-Host "  Patch applied" -ForegroundColor Green
+        } else {
+            git apply --reverse --check $PycolmapCasparPatch 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  Patch already applied" -ForegroundColor Green
+            } else {
+                throw "pycolmap Caspar bindings patch does not apply cleanly"
+            }
+        }
+    } finally {
+        Pop-Location
+    }
+    Write-Host ""
+}
+
 # Bootstrap vcpkg if needed
 $VcpkgExe = Join-Path $VcpkgRoot "vcpkg.exe"
 if (-not (Test-Path $VcpkgExe)) {

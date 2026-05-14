@@ -178,6 +178,17 @@ glomap mapper --database_path db.db --image_path images --output_path sparse
 colmap global_mapper --database_path db.db --image_path images --output_path sparse
 ```
 
+## Validation
+
+Use the deterministic Caspar bundle-adjustment sample to check a built COLMAP
+binary and, optionally, a rebuilt pycolmap wheel:
+
+```bash
+python scripts/validate_caspar_sample.py --colmap /path/to/colmap --require-pycolmap
+```
+
+Without `--require-pycolmap`, the script validates the CLI Caspar backend only.
+
 ## CI / Release Workflow
 
 Releases are fully automated via GitHub Actions:

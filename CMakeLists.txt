@@ -30,7 +30,7 @@ option(BUILD_COLMAP "Build COLMAP" ON)
 option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF)
 option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
-set(COLMAP_RELEASE_VERSION "4.1.0.dev1" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
+set(COLMAP_RELEASE_VERSION "4.1.0.dev2" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
 
 set(DEFAULT_CASPAR_ENABLED OFF)
 if(CUDA_ENABLED)

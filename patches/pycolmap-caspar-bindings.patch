@@ -1,0 +1,163 @@
+diff --git a/src/pycolmap/estimators/bundle_adjustment.cc b/src/pycolmap/estimators/bundle_adjustment.cc
+index c4bde0fa..dca84c12 100644
+--- a/src/pycolmap/estimators/bundle_adjustment.cc
++++ b/src/pycolmap/estimators/bundle_adjustment.cc
+@@ -1,5 +1,6 @@
+ #include "colmap/estimators/bundle_adjustment.h"
+ 
++#include "colmap/estimators/bundle_adjustment_caspar.h"
+ #include "colmap/estimators/bundle_adjustment_ceres.h"
+ 
+ #include "pycolmap/helpers.h"
+@@ -93,6 +94,15 @@ void BindBundleAdjuster(py::module& m) {
+                          "Full Ceres solver summary.");
+   MakeDataclass(PyCeresBundleAdjustmentSummary);
+ 
++#ifdef CASPAR_ENABLED
++  using CasparBASummary = CasparBundleAdjustmentSummary;
++  auto PyCasparBundleAdjustmentSummary =
++      py::classh<CasparBASummary, BASummary>(m,
++                                             "CasparBundleAdjustmentSummary")
++          .def(py::init<>());
++  MakeDataclass(PyCasparBundleAdjustmentSummary);
++#endif
++
+   auto PyBundleAdjustmentGauge =
+       py::enum_<BundleAdjustmentGauge>(m, "BundleAdjustmentGauge")
+           .value("UNSPECIFIED", BundleAdjustmentGauge::UNSPECIFIED)
+@@ -103,7 +113,8 @@ void BindBundleAdjuster(py::module& m) {
+ 
+   auto PyBundleAdjustmentBackend =
+       py::enum_<BundleAdjustmentBackend>(m, "BundleAdjustmentBackend")
+-          .value("CERES", BundleAdjustmentBackend::CERES);
++          .value("CERES", BundleAdjustmentBackend::CERES)
++          .value("CASPAR", BundleAdjustmentBackend::CASPAR);
+   AddStringToEnumConstructor(PyBundleAdjustmentBackend);
+ 
+   using BACfg = BundleAdjustmentConfig;
+@@ -239,6 +250,52 @@ void BindBundleAdjuster(py::module& m) {
+           .def("check", &CeresBAOpts::Check);
+   MakeDataclass(PyCeresBundleAdjustmentOptions);
+ 
++  // Caspar-specific bundle adjustment options
++  using CasparBAOpts = CasparBundleAdjustmentOptions;
++  auto PyCasparBundleAdjustmentOptions =
++      py::classh<CasparBAOpts>(m, "CasparBundleAdjustmentOptions")
++          .def(py::init<>())
++          .def_readwrite("solver_iter_max",
++                         &CasparBAOpts::solver_iter_max,
++                         "Maximum number of Caspar solver iterations.")
++          .def_readwrite("pcg_iter_max",
++                         &CasparBAOpts::pcg_iter_max,
++                         "Maximum number of PCG iterations per solver step.")
++          .def_readwrite("diag_init",
++                         &CasparBAOpts::diag_init,
++                         "Initial diagonal damping value.")
++          .def_readwrite("diag_min",
++                         &CasparBAOpts::diag_min,
++                         "Minimum diagonal damping value.")
++          .def_readwrite("diag_scaling_up",
++                         &CasparBAOpts::diag_scaling_up,
++                         "Diagonal damping increase factor.")
++          .def_readwrite("diag_scaling_down",
++                         &CasparBAOpts::diag_scaling_down,
++                         "Diagonal damping decrease factor.")
++          .def_readwrite("diag_exit_value",
++                         &CasparBAOpts::diag_exit_value,
++                         "Diagonal damping value that triggers termination.")
++          .def_readwrite("score_exit_value",
++                         &CasparBAOpts::score_exit_value,
++                         "Score threshold that triggers termination.")
++          .def_readwrite("pcg_rel_error_exit",
++                         &CasparBAOpts::pcg_rel_error_exit,
++                         "Relative PCG error threshold that triggers exit.")
++          .def_readwrite("pcg_rel_score_exit",
++                         &CasparBAOpts::pcg_rel_score_exit,
++                         "Relative PCG score threshold that triggers exit.")
++          .def_readwrite("pcg_rel_decrease_min",
++                         &CasparBAOpts::pcg_rel_decrease_min,
++                         "Minimum relative PCG decrease.")
++          .def_readwrite("solver_rel_decrease_min",
++                         &CasparBAOpts::solver_rel_decrease_min,
++                         "Minimum relative solver decrease.")
++          .def_readwrite("gpu_index",
++                         &CasparBAOpts::gpu_index,
++                         "Which GPU to use for solving the problem.");
++  MakeDataclass(PyCasparBundleAdjustmentOptions);
++
+   // Solver-agnostic bundle adjustment options
+   using BAOpts = BundleAdjustmentOptions;
+   auto PyBundleAdjustmentOptions =
+@@ -282,6 +339,9 @@ void BindBundleAdjuster(py::module& m) {
+           .def_readwrite("ceres",
+                          &BAOpts::ceres,
+                          "Ceres-specific bundle adjustment options.")
++          .def_readwrite("caspar",
++                         &BAOpts::caspar,
++                         "Caspar-specific bundle adjustment options.")
+           .def("check", &BAOpts::Check);
+   MakeDataclass(PyBundleAdjustmentOptions);
+ 
+diff --git a/src/pycolmap/estimators/bundle_adjustment_test.py b/src/pycolmap/estimators/bundle_adjustment_test.py
+index 81aadb70..2829bd47 100644
+--- a/src/pycolmap/estimators/bundle_adjustment_test.py
++++ b/src/pycolmap/estimators/bundle_adjustment_test.py
+@@ -30,7 +30,12 @@ def test_bundle_adjustment_backend_enum():
+         for k, v in pycolmap.BundleAdjustmentBackend.__members__.items()
+     } == {
+         "CERES": 0,
++        "CASPAR": 1,
+     }
++    assert (
++        pycolmap.BundleAdjustmentBackend("CASPAR")
++        == pycolmap.BundleAdjustmentBackend.CASPAR
++    )
+ 
+ 
+ def test_loss_function_type_enum():
+@@ -110,6 +115,23 @@ def test_ceres_ba_options_check():
+     assert isinstance(result, bool)
+ 
+ 
++def test_caspar_ba_options_default_init():
++    options = pycolmap.CasparBundleAdjustmentOptions()
++    assert options is not None
++
++
++def test_caspar_ba_options_readwrite():
++    options = pycolmap.CasparBundleAdjustmentOptions()
++    options.solver_iter_max = 17
++    options.pcg_iter_max = 11
++    options.diag_init = 2.0
++    options.gpu_index = "0"
++    assert options.solver_iter_max == 17
++    assert options.pcg_iter_max == 11
++    assert options.diag_init == 2.0
++    assert options.gpu_index == "0"
++
++
+ def test_ba_options_default_init():
+     options = pycolmap.BundleAdjustmentOptions()
+     assert options is not None
+@@ -166,6 +188,8 @@ def test_ba_options_backend_readwrite():
+     options = pycolmap.BundleAdjustmentOptions()
+     options.backend = pycolmap.BundleAdjustmentBackend.CERES
+     assert options.backend == pycolmap.BundleAdjustmentBackend.CERES
++    options.backend = pycolmap.BundleAdjustmentBackend.CASPAR
++    assert options.backend == pycolmap.BundleAdjustmentBackend.CASPAR
+ 
+ 
+ def test_ba_options_ceres_property():
+@@ -174,6 +198,12 @@ def test_ba_options_ceres_property():
+     assert isinstance(ceres, pycolmap.CeresBundleAdjustmentOptions)
+ 
+ 
++def test_ba_options_caspar_property():
++    options = pycolmap.BundleAdjustmentOptions()
++    caspar = options.caspar
++    assert isinstance(caspar, pycolmap.CasparBundleAdjustmentOptions)
++
++
+ def test_ba_options_check():
+     options = pycolmap.BundleAdjustmentOptions()
+     result = options.check()
