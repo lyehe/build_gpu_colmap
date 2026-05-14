@@ -30,6 +30,7 @@ option(BUILD_COLMAP "Build COLMAP" ON)
 option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF)
 option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
+set(COLMAP_RELEASE_VERSION "4.1.0.dev1" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
 
 set(DEFAULT_CASPAR_ENABLED OFF)
 if(CUDA_ENABLED)
@@ -415,9 +416,14 @@ if(BUILD_COLMAP)
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
         LIST_SEPARATOR "|"
-        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies,
-        # fix ONNX install on Windows, and make Caspar CUDA headers MSVC-safe.
+        # Patch COLMAP release metadata, set GFLAGS_USE_TARGET_NAMESPACE before
+        # FindDependencies, fix ONNX install on Windows, and make Caspar CUDA
+        # headers MSVC-safe.
         PATCH_COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
+            -DCOLMAP_RELEASE_VERSION:STRING=${COLMAP_RELEASE_VERSION}
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_version.cmake
+        COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         COMMAND ${CMAKE_COMMAND}
@@ -494,9 +500,14 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
         CMAKE_GENERATOR "${CMAKE_GENERATOR}"
         CMAKE_GENERATOR_PLATFORM "${CMAKE_GENERATOR_PLATFORM}"
         LIST_SEPARATOR "|"
-        # Patch COLMAP to set GFLAGS_USE_TARGET_NAMESPACE before FindDependencies,
-        # fix ONNX install on Windows, and make Caspar CUDA headers MSVC-safe.
+        # Patch COLMAP release metadata, set GFLAGS_USE_TARGET_NAMESPACE before
+        # FindDependencies, fix ONNX install on Windows, and make Caspar CUDA
+        # headers MSVC-safe.
         PATCH_COMMAND ${CMAKE_COMMAND}
+            -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
+            -DCOLMAP_RELEASE_VERSION:STRING=${COLMAP_RELEASE_VERSION}
+            -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_version.cmake
+        COMMAND ${CMAKE_COMMAND}
             -DCOLMAP_SOURCE_DIR=${CMAKE_SOURCE_DIR}/third_party/colmap-for-pycolmap
             -P ${CMAKE_SOURCE_DIR}/cmake/patch_colmap_gflags.cmake
         COMMAND ${CMAKE_COMMAND}
