@@ -126,6 +126,28 @@ opts.backend = pycolmap.BundleAdjustmentBackend.CASPAR
 opts.caspar.gpu_index = "0"
 ```
 
+## Binary Tested
+
+Representative published Windows assets were downloaded from GitHub Releases and
+validated on May 15, 2026:
+
+- `COLMAP-4.1.0.dev2-windows-latest-CUDA-Caspar.zip`
+- `pycolmap-4.1.0.dev2+cuda-cp311-cp311-win_amd64.whl`
+
+Checksums matched `SHA256SUMS.txt`.
+
+Validated results:
+
+- `colmap.exe version` reported
+  `COLMAP 4.1.0.dev2 (Commit 6cfbc04 on 2026-05-10 with CUDA)`.
+- CLI Caspar sample improved mean reprojection error from `1.000000px` to
+  `0.065280px`.
+- pycolmap Caspar sample improved mean reprojection error from `1.000000px` to
+  `0.065281px`.
+- The pycolmap wheel metadata reported `4.1.0.dev2`; the Python module reported
+  COLMAP `4.1.0.dev2`, CUDA enabled, one CUDA device, and
+  `BundleAdjustmentBackend.CASPAR` plus `BundleAdjustmentOptions.caspar`.
+
 ## Runtime Notes
 
 - CPU packages do not require an NVIDIA GPU.
