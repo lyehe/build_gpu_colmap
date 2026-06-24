@@ -43,14 +43,14 @@ jobs:
       matrix:
         include:
           # CUDA 12.8.1 builds (no GUI - for pycolmap/automation)
-          - os: windows-latest
+          - os: windows-2022
             cuda: true
             cuda_version: '12.8.1'
             cudss: true
             caspar: true
             gui: false
             name: "Windows CUDA12.8+cuDSS"
-          - os: windows-latest
+          - os: windows-2022
             cuda: true
             cuda_version: '12.8.1'
             cudss: false
@@ -72,7 +72,7 @@ jobs:
             gui: false
             name: "Linux CUDA12.8"
           # CPU builds (no GUI)
-          - os: windows-latest
+          - os: windows-2022
             cuda: false
             cudss: false
             caspar: false
@@ -85,14 +85,14 @@ jobs:
             gui: false
             name: "Linux CPU"
           # GUI builds (Windows only - for interactive use)
-          - os: windows-latest
+          - os: windows-2022
             cuda: true
             cuda_version: '12.8.1'
             cudss: true
             caspar: true
             gui: true
             name: "Windows CUDA12.8+cuDSS+GUI"
-          - os: windows-latest
+          - os: windows-2022
             cuda: true
             cuda_version: '12.8.1'
             cudss: false
