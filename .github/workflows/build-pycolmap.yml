@@ -290,8 +290,10 @@ jobs:
             echo "pycolmap Caspar bindings patch applied"
           elif git -C third_party/colmap-for-pycolmap apply --reverse --check "$PATCH_FILE"; then
             echo "pycolmap Caspar bindings patch already applied"
+          elif git -C third_party/colmap-for-pycolmap grep -q "BundleAdjustmentBackend::CASPAR" -- src/pycolmap/estimators/bundle_adjustment.cc; then
+            echo "Upstream already provides Caspar pycolmap bindings; skipping obsolete patch"
           else
-            echo "ERROR: pycolmap Caspar bindings patch does not apply cleanly"
+            echo "ERROR: pycolmap Caspar bindings patch does not apply and upstream Caspar bindings not found"
             exit 1
           fi
 
