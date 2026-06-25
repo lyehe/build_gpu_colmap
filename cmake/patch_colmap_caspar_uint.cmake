@@ -118,3 +118,25 @@ if(EXISTS "${MSVC_COMPACT_FILE}")
         message(WARNING "msvc_compact.h present but no '#ifdef __cplusplus' guard found to patch")
     endif()
 endif()
+
+# Drop the Caspar CUDA /FI force-include of msvc_compact.h. Forcing that header
+# into nvcc's host/cudafe pass double-defines the MSVC CRT under MSVC 14.44 /
+# Windows SDK 10.0.26100 (errors C2011/C2953), breaking every Windows CUDA Caspar
+# build. COLMAP's own .cu sources compile fine without any force-include, and the
+# per-file uint patch above already defines `uint` for the generated .cu sources,
+# so the CUDA force-include is redundant. Keep the C/C++ force-include so host
+# sources (e.g. solver.cc) still get it.
+set(THIRDPARTY_CMAKE "${COLMAP_SOURCE_DIR}/src/thirdparty/CMakeLists.txt")
+if(EXISTS "${THIRDPARTY_CMAKE}")
+    file(READ "${THIRDPARTY_CMAKE}" TP_CONTENT)
+    if(TP_CONTENT MATCHES "COMPILE_LANGUAGE:CUDA>:-Xcompiler /FI")
+        string(REGEX REPLACE
+            "[^\n]*COMPILE_LANGUAGE:CUDA>:-Xcompiler /FI[^\n]*\n"
+            ""
+            TP_CONTENT "${TP_CONTENT}")
+        file(WRITE "${THIRDPARTY_CMAKE}" "${TP_CONTENT}")
+        message(STATUS "Removed Caspar CUDA /FI msvc_compact.h force-include (avoids MSVC CRT double-def under nvcc)")
+    else()
+        message(STATUS "Caspar CUDA /FI msvc_compact.h force-include not present - skipping")
+    endif()
+endif()
