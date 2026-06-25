@@ -94,31 +94,6 @@ foreach(PRECISION IN ITEMS f32 f64)
     message(STATUS "Patched ${SOLVER_FILE} to include <string> for std::to_string")
 endforeach()
 
-# Fix MSVC CRT redefinition errors (C2011/C2953) when nvcc compiles Caspar CUDA
-# sources. Upstream's msvc_compact.h (added in COLMAP #4402) is force-included
-# via /FI into every Caspar TU and does `#include <string>`. Pulling <string>
-# (and the MSVC CRT it drags in) into nvcc's host/cudafe pass double-defines the
-# CRT under MSVC 14.44 / Windows SDK 10.0.26100, breaking every Windows CUDA
-# Caspar build. Guard the <string> include to host compilation only so .cu files
-# (nvcc, __CUDACC__ defined) skip it; host .cc files (e.g. solver.cc) keep it,
-# and solver.cc also gets <string> from the patch above.
-set(MSVC_COMPACT_FILE "${COLMAP_SOURCE_DIR}/src/thirdparty/Symforce-Caspar/msvc_compact.h")
-if(EXISTS "${MSVC_COMPACT_FILE}")
-    file(READ "${MSVC_COMPACT_FILE}" MC_CONTENT)
-    if(MC_CONTENT MATCHES "!defined\\(__CUDACC__\\)")
-        message(STATUS "msvc_compact.h <string> already guarded against CUDA")
-    elseif(MC_CONTENT MATCHES "#ifdef __cplusplus")
-        string(REPLACE
-            "#ifdef __cplusplus"
-            "#if defined(__cplusplus) && !defined(__CUDACC__)"
-            MC_CONTENT "${MC_CONTENT}")
-        file(WRITE "${MSVC_COMPACT_FILE}" "${MC_CONTENT}")
-        message(STATUS "Patched msvc_compact.h to skip <string> force-include under CUDA/nvcc")
-    else()
-        message(WARNING "msvc_compact.h present but no '#ifdef __cplusplus' guard found to patch")
-    endif()
-endif()
-
 # Drop the Caspar CUDA /FI force-include of msvc_compact.h. Forcing that header
 # into nvcc's host/cudafe pass double-defines the MSVC CRT under MSVC 14.44 /
 # Windows SDK 10.0.26100 (errors C2011/C2953), breaking every Windows CUDA Caspar
