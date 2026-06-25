@@ -668,6 +668,22 @@ jobs:
           GUI_SUFFIX="${{ matrix.gui && '-GUI' || '' }}"
           echo "name=COLMAP-${VERSION}-${{ matrix.os }}-${CUDA_SUFFIX}${CUDSS_SUFFIX}${CASPAR_SUFFIX}${GUI_SUFFIX}" >> $GITHUB_OUTPUT
 
+      - name: Generate build metadata
+        shell: bash
+        run: |
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          "$PY" scripts/emit_build_info.py \
+            --output build/install/colmap/build_info.json \
+            --colmap-dir third_party/colmap \
+            --os "${{ matrix.os }}" \
+            --variant "${{ matrix.name }}" \
+            --cuda-version "${{ matrix.cuda && matrix.cuda_version || 'none' }}" \
+            --cudss-version "${{ matrix.cudss && '0.7.1.4' || '' }}" \
+            --caspar "${{ matrix.caspar }}" \
+            --cudss "${{ matrix.cudss }}" \
+            --gui "${{ matrix.gui }}" \
+            --cuda-arch "75;80;86;89;90"
+
       - name: Upload COLMAP to release (Linux)
         if: inputs.release_tag != '' && runner.os == 'Linux'
         env:

@@ -1102,6 +1102,26 @@ jobs:
             fi
           done
 
+      - name: Generate + upload build metadata
+        if: inputs.release_tag != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PY=python3; command -v python3 >/dev/null 2>&1 || PY=python
+          OUT="${{ steps.artifact-name.outputs.name }}.build_info.json"
+          "$PY" scripts/emit_build_info.py \
+            --output "$OUT" \
+            --colmap-dir third_party/colmap-for-pycolmap \
+            --os "${{ matrix.os }}" \
+            --variant "${{ steps.artifact-name.outputs.name }}" \
+            --cuda-version "${{ matrix.cuda && matrix.cuda_version || 'none' }}" \
+            --cudss-version "${{ matrix.cudss && '0.7.1.4' || '' }}" \
+            --caspar "${{ matrix.cuda }}" \
+            --cudss "${{ matrix.cudss }}" \
+            --gui false
+          gh release upload "${{ inputs.release_tag }}" "$OUT" --clobber --repo "${{ github.repository }}"
+
       - name: Upload wheel artifact
         if: inputs.release_tag == ''
         uses: actions/upload-artifact@v4
