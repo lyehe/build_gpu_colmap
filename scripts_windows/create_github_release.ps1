@@ -4,8 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$RELEASE_TAG = "v4.0.2"
-$RELEASE_TITLE = "COLMAP Build v4.0.2"
+$RELEASE_TAG = "v4.1.0"
+$RELEASE_TITLE = "COLMAP Build v4.1.0"
 $GH_CLI = "C:\Program Files\GitHub CLI\gh.exe"
 
 # Setup paths
@@ -99,7 +99,7 @@ try {
     $assets = @()
 
     # Add COLMAP zip if it exists
-    $colmapZip = "COLMAP-4.0.2-Windows-x64-CUDA.zip"
+    $colmapZip = "COLMAP-4.1.0-Windows-x64-CUDA.zip"
     if (Test-Path $colmapZip) {
         $assets += $colmapZip
     }
