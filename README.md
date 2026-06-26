@@ -228,8 +228,8 @@ See [CLAUDE.md](.claude/CLAUDE.md) for detailed build instructions.
 
 ## License
 
-- **COLMAP:** BSD-3-Clause
-- **This build system:** MIT
+- **This build system** (the scripts, CMake, CI workflows, and configuration in this repository) is released into the **public domain** under [The Unlicense](https://unlicense.org) — see [LICENSE](LICENSE). Use it however you like; no attribution required.
+- **COLMAP and bundled dependencies keep their own licenses.** The public-domain dedication covers *only* this build orchestration, **not** the software it compiles. Binaries produced here include COLMAP (BSD-3-Clause; see [`third_party/colmap/COPYING.txt`](third_party/colmap/COPYING.txt)), Ceres Solver, and vcpkg-managed libraries, each under its respective terms.
 
 ## Links
 
