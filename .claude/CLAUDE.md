@@ -178,7 +178,7 @@ cmake .. \
 
 **Critical Flag:**
 - `-DGFLAGS_USE_TARGET_NAMESPACE=ON` - **Required** to avoid `cannot open input file 'gflags.lib'` errors
-  - See docs/GFLAGS_FIX.md for technical details
+  - See the "gflags/glog Linking Errors" note under Known Issues & Fixes below for details
   - This is automatically set by all build scripts
 
 ### Per-Component Options
@@ -328,11 +328,9 @@ gh auth login
 
 ## Documentation Reference
 
-- **BUILD_ANALYSIS.md** - Detailed build system architecture analysis
-- **BUILD_PYTHON_WHEELS.md** - PyColmap wheel building guide
-- **GFLAGS_FIX.md** - Technical details on gflags namespace fix
-- **INSTALL_CUDSS.md** - cuDSS installation guide
-- **CUDSS_DETECTION.md** - How cuDSS detection works in CMake
+- **docs/BUILD_PYTHON_WHEELS.md** - PyColmap wheel building guide
+- **docs/INSTALL_CUDSS.md** - cuDSS installation guide
+- **docs/DEBUG_LOG.md** - Historical CI debug log (legacy GLOMAP build failures; GLOMAP is now merged into COLMAP)
 
 ## Environment Requirements
 
