@@ -330,7 +330,6 @@ gh auth login
 
 - **docs/BUILD_PYTHON_WHEELS.md** - PyColmap wheel building guide
 - **docs/INSTALL_CUDSS.md** - cuDSS installation guide
-- **docs/DEBUG_LOG.md** - Historical CI debug log (legacy GLOMAP build failures; GLOMAP is now merged into COLMAP)
 
 ## Environment Requirements
 
