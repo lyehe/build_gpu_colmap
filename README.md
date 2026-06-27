@@ -20,10 +20,10 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 | Variant | Description | Use Case |
 |---------|-------------|----------|
 | `CPU` | CPU-only build | Systems without NVIDIA GPU |
-| `CUDA` | GPU-accelerated with CUDA | NVIDIA GPU (CUDA Toolkit not required) |
-| `CUDA-cuDSS` | CUDA + cuDSS sparse solver | Best performance (2-5x faster sparse solving) |
-| `CUDA-GUI` | CUDA + Qt GUI | Interactive reconstruction with GPU |
-| `CUDA-cuDSS-GUI` | CUDA + cuDSS + Qt GUI | Best performance with GUI |
+| `CUDA-Caspar` | CUDA + Caspar GPU bundle adjustment | NVIDIA GPU (CUDA Toolkit not required) |
+| `CUDA-cuDSS-Caspar` | CUDA + cuDSS sparse solver + Caspar | Best performance (2-5x faster sparse solving) |
+| `CUDA-Caspar-GUI` | CUDA + Caspar + Qt GUI | Interactive reconstruction with GPU (Windows) |
+| `CUDA-cuDSS-Caspar-GUI` | CUDA + cuDSS + Caspar + Qt GUI | Best performance with GUI (Windows) |
 
 ## Installation
 
@@ -32,7 +32,7 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 **Windows:**
 ```powershell
 # Extract the archive
-Expand-Archive COLMAP-windows-latest-CUDA.zip -DestinationPath C:\Tools\COLMAP
+Expand-Archive COLMAP-4.1.0-windows-2022-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
 
 # Add to PATH (optional)
 $env:PATH = "C:\Tools\COLMAP\bin;$env:PATH"
@@ -53,7 +53,7 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 **Linux:**
 ```bash
 # Extract the archive
-unzip COLMAP-ubuntu-22.04-CUDA.zip -d ~/tools/colmap
+unzip COLMAP-4.1.0-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
 
 # Add to PATH (optional)
 export PATH="$HOME/tools/colmap/bin:$PATH"
@@ -199,7 +199,7 @@ git tag v4.1.0
 git push origin v4.1.0
 ```
 
-**What happens:** `release.yml` triggers → builds 8 COLMAP variants + 25 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).
+**What happens:** `release.yml` triggers → builds 8 COLMAP variants + 55 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).
 
 **If a job still fails** (rare), retry only the failed jobs without restarting everything:
 ```bash

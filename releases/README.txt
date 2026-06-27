@@ -1,37 +1,28 @@
 ================================================================================
-                    COLMAP GPU Builder - Release Package
+                    COLMAP GPU Builder - releases/ directory
 ================================================================================
 
-This directory contains packaged builds ready for release.
+Official release packages are published to GitHub Releases:
 
-CURRENT LOCAL PACKAGE
----------------------
+  https://github.com/lyehe/build_gpu_colmap/releases
 
-COLMAP-4.1.0.dev0-Windows-x64-CUDA-cuDSS.zip
-  - COLMAP 4.1.0.dev0
-  - Upstream commit 976c0dec from 2026-04-29
-  - Windows x64
-  - CUDA 12.8 + cuDSS 0.7
-  - SHA256 listed in SHA256SUMS.txt
+The latest release (v4.1.0) provides the official COLMAP 4.1.0 plus matching
+pycolmap wheels for Windows and Linux, with CUDA + Caspar GPU bundle adjustment
+(and optional cuDSS / GUI variants). Every asset is covered by SHA256SUMS.txt
+and ships a build_info.json provenance record.
 
-VERIFY
-------
+This directory is a staging area for the optional MANUAL packaging flow:
 
-After extracting:
+  scripts_windows/create_release_packages.ps1   # builds local .zip/.whl packages here
+  scripts_windows/create_github_release.ps1     # uploads them to a GitHub release
 
-  .\bin\colmap.exe version
+RELEASE_NOTES.md in this directory is published as the GitHub release body by
+.github/workflows/release.yml (--notes-file). The automated CI release
+(release.yml) generates its own SHA256SUMS.txt as a release asset.
 
-Expected:
+To verify a downloaded COLMAP archive after extracting:
 
-  COLMAP 4.1.0.dev0 (Commit 976c0dec on 2026-04-29 with CUDA)
-
-NOTES
------
-
-- Use `colmap global_mapper` for global Structure-from-Motion.
-- Matching pycolmap 4.1.0.dev0 wheels were not present when this package was
-  created. Build them separately with:
-
-  .\scripts_windows\build_pycolmap_wheels.ps1
+  .\bin\colmap.exe version     # Windows
+  ./bin/colmap version         # Linux
 
 ================================================================================
