@@ -27,21 +27,16 @@ Overlay ports allow us to patch vcpkg packages without modifying the vcpkg submo
 
 **Note:** Overlay ports require ALL files from the original port (portfile.cmake, patches, etc.), not just the modified vcpkg.json. The portfile.cmake and patch files are copied from the baseline vcpkg port without modifications.
 
-### suitesparse-spqr and suitesparse-cholmod
+### suitesparse-spqr and suitesparse-cholmod (removed)
 
-**Issue:** vcpkg bug #44797 - CMAKE_CUDA_ARCHITECTURES is empty when building with CUDA support, causing build failures.
+The former overlays for vcpkg bug #44797 (CUDA architecture override) were
+removed when the vcpkg baseline was bumped: upstream vcpkg now ships the same
+`001-dont-override-cuda-architectures.patch` in its own suitesparse-cholmod
+and suitesparse-spqr ports, so the baseline ports are used directly.
 
-**Fix:** Set default CUDA architectures to support modern NVIDIA GPUs:
-- 75: Turing (RTX 20xx, GTX 16xx)
-- 80: Ampere (A100 data center)
-- 86: Ampere (RTX 30xx GeForce)
-- 89: Ada Lovelace (RTX 40xx)
-- 90: Hopper (H100 data center)
-- 120: Blackwell (RTX 50xx)
-
-**Modified Files:**
-- `suitesparse-spqr/portfile.cmake` - Lines 27-32: Add CUDA_ARCHITECTURES default
-- `suitesparse-cholmod/portfile.cmake` - Lines 35-40: Add CUDA_ARCHITECTURES default
+A `gmp` overlay existed briefly (2026-08-20/21) to replace an MSYS2 autoconf
+package that had been rotated out of the MSYS2 repositories; it was likewise
+removed when the baseline bump picked up upstream's corrected pin.
 
 ### openblas
 
