@@ -37,11 +37,16 @@ on:
         type: string
         default: ''
 
+permissions:
+  contents: write
+  packages: write
+
 env:
-  # vcpkg binary caching via the GitHub Actions cache backend. Workflow-level
-  # so the manifest install run by CMake configure (not just Setup vcpkg)
-  # sees it. Requires the ACTIONS_* exports step in each job.
-  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+  # vcpkg binary caching via a NuGet feed on GitHub Packages (vcpkg removed
+  # the x-gha backend). Workflow-level so the manifest install run by CMake
+  # configure sees it. Requires the credentials step in each job and
+  # packages:write permission (also in release.yml for workflow_call runs).
+  VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
 jobs:
   build-wheels:
@@ -521,19 +526,29 @@ jobs:
           echo "/usr/lib/ccache" >> $GITHUB_PATH
 
       # ==================== vcpkg Setup ====================
-      - name: Export GitHub Actions cache env for vcpkg
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RESULTS_URL', process.env.ACTIONS_RESULTS_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11
         with:
           vcpkgDirectory: '${{ github.workspace }}/third_party/vcpkg'
           vcpkgJsonGlob: 'vcpkg.json'
+
+      - name: Configure vcpkg binary cache credentials
+        shell: bash
+        env:
+          FEED_URL: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        run: |
+          VCPKG_EXE="third_party/vcpkg/vcpkg"
+          if [ "$RUNNER_OS" = "Windows" ]; then VCPKG_EXE="third_party/vcpkg/vcpkg.exe"; fi
+          NUGET="$("$VCPKG_EXE" fetch nuget | tail -n 1)"
+          MONO=""
+          if [ "$RUNNER_OS" = "Linux" ]; then MONO="mono"; fi
+          $MONO "$NUGET" sources add \
+            -Source "$FEED_URL" \
+            -StorePasswordInClearText \
+            -Name GitHub \
+            -UserName "${{ github.repository_owner }}" \
+            -Password "${{ secrets.GITHUB_TOKEN }}"
+          $MONO "$NUGET" setapikey "${{ secrets.GITHUB_TOKEN }}" -Source "$FEED_URL"
 
       # ==================== Build COLMAP-for-pycolmap ====================
       - name: Build COLMAP-for-pycolmap (Windows)
