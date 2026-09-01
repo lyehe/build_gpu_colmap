@@ -96,6 +96,27 @@ jobs:
             caspar: false
             gui: false
             name: "Linux CPU"
+          # Ubuntu 24.04 native archives
+          - os: ubuntu-24.04
+            cuda: true
+            cuda_version: '12.8.1'
+            cudss: true
+            caspar: true
+            gui: false
+            name: "Ubuntu 24.04 CUDA12.8+cuDSS"
+          - os: ubuntu-24.04
+            cuda: true
+            cuda_version: '12.8.1'
+            cudss: false
+            caspar: true
+            gui: false
+            name: "Ubuntu 24.04 CUDA12.8"
+          - os: ubuntu-24.04
+            cuda: false
+            cudss: false
+            caspar: false
+            gui: false
+            name: "Ubuntu 24.04 CPU"
           # GUI builds (Windows only - for interactive use)
           - os: windows-2022
             cuda: true

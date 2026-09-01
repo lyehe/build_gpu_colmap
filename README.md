@@ -52,8 +52,11 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 
 **Linux:**
 ```bash
-# Extract the archive
+# Ubuntu 22.04 archive
 unzip COLMAP-4.2.0-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
+
+# Ubuntu 24.04 archive
+# unzip COLMAP-4.2.0-ubuntu-24.04-CUDA-Caspar.zip -d ~/tools/colmap
 
 # Add to PATH (optional)
 export PATH="$HOME/tools/colmap/bin:$PATH"
@@ -150,7 +153,7 @@ sudo apt-get install nvidia-cuda-toolkit
 ## System Requirements
 
 ### Minimum
-- **OS:** Windows 10/11 x64 or Ubuntu 22.04+ x64
+- **OS:** Windows 10/11 x64, Ubuntu 22.04 x64, or Ubuntu 24.04 x64
 - **RAM:** 8 GB (16 GB+ recommended for large datasets)
 - **Storage:** 2 GB for COLMAP
 
@@ -195,8 +198,8 @@ Releases are fully automated via GitHub Actions:
 
 ```bash
 # Create and push a tag — this builds everything and creates a GitHub release
-git tag v4.2.0
-git push origin v4.2.0
+git tag v4.2.0-1
+git push origin v4.2.0-1
 ```
 
 **What happens:** `release.yml` triggers → builds 8 COLMAP variants + 55 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).

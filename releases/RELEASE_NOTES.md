@@ -1,7 +1,7 @@
-# COLMAP Build v4.2.0
+# COLMAP Build v4.2.0-1
 
-This release provides GPU-accelerated builds of upstream COLMAP 4.2.0 for
-Windows and Linux, together with matching pycolmap wheels. CUDA archives include
+This build revision adds native Ubuntu 24.04 archives to the GPU-accelerated
+upstream COLMAP 4.2.0 packages for Windows and Linux. CUDA archives include
 Caspar GPU bundle adjustment.
 
 Both COLMAP source submodules are pinned to the upstream `4.2.0` tag at commit
@@ -54,19 +54,21 @@ See the upstream COLMAP 4.2.0 changelog for the complete change list.
 
 ## Package matrix
 
-### COLMAP archives (8)
+### COLMAP archives (11)
 
 | Platform | Variants |
 | --- | --- |
 | Ubuntu 22.04 | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar` |
+| Ubuntu 24.04 | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar` |
 | Windows 2022 | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar`, `CUDA-Caspar-GUI`, `CUDA-cuDSS-Caspar-GUI` |
 
 ### pycolmap wheels (55)
 
 Wheels are available for Python 3.10 through 3.14 on Windows (`win_amd64`) and
-Linux (`manylinux_2_35_x86_64`). Windows has CPU, CUDA, and CUDA+cuDSS wheels.
-Linux additionally offers self-contained CUDA 12.8, 13.0, and 13.1 wheels, with
-and without cuDSS.
+Linux (`manylinux_2_35_x86_64`). The Linux wheels are compatible with both
+Ubuntu 22.04 and 24.04. Windows has CPU, CUDA, and CUDA+cuDSS wheels; Linux
+additionally offers self-contained CUDA 12.8, 13.0, and 13.1 wheels, with and
+without cuDSS.
 
 ## Runtime requirements
 

@@ -4,8 +4,9 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$RELEASE_TAG = "v4.2.0"
-$RELEASE_TITLE = "COLMAP Build v4.2.0"
+$RELEASE_TAG = "v4.2.0-1"
+$RELEASE_TITLE = "COLMAP Build v4.2.0-1"
+$PACKAGE_VERSION = "4.2.0"
 $GH_CLI = "C:\Program Files\GitHub CLI\gh.exe"
 
 # Setup paths
@@ -100,8 +101,7 @@ try {
 
     # Add every COLMAP archive for this release. Variant names differ between
     # manual and CI packages, so derive them from the release version.
-    $releaseVersion = $RELEASE_TAG.TrimStart('v')
-    Get-ChildItem -File -Filter "COLMAP-$releaseVersion-*.zip" | ForEach-Object {
+    Get-ChildItem -File -Filter "COLMAP-$PACKAGE_VERSION-*.zip" | ForEach-Object {
         $assets += $_.Name
     }
 
