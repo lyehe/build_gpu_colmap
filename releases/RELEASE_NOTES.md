@@ -1,4 +1,4 @@
-# COLMAP Build v4.2.0-1
+# COLMAP Build v4.2.0-2
 
 This build revision adds native Ubuntu 24.04 archives to the GPU-accelerated
 upstream COLMAP 4.2.0 packages for Windows and Linux. CUDA archives include
