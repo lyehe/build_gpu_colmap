@@ -198,8 +198,8 @@ Releases are fully automated via GitHub Actions:
 
 ```bash
 # Create and push a tag — this builds everything and creates a GitHub release
-git tag v4.2.0-2
-git push origin v4.2.0-2
+git tag v4.2.0-3
+git push origin v4.2.0-3
 ```
 
 **What happens:** `release.yml` triggers → builds 11 COLMAP variants + 55 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).
