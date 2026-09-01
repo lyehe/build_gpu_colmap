@@ -2,27 +2,27 @@
                     COLMAP GPU Builder - releases/ directory
 ================================================================================
 
-Official release packages are published to GitHub Releases:
+Official packages are published through GitHub Releases:
 
   https://github.com/lyehe/build_gpu_colmap/releases
 
-The latest release (v4.1.1) provides the official COLMAP 4.1.1 plus matching
-pycolmap wheels for Windows and Linux, with CUDA + Caspar GPU bundle adjustment
-(and optional cuDSS / GUI variants). Every asset is covered by SHA256SUMS.txt
-and ships a build_info.json provenance record.
+The v4.2.0 release packages upstream COLMAP 4.2.0 and matching pycolmap wheels
+for Windows and Linux. CUDA archives include Caspar GPU bundle adjustment; cuDSS
+and GUI variants are supplied where applicable. Every build emits provenance
+metadata, and the release workflow publishes SHA256SUMS.txt for all assets.
 
-This directory is a staging area for the optional MANUAL packaging flow:
+This directory is a staging area for the optional manual packaging flow:
 
-  scripts_windows/create_release_packages.ps1   # builds local .zip/.whl packages here
-  scripts_windows/create_github_release.ps1     # uploads them to a GitHub release
+  scripts_windows/create_release_packages.ps1   # creates local .zip/.whl packages
+  scripts_windows/create_github_release.ps1     # uploads staged packages
 
-RELEASE_NOTES.md in this directory is published as the GitHub release body by
-.github/workflows/release.yml (--notes-file). The automated CI release
-(release.yml) generates its own SHA256SUMS.txt as a release asset.
+RELEASE_NOTES.md is the body used by the automated release workflow. The normal
+release path is to push the v4.2.0 tag; the workflow creates a draft, uploads
+all artifacts, checksums them, and publishes only after both build groups pass.
 
-To verify a downloaded COLMAP archive after extracting:
+To verify an extracted archive:
 
   .\bin\colmap.exe version     # Windows
-  ./bin/colmap version         # Linux
+  ./bin/colmap version          # Linux
 
 ================================================================================

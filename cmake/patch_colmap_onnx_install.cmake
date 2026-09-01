@@ -24,6 +24,15 @@ if(CONTENT MATCHES "Guard onnxruntime share/ install")
     return()
 endif()
 
+# COLMAP 4.2.0 and later include this guard upstream. Leave that implementation
+# untouched rather than wrapping its install rule a second time.
+set(UPSTREAM_ONNX_SHARE_GUARD [=[if(EXISTS "${onnxruntime_BINARY_DIR}/share")]=])
+string(FIND "${CONTENT}" "${UPSTREAM_ONNX_SHARE_GUARD}" UPSTREAM_ONNX_SHARE_GUARD_POS)
+if(NOT UPSTREAM_ONNX_SHARE_GUARD_POS EQUAL -1)
+    message(STATUS "ONNX share install is already guarded upstream - skipping patch")
+    return()
+endif()
+
 # Check if the problematic pattern exists
 if(NOT CONTENT MATCHES "onnxruntime_BINARY_DIR}/share/")
     message(STATUS "ONNX share install pattern not found - skipping patch")

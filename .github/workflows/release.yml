@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g., v4.1.1)'
+        description: 'Release tag (e.g., v4.2.0)'
         required: true
         type: string
 
@@ -123,9 +123,18 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ "$COLMAP_RESULT" = "success" ] && [ "$PYCOLMAP_RESULT" = "success" ]; then
-            echo "All builds succeeded. Release is ready to publish." >> $GITHUB_STEP_SUMMARY
+            echo "All builds succeeded. Publishing release." >> $GITHUB_STEP_SUMMARY
           else
-            echo "Some builds failed. Review before publishing." >> $GITHUB_STEP_SUMMARY
+            echo "Some builds failed. The release remains a draft for review." >> $GITHUB_STEP_SUMMARY
           fi
 
           gh release view "$TAG" --repo "${{ github.repository }}" --json assets --jq '.assets[] | "- `\(.name)` (\(.size / 1048576 | floor)MB)"' >> $GITHUB_STEP_SUMMARY
+
+      - name: Publish release
+        if: needs.build-colmap.result == 'success' && needs.build-pycolmap.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ needs.prepare.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --draft=false

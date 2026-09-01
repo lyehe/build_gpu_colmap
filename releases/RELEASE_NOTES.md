@@ -1,83 +1,56 @@
-# COLMAP Build v4.1.1-1
+# COLMAP Build v4.2.0
 
-This release provides GPU-accelerated builds of the official COLMAP 4.1.1 patch
-release for Windows and Linux, together with matching pycolmap wheels. All CUDA
-archives include Caspar GPU bundle adjustment.
+This release provides GPU-accelerated builds of upstream COLMAP 4.2.0 for
+Windows and Linux, together with matching pycolmap wheels. CUDA archives include
+Caspar GPU bundle adjustment.
 
-The COLMAP source is byte-identical to the upstream `4.1.1` tag (commit
-`a0d785fb`) and is stamped as `4.1.1`; this build revision supersedes the
-v4.1.1 assets without any source change. Each artifact is accompanied by a
-`build_info.json` provenance record documenting the source commit, toolchain,
-CUDA and cuDSS versions, and enabled feature flags. A `SHA256SUMS.txt` file
-covering every published asset is included.
+Both COLMAP source submodules are pinned to the upstream `4.2.0` tag at commit
+`be5e29168d4aff238409d60424812df66aac919f`. Every artifact includes a
+`build_info.json` provenance record; `SHA256SUMS.txt` covers every published
+asset.
 
-Users of the v4.1.1 assets are advised to upgrade: earlier builds were produced
-without model download support, which rendered the learned-feature pipelines
-inoperable out of the box (see below). Users of v4.1.0 should upgrade in any
-case; release 4.1.1 resolves a significant regression in feature-matching
-throughput introduced in 4.1.0.
+This release also includes the post-4.1.1 build fixes: ONNX model download and
+cache support is enabled, the offline helper fetches the full default model set,
+and the vcpkg baseline and binary-cache configuration are current. These fixes
+are required for reliable Windows and Linux package builds and for learned
+feature pipelines to obtain their ONNX models.
 
-## Changes in build revision v4.1.1-1
+## Highlights in COLMAP 4.2.0
 
-- **Model download support is now enabled.** Previous builds were produced
-  without libcurl and OpenSSL, which compiled out both the automatic ONNX model
-  download and the model-cache lookup. As a result, the learned-feature
-  pipelines (ALIKED extractors, ALIKED and SIFT LightGlue matchers, and the
-  ONNX brute-force matcher) could not obtain their models. Binaries and wheels
-  in this release download the required models on first use, as documented.
-- The `download_models` helper scripts additionally pre-fetch
-  `sift-lightglue.onnx`, completing offline coverage of the default model set.
-- `build_pycolmap_wheels.sh` now proceeds past a failing Python version and
-  reports a per-version success and failure summary instead of aborting.
-- Windows builds were restored after an MSYS2 package rotation invalidated the
-  vcpkg `gmp` port; the affected package pin is supplied via an overlay port.
-- Repository maintenance: eleven orphaned build scripts and CMake patch files
-  were removed, and the build documentation was corrected (Linux build flags,
-  cuDSS installation guide, and wheel-building guide).
+- The global mapper can reconstruct disconnected view-graph components into
+  separate models. This is available in the CLI and pycolmap.
+- LoMa learned feature extraction and matching are available through ONNX in
+  the CLI, GUI, and pycolmap.
+- HIP/ROCm support adds AMD GPU acceleration for `patch_match_stereo`.
+  HIP and CUDA builds are mutually exclusive; this release continues to ship
+  CUDA builds.
+- The GUI adds incremental, global, and hierarchical mapper selection with
+  mapper-specific configuration and progress rendering.
+- pycolmap now exposes hierarchical mapping, expanded global-pipeline bindings,
+  cooperative cancellation, and nanosecond timestamps.
+- Two-view geometry gains 6-point focal-length solvers, optional DEGENSAC, and
+  more accurate pixel-consistent tangent Sampson error.
+- Analytical camera-model Jacobians improve common incremental-mapping runs.
+- Caspar handling and its fixed-rotation global-bundle-adjustment stage are
+  corrected. CUDA builds also fall back to CPU Ceres when no compatible GPU is
+  present at runtime.
 
-## Changes in COLMAP 4.1.1
+## Compatibility notes
 
-### Bug fixes
+- Global mapping now returns models for all connected components by default.
+  Set `GlobalMapper.multiple_models` to `false` to retain the former
+  largest-component-only behavior. Models smaller than
+  `GlobalMapper.min_model_size` registered frames are discarded.
+- `hierarchical_mapper` options `num_threads`, `num_workers`, `image_overlap`,
+  and `leaf_max_num_images` are now prefixed with `HierarchicalMapper.`.
+- `pycolmap.estimate_essential_matrix` no longer returns `inlier_points3D`, and
+  `pycolmap.cost_functions.SampsonErrorCost` now accepts image-plane points.
+- C++ users should note renamed hierarchical-pipeline and fisheye helpers,
+  `CamRayWithJac` relative-pose APIs, and removal of global
+  `std::hash<std::pair<...>>` specializations. Use `colmap::PairHash` for pair
+  keys in unordered containers.
 
-- Restored feature-matching performance. Release 4.1.0 introduced a
-  process-global OpenMP critical section in `RANSAC` and `LORANSAC` that reduced
-  matching throughput by approximately 4–6x.
-- Corrected rescaling of previously undistorted images when `max_image_size` is
-  specified.
-- Restored missing SVG icons in the distributed Windows binaries.
-- Corrected the Caspar CUDA build under MSVC forced includes.
-- Corrected glog color-support version detection.
-- Corrected typographical errors in a user-facing help string and in the FAQ.
-
-### Improvements
-
-- The mapper database is now loaded lazily rather than at GUI startup,
-  eliminating a redundant read when opening the graphical interface or a project.
-- User-interface icons are tinted to the active palette, improving legibility
-  under dark themes.
-- Image and point viewer metadata is displayed even when the corresponding
-  source images are absent from disk.
-- The Caspar build now terminates early with an explicit diagnostic on CUDA
-  architectures below 7.0.
-
-### Breaking changes
-
-Upstream has renamed the misspelled pycolmap enumeration
-`GPSTransfromEllipsoid` to `GPSTransformEllipsoid`. The previous name has been
-removed without a backwards-compatible alias. Dependent code must be updated:
-
-```python
-# Releases up to and including 4.1.0
-pycolmap.GPSTransfromEllipsoid
-
-# Release 4.1.1 onward
-pycolmap.GPSTransformEllipsoid
-```
-
-Although a rename of this nature is atypical for a patch release, this behaviour
-corresponds to the upstream 4.1.1 tag.
-
-Refer to the upstream COLMAP 4.1.1 changelog for the complete list of changes.
+See the upstream COLMAP 4.2.0 changelog for the complete change list.
 
 ## Package matrix
 
@@ -86,87 +59,28 @@ Refer to the upstream COLMAP 4.1.1 changelog for the complete list of changes.
 | Platform | Variants |
 | --- | --- |
 | Ubuntu 22.04 | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar` |
-| Windows | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar`, `CUDA-Caspar-GUI`, `CUDA-cuDSS-Caspar-GUI` |
+| Windows 2022 | `CPU`, `CUDA-Caspar`, `CUDA-cuDSS-Caspar`, `CUDA-Caspar-GUI`, `CUDA-cuDSS-Caspar-GUI` |
 
 ### pycolmap wheels (55)
 
-Wheels are provided for Python 3.10 through 3.14, on Windows (`win_amd64`) and
-Linux (`manylinux_2_35_x86_64`).
-
-| Platform | Variants |
-| --- | --- |
-| Windows | `+cpu`, `+cuda`, `+cuda.cudss` |
-| Linux | `+cpu`, `+cuda`, and bundled CUDA runtimes `+cu128`, `+cu130`, `+cu131`, each with a `.cudss` variant |
-
-Wheels marked `.bundled` include the CUDA runtime libraries within the wheel.
-
-## Installation
-
-### COLMAP
-
-Windows:
-
-```powershell
-Expand-Archive COLMAP-4.1.1-windows-2022-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
-C:\Tools\COLMAP\bin\colmap.exe version
-```
-
-Linux:
-
-```bash
-unzip COLMAP-4.1.1-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
-~/tools/colmap/bin/colmap version
-```
-
-### pycolmap
-
-Select the wheel corresponding to the required Python version, platform, and
-CUDA runtime, then install it directly:
-
-```bash
-pip install pycolmap-4.1.1+cuda-cp312-cp312-win_amd64.whl
-```
-
-## Caspar bundle adjustment
-
-Caspar GPU bundle adjustment is selected via `--BundleAdjustment.backend CASPAR`
-in the `colmap bundle_adjuster` command, and via
-`pycolmap.BundleAdjustmentBackend.CASPAR` in the CUDA wheels:
-
-```python
-import pycolmap
-
-assert pycolmap.BundleAdjustmentBackend.CASPAR == pycolmap.BundleAdjustmentBackend("CASPAR")
-opts = pycolmap.BundleAdjustmentOptions()
-opts.backend = pycolmap.BundleAdjustmentBackend.CASPAR
-opts.caspar.gpu_index = "0"
-```
-
-Caspar requires a CUDA architecture of 7.0 or newer. Release 4.1.1 reports
-unsupported architectures as an explicit build-time error.
-
-A deterministic validation script is provided in the repository:
-
-```bash
-python scripts/validate_caspar_sample.py --colmap /path/to/colmap --require-pycolmap
-```
-
-The script generates a COLMAP text model, executes `colmap bundle_adjuster
---BundleAdjustment.backend CASPAR`, and asserts that the reprojection error
-improves.
+Wheels are available for Python 3.10 through 3.14 on Windows (`win_amd64`) and
+Linux (`manylinux_2_35_x86_64`). Windows has CPU, CUDA, and CUDA+cuDSS wheels.
+Linux additionally offers self-contained CUDA 12.8, 13.0, and 13.1 wheels, with
+and without cuDSS.
 
 ## Runtime requirements
 
 - CPU packages do not require an NVIDIA GPU.
-- CUDA packages require an NVIDIA driver compatible with the CUDA runtime of the
-  selected asset.
-- Windows CUDA COLMAP packages bundle the required CUDA runtime libraries.
-- Linux COLMAP CUDA archives require compatible NVIDIA runtime support on the
-  host system.
-- Linux pycolmap wheels identified by `.bundled` include CUDA runtime libraries
-  within the wheel.
-- Variants identified by `cuDSS` provide cuDSS sparse-solver support for Ceres
-  bundle adjustment.
-- Linux binaries in this release are built with OpenBLAS runtime CPU dispatch and
-  therefore do not require any specific instruction-set extension beyond the
-  x86-64 baseline.
+- CUDA packages require a driver compatible with the packaged CUDA runtime.
+- Windows CUDA archives bundle the required runtime DLLs.
+- Linux CUDA archives require compatible NVIDIA runtime support on the host.
+- CUDA support in Caspar requires a GPU architecture of 7.0 or newer.
+
+## Validation
+
+Use the deterministic Caspar sample to validate a downloaded binary and,
+optionally, a pycolmap wheel:
+
+```bash
+python scripts/validate_caspar_sample.py --colmap /path/to/colmap --require-pycolmap
+```

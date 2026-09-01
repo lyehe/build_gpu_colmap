@@ -4,8 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$RELEASE_TAG = "v4.1.1"
-$RELEASE_TITLE = "COLMAP Build v4.1.1"
+$RELEASE_TAG = "v4.2.0"
+$RELEASE_TITLE = "COLMAP Build v4.2.0"
 $GH_CLI = "C:\Program Files\GitHub CLI\gh.exe"
 
 # Setup paths
@@ -98,10 +98,11 @@ try {
     # Build list of assets to upload
     $assets = @()
 
-    # Add COLMAP zip if it exists
-    $colmapZip = "COLMAP-4.1.1-Windows-x64-CUDA.zip"
-    if (Test-Path $colmapZip) {
-        $assets += $colmapZip
+    # Add every COLMAP archive for this release. Variant names differ between
+    # manual and CI packages, so derive them from the release version.
+    $releaseVersion = $RELEASE_TAG.TrimStart('v')
+    Get-ChildItem -File -Filter "COLMAP-$releaseVersion-*.zip" | ForEach-Object {
+        $assets += $_.Name
     }
 
     # Add pycolmap wheels
