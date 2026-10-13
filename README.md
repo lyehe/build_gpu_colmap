@@ -12,7 +12,7 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 
 | Package | Description |
 |---------|-------------|
-| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.2.0) |
+| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.2.1) |
 | **pycolmap** | Python bindings for COLMAP |
 
 ### Release Variants
@@ -32,7 +32,7 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 **Windows:**
 ```powershell
 # Extract the archive
-Expand-Archive COLMAP-4.2.0-windows-2022-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
+Expand-Archive COLMAP-4.2.1-windows-2022-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
 
 # Add to PATH (optional)
 $env:PATH = "C:\Tools\COLMAP\bin;$env:PATH"
@@ -53,10 +53,10 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 **Linux:**
 ```bash
 # Ubuntu 22.04 archive
-unzip COLMAP-4.2.0-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
+unzip COLMAP-4.2.1-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
 
 # Ubuntu 24.04 archive
-# unzip COLMAP-4.2.0-ubuntu-24.04-CUDA-Caspar.zip -d ~/tools/colmap
+# unzip COLMAP-4.2.1-ubuntu-24.04-CUDA-Caspar.zip -d ~/tools/colmap
 
 # Add to PATH (optional)
 export PATH="$HOME/tools/colmap/bin:$PATH"
@@ -79,8 +79,8 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 **Install from wheel file:**
 ```bash
 # Download the wheel for your Python version (e.g., cp312 = Python 3.12)
-pip install pycolmap-4.2.0-cp312-cp312-win_amd64.whl      # Windows
-pip install pycolmap-4.2.0-cp312-cp312-linux_x86_64.whl   # Linux
+pip install pycolmap-4.2.1-cp312-cp312-win_amd64.whl      # Windows
+pip install pycolmap-4.2.1-cp312-cp312-linux_x86_64.whl   # Linux
 
 # Verify installation
 python -c "import pycolmap; print(pycolmap.__version__)"
@@ -198,8 +198,8 @@ Releases are fully automated via GitHub Actions:
 
 ```bash
 # Create and push a tag — this builds everything and creates a GitHub release
-git tag v4.2.0-3
-git push origin v4.2.0-3
+git tag v4.2.1
+git push origin v4.2.1
 ```
 
 **What happens:** `release.yml` triggers → builds 11 COLMAP variants + 55 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).

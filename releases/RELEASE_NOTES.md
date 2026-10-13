@@ -1,41 +1,37 @@
-# COLMAP Build v4.2.0-3
+# COLMAP Build v4.2.1
 
-This build revision adds native Ubuntu 24.04 archives to the GPU-accelerated
-upstream COLMAP 4.2.0 packages for Windows and Linux. CUDA archives include
-Caspar GPU bundle adjustment.
+This release updates the GPU-accelerated Windows and Linux packages to upstream
+COLMAP 4.2.1. Native Linux archives cover Ubuntu 22.04 and 24.04. CUDA archives
+include Caspar GPU bundle adjustment.
 
-Both COLMAP source submodules are pinned to the upstream `4.2.0` tag at commit
-`be5e29168d4aff238409d60424812df66aac919f`. Every artifact includes a
+Both COLMAP source submodules are pinned to the upstream `4.2.1` tag at commit
+`bd1fcf654d2dd8fefa1466999c190a246f83f4b9`. Every artifact includes a
 `build_info.json` provenance record; `SHA256SUMS.txt` covers every published
 asset.
 
-This release also includes the post-4.1.1 build fixes: ONNX model download and
-cache support is enabled, the offline helper fetches the full default model set,
-and the vcpkg baseline and binary-cache configuration are current. These fixes
-are required for reliable Windows and Linux package builds and for learned
-feature pipelines to obtain their ONNX models.
+ONNX model download and cache support, the offline model helper, and the existing
+vcpkg binary-cache configuration are retained from the 4.2.0 packages.
 
-## Highlights in COLMAP 4.2.0
+## Fixes in COLMAP 4.2.1
 
-- The global mapper can reconstruct disconnected view-graph components into
-  separate models. This is available in the CLI and pycolmap.
-- LoMa learned feature extraction and matching are available through ONNX in
-  the CLI, GUI, and pycolmap.
-- HIP/ROCm support adds AMD GPU acceleration for `patch_match_stereo`.
-  HIP and CUDA builds are mutually exclusive; this release continues to ship
-  CUDA builds.
-- The GUI adds incremental, global, and hierarchical mapper selection with
-  mapper-specific configuration and progress rendering.
-- pycolmap now exposes hierarchical mapping, expanded global-pipeline bindings,
-  cooperative cancellation, and nanosecond timestamps.
-- Two-view geometry gains 6-point focal-length solvers, optional DEGENSAC, and
-  more accurate pixel-consistent tangent Sampson error.
-- Analytical camera-model Jacobians improve common incremental-mapping runs.
-- Caspar handling and its fixed-rotation global-bundle-adjustment stage are
-  corrected. CUDA builds also fall back to CPU Ceres when no compatible GPU is
-  present at runtime.
+- Restores the global mapper's bundle-adjustment behavior after a 4.2.0
+  regression. Retriangulation refinement keeps camera poses and intrinsics fixed
+  while refining 3D points.
+- Upgrades ONNX Runtime to 1.30.0 to fix a GPU memory leak in LoMa matching.
+- Uses a fixed hash-map backend to prevent binary compatibility mismatches
+  caused by different Boost versions on build machines.
+- Fixes CUDA rotate, transpose, and flip operations on large images.
+- Prevents Delaunay meshing from hanging or consuming unbounded memory when a
+  point coincides with a camera center, and fixes binary PLY output in PoissonRecon.
+- Corrects merged point colors, two-view geometry filtering, rig pose selection,
+  and pycolmap method chaining and NumPy annotations.
 
 ## Compatibility notes
+
+- Both packaged COLMAP builds explicitly use the `STD` hash-map backend. C++
+  consumers must use the same backend and rebuild against the 4.2.1 libraries.
+
+The API and mapping changes introduced in 4.2.0 still apply:
 
 - Global mapping now returns models for all connected components by default.
   Set `GlobalMapper.multiple_models` to `false` to retain the former
@@ -50,7 +46,8 @@ feature pipelines to obtain their ONNX models.
   `std::hash<std::pair<...>>` specializations. Use `colmap::PairHash` for pair
   keys in unordered containers.
 
-See the upstream COLMAP 4.2.0 changelog for the complete change list.
+See the [upstream COLMAP 4.2.1 release notes](https://github.com/colmap/colmap/releases/tag/4.2.1)
+for the complete change list.
 
 ## Package matrix
 

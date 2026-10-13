@@ -4,9 +4,9 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$RELEASE_TAG = "v4.2.0-3"
-$RELEASE_TITLE = "COLMAP Build v4.2.0-3"
-$PACKAGE_VERSION = "4.2.0"
+$RELEASE_TAG = "v4.2.1"
+$RELEASE_TITLE = "COLMAP Build v4.2.1"
+$PACKAGE_VERSION = "4.2.1"
 $GH_CLI = "C:\Program Files\GitHub CLI\gh.exe"
 
 # Setup paths

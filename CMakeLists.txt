@@ -30,7 +30,7 @@ option(BUILD_COLMAP "Build COLMAP" ON)
 option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF)
 option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
-set(COLMAP_RELEASE_VERSION "4.2.0" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
+set(COLMAP_RELEASE_VERSION "4.2.1" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
 
 set(DEFAULT_CASPAR_ENABLED OFF)
 if(CUDA_ENABLED)
@@ -447,6 +447,7 @@ if(BUILD_COLMAP)
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
+            -DCOLMAP_HASH_MAP_BACKEND=STD
             -DTESTS_ENABLED=OFF
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
             ${COLMAP_CASPAR_ARGS}
@@ -531,6 +532,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
+            -DCOLMAP_HASH_MAP_BACKEND=STD
             -DTESTS_ENABLED=OFF
             -DCGAL_ENABLED=ON
             -DOPENGL_ENABLED=OFF
