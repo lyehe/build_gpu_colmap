@@ -30,7 +30,8 @@ option(BUILD_COLMAP "Build COLMAP" ON)
 option(BUILD_COLMAP_FOR_PYCOLMAP "Build COLMAP for pycolmap (Python wheels)" OFF)
 option(BUILD_CERES "Build Ceres Solver" ON)
 option(GUI_ENABLED "Enable GUI support for COLMAP" OFF)
-set(COLMAP_RELEASE_VERSION "4.2.1" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
+option(ONNX_ENABLED "Enable learned features and matchers, including FlexGlue" ON)
+set(COLMAP_RELEASE_VERSION "4.3.0" CACHE STRING "Version string to stamp into COLMAP and pycolmap release builds")
 
 set(DEFAULT_CASPAR_ENABLED OFF)
 if(CUDA_ENABLED)
@@ -447,7 +448,7 @@ if(BUILD_COLMAP)
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
-            -DCOLMAP_HASH_MAP_BACKEND=STD
+            -DONNX_ENABLED=${ONNX_ENABLED}
             -DTESTS_ENABLED=OFF
             -DX_VCPKG_APPLOCAL_DEPS_INSTALL=ON
             ${COLMAP_CASPAR_ARGS}
@@ -532,7 +533,7 @@ if(BUILD_COLMAP_FOR_PYCOLMAP)
             -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared
             -DCMAKE_CUDA_FLAGS=${CUDA13_THRUST_FLAGS}
             -DGUI_ENABLED=${GUI_ENABLED}
-            -DCOLMAP_HASH_MAP_BACKEND=STD
+            -DONNX_ENABLED=${ONNX_ENABLED}
             -DTESTS_ENABLED=OFF
             -DCGAL_ENABLED=ON
             -DOPENGL_ENABLED=OFF
@@ -552,6 +553,7 @@ endif()
 # Print configuration summary
 message(STATUS "==================== Configuration Summary ====================")
 message(STATUS "CUDA Support: ${CUDA_ENABLED}")
+message(STATUS "ONNX / FlexGlue Support: ${ONNX_ENABLED}")
 if(CUDA_ENABLED)
     message(STATUS "CUDA Version: ${CUDAToolkit_VERSION}")
     message(STATUS "CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")

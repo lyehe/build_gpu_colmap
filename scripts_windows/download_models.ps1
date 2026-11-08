@@ -1,4 +1,4 @@
-# Download ALIKED and LightGlue ONNX models for COLMAP
+# Download ALIKED, LightGlue, and FlexGlue ONNX models for COLMAP
 # Models are cached in ~/.cache/colmap/ (same location COLMAP uses)
 #
 # Usage: .\download_models.ps1 [-CacheDir DIR]
@@ -9,7 +9,7 @@ param(
 )
 
 if ($Help) {
-    Write-Host "Download ALIKED and LightGlue ONNX models for COLMAP"
+    Write-Host "Download ALIKED, LightGlue, and FlexGlue ONNX models for COLMAP"
     Write-Host ""
     Write-Host "Usage: .\download_models.ps1 [-CacheDir DIR]"
     Write-Host ""
@@ -23,6 +23,9 @@ if ($Help) {
     Write-Host "  - aliked-lightglue.onnx   ALIKED LightGlue feature matcher"
     Write-Host "  - sift-lightglue.onnx     SIFT LightGlue feature matcher"
     Write-Host "  - bruteforce-matcher.onnx Brute-force ONNX matcher"
+    Write-Host "  - flexglue_descriptor.onnx           FlexGlue dense descriptor"
+    Write-Host "  - flexglue_matcher_early_stop.onnx    FlexGlue float32 matcher"
+    Write-Host "  - flexglue_matcher_early_stop_fp16.onnx FlexGlue CUDA float16 matcher"
     exit 0
 }
 
@@ -32,6 +35,7 @@ if (-not $CacheDir) {
 }
 
 $BaseUrl = "https://github.com/colmap/colmap/releases/download/3.13.0"
+$FlexGlueBaseUrl = "https://github.com/cvg/FlexGlue/releases/download/v0.1"
 
 # Model definitions
 $Models = @(
@@ -54,6 +58,21 @@ $Models = @(
     @{
         Filename = "bruteforce-matcher.onnx"
         SHA256   = "3c1282f96d83f5ffc861a873298d08bbe5219f59af59223f5ceab5c41a182a47"
+    },
+    @{
+        Filename = "flexglue_descriptor.onnx"
+        SHA256   = "93fab8a4ccde1b7331640915357d96cff0929ea87134872f37f7b0150d9914ff"
+        BaseUrl  = $FlexGlueBaseUrl
+    },
+    @{
+        Filename = "flexglue_matcher_early_stop.onnx"
+        SHA256   = "c86714cd8ffac70c17ee48c346270497e21846831336e12d307390591aa12ea7"
+        BaseUrl  = $FlexGlueBaseUrl
+    },
+    @{
+        Filename = "flexglue_matcher_early_stop_fp16.onnx"
+        SHA256   = "01286e692e6396cdfe6eaf5944d3af60752f5043275b338a6419a97efa339e20"
+        BaseUrl  = $FlexGlueBaseUrl
     }
 )
 
@@ -92,7 +111,8 @@ foreach ($model in $Models) {
 
     # Download
     Write-Host "downloading..." -ForegroundColor DarkGray
-    $Url = "${BaseUrl}/${Filename}"
+    $ModelBaseUrl = if ($model.BaseUrl) { $model.BaseUrl } else { $BaseUrl }
+    $Url = "${ModelBaseUrl}/${Filename}"
 
     try {
         $ProgressPreference = 'SilentlyContinue'

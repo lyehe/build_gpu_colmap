@@ -693,6 +693,10 @@ jobs:
           Get-ChildItem -Path $binDir -Filter "*.dll" | Select-Object Name | Format-Table -HideTableHeaders
 
           Write-Host "Testing COLMAP binary..."
+          $matcherHelp = & $colmap exhaustive_matcher --help 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $matcherHelp -notmatch "FlexGlueMatching.image_path") {
+            throw "COLMAP was built without FlexGlue ONNX support: $matcherHelp"
+          }
           $output = & $colmap --help 2>&1
 
           # Check if we got meaningful output (not just an error)
@@ -727,6 +731,12 @@ jobs:
           fi
 
           echo "Testing COLMAP binary..."
+          MATCHER_HELP=$("$COLMAP" exhaustive_matcher --help 2>&1)
+          if ! grep -q 'FlexGlueMatching.image_path' <<< "$MATCHER_HELP"; then
+            echo "ERROR: COLMAP was built without FlexGlue ONNX support"
+            echo "$MATCHER_HELP"
+            exit 1
+          fi
           OUTPUT=$("$COLMAP" --help 2>&1 || true)
 
           # Check if we got meaningful output (not just an error)

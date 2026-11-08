@@ -2,6 +2,11 @@
 
 Pre-built COLMAP and pycolmap binaries with CUDA support for Windows and Linux.
 
+**4.3.0 development preview:** this project's 4.3.0 packages use upstream
+`4.3.0.dev0` at commit `f0ddf77c3a1f2a1d15c6798e669872d1025fdc53`
+(November 8, 2026), including FlexGlue. This is a custom preview build; upstream
+4.3.0 has not been released. See the [release notes](releases/RELEASE_NOTES.md).
+
 **Note:** GLOMAP has been merged into COLMAP. Use `colmap global_mapper` for global Structure-from-Motion.
 
 ## Downloads
@@ -12,7 +17,7 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 
 | Package | Description |
 |---------|-------------|
-| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.2.1) |
+| **COLMAP** | Structure-from-Motion and Multi-View Stereo (v4.3.0 preview, including FlexGlue) |
 | **pycolmap** | Python bindings for COLMAP |
 
 ### Release Variants
@@ -32,7 +37,7 @@ Download the latest release from [GitHub Releases](https://github.com/lyehe/buil
 **Windows:**
 ```powershell
 # Extract the archive
-Expand-Archive COLMAP-4.2.1-windows-2022-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
+Expand-Archive COLMAP-4.3.0-windows-2022-CUDA-Caspar.zip -DestinationPath C:\Tools\COLMAP
 
 # Add to PATH (optional)
 $env:PATH = "C:\Tools\COLMAP\bin;$env:PATH"
@@ -53,10 +58,10 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 **Linux:**
 ```bash
 # Ubuntu 22.04 archive
-unzip COLMAP-4.2.1-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
+unzip COLMAP-4.3.0-ubuntu-22.04-CUDA-Caspar.zip -d ~/tools/colmap
 
 # Ubuntu 24.04 archive
-# unzip COLMAP-4.2.1-ubuntu-24.04-CUDA-Caspar.zip -d ~/tools/colmap
+# unzip COLMAP-4.3.0-ubuntu-24.04-CUDA-Caspar.zip -d ~/tools/colmap
 
 # Add to PATH (optional)
 export PATH="$HOME/tools/colmap/bin:$PATH"
@@ -79,8 +84,8 @@ colmap mapper --database_path ./database.db --image_path ./images --output_path 
 **Install from wheel file:**
 ```bash
 # Download the wheel for your Python version (e.g., cp312 = Python 3.12)
-pip install pycolmap-4.2.1-cp312-cp312-win_amd64.whl      # Windows
-pip install pycolmap-4.2.1-cp312-cp312-linux_x86_64.whl   # Linux
+pip install pycolmap-4.3.0-cp312-cp312-win_amd64.whl      # Windows
+pip install pycolmap-4.3.0-cp312-cp312-linux_x86_64.whl   # Linux
 
 # Verify installation
 python -c "import pycolmap; print(pycolmap.__version__)"
@@ -125,6 +130,30 @@ pycolmap.match_exhaustive(database_path)
 # Reconstruct
 maps = pycolmap.incremental_mapping(database_path, image_path, "./sparse")
 ```
+
+### FlexGlue matching
+
+FlexGlue matches keypoints from any extractor using dense image features. It
+also rejects image pairs with low predicted covisibility, helping suppress
+false matches between repeated structures. ONNX support is enabled by default
+in these builds; a CUDA GPU is recommended.
+
+After extracting features into a database, run:
+
+```bash
+colmap exhaustive_matcher --database_path ./database.db --FeatureMatching.type FLEXGLUE --FlexGlueMatching.image_path ./images
+```
+
+Or use the automatic reconstruction preset, which extracts DaD keypoints:
+
+```bash
+colmap automatic_reconstructor --workspace_path ./project --image_path ./images --feature flexglue
+```
+
+Models download automatically on first use. FlexGlue requires the image folder
+during matching and does not support guided matching. Existing matched pairs
+are skipped; use a fresh database or clear its matches and two-view geometries
+before comparing matchers. See the [upstream FlexGlue documentation](https://colmap.github.io/features.html#flexglue).
 
 ## Package Size Differences
 
@@ -198,8 +227,8 @@ Releases are fully automated via GitHub Actions:
 
 ```bash
 # Create and push a tag — this builds everything and creates a GitHub release
-git tag v4.2.1
-git push origin v4.2.1
+git tag v4.3.0
+git push origin v4.3.0
 ```
 
 **What happens:** `release.yml` triggers → builds 11 COLMAP variants + 55 pycolmap wheels → packages → publishes GitHub release. Build steps auto-retry up to 3 times on transient failures (e.g., vcpkg HTTP 502).
@@ -208,6 +237,10 @@ git push origin v4.2.1
 ```bash
 gh run rerun <run-id> --failed
 ```
+
+The 4.3.0 preview is marked as a GitHub prerelease and does not replace the
+latest stable release. Preview wheels are excluded from the default pip index;
+install them directly from the preview's release assets.
 
 **Manual builds** (without releasing):
 ```bash
@@ -229,7 +262,7 @@ See [CLAUDE.md](.claude/CLAUDE.md) for detailed build instructions.
 ./scripts_linux/build.sh Release
 ```
 
-**Pre-fetching learned-feature models:** builds with download support fetch the ALIKED/LightGlue ONNX models on first use. From a repo clone, you can pre-fetch all default learned-feature models (ALIKED extractors, ALIKED/SIFT LightGlue matchers, brute-force matcher) into the cache — e.g. for offline machines — with `.\scripts_windows\download_models.ps1` or `./scripts_linux/download_models.sh`.
+**Pre-fetching learned-feature models:** builds with download support fetch ONNX models on first use. From a repo clone, you can pre-fetch the ALIKED extractors, ALIKED/SIFT LightGlue matchers, brute-force matcher, and FlexGlue descriptor and float32/float16 matchers with `.\scripts_windows\download_models.ps1` or `./scripts_linux/download_models.sh`. The FlexGlue automatic preset also uses LoMa extraction models, which download separately on first use.
 
 ## License
 

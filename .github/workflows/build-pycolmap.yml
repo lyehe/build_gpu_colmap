@@ -1071,6 +1071,13 @@ jobs:
           assert isinstance(opts.caspar, pycolmap.CasparBundleAdjustmentOptions)
           opts.caspar.gpu_index = "0"
           print("pycolmap Caspar API smoke test passed")
+          matching = pycolmap.FeatureMatchingOptions()
+          matching.type = pycolmap.FeatureMatcherType.FLEXGLUE
+          matching.use_gpu = False
+          assert isinstance(matching.flexglue, pycolmap.FlexGlueMatchingOptions)
+          matching.flexglue.image_path = "."
+          assert matching.check()
+          print("pycolmap FlexGlue API smoke test passed")
           '@ | python -
 
           if ($LASTEXITCODE -ne 0) {
@@ -1110,6 +1117,13 @@ jobs:
           assert isinstance(opts.caspar, pycolmap.CasparBundleAdjustmentOptions)
           opts.caspar.gpu_index = "0"
           print("pycolmap Caspar API smoke test passed")
+          matching = pycolmap.FeatureMatchingOptions()
+          matching.type = pycolmap.FeatureMatcherType.FLEXGLUE
+          matching.use_gpu = False
+          assert isinstance(matching.flexglue, pycolmap.FlexGlueMatchingOptions)
+          matching.flexglue.image_path = "."
+          assert matching.check()
+          print("pycolmap FlexGlue API smoke test passed")
           PY
 
           if [ $? -ne 0 ]; then

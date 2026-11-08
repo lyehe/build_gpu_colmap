@@ -37,15 +37,16 @@ jobs:
         run: |
           echo "Fetching all releases..."
 
-          # Get all wheel URLs from all releases
-          gh release list --limit 100 --json tagName -q '.[].tagName' | while read tag; do
+          # Keep preview wheels out of the default pip index. Their package
+          # version is stamped separately from GitHub's prerelease flag.
+          gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName -q '.[].tagName' | while read tag; do
             echo "Processing release: $tag"
             gh release view "$tag" --json assets -q '.assets[].url' | grep '\.whl$' >> all_wheels.txt || true
           done
 
           # Also get download URLs
           > wheel_urls.txt
-          gh release list --limit 100 --json tagName -q '.[].tagName' | while read tag; do
+          gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName -q '.[].tagName' | while read tag; do
             gh release view "$tag" --json assets -q '.assets[] | select(.name | endswith(".whl")) | .url' >> wheel_urls.txt || true
           done
 
@@ -86,8 +87,8 @@ jobs:
               <h1>Links for pycolmap</h1>
           EOF
 
-          # Add wheel links from all releases
-          gh release list --limit 100 --json tagName -q '.[].tagName' | while read tag; do
+          # Add wheel links from stable releases only
+          gh release list --exclude-drafts --exclude-pre-releases --limit 100 --json tagName -q '.[].tagName' | while read tag; do
             gh release view "$tag" --json assets -q '.assets[] | select(.name | endswith(".whl")) | "\(.name) \(.url)"' 2>/dev/null | while read name url; do
               if [ -n "$name" ] && [ -n "$url" ]; then
                 echo "    <a href=\"$url\">$name</a><br/>" >> pycolmap/index.html

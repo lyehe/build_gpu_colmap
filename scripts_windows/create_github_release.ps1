@@ -4,9 +4,9 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$RELEASE_TAG = "v4.2.1"
-$RELEASE_TITLE = "COLMAP Build v4.2.1"
-$PACKAGE_VERSION = "4.2.1"
+$RELEASE_TAG = "v4.3.0"
+$RELEASE_TITLE = "COLMAP Build v4.3.0 (development preview)"
+$PACKAGE_VERSION = "4.3.0"
 $GH_CLI = "C:\Program Files\GitHub CLI\gh.exe"
 
 # Setup paths
@@ -105,8 +105,9 @@ try {
         $assets += $_.Name
     }
 
-    # Add pycolmap wheels
-    Get-ChildItem -Filter "pycolmap-*.whl" | ForEach-Object {
+    # Add only wheels for this version, including CUDA local-version suffixes.
+    $wheelPattern = '^pycolmap-' + [regex]::Escape($PACKAGE_VERSION) + '[-+]'
+    Get-ChildItem -File -Filter "pycolmap-*.whl" | Where-Object { $_.Name -match $wheelPattern } | ForEach-Object {
         $assets += $_.Name
     }
 
@@ -119,6 +120,7 @@ try {
     & $GH_CLI release create $RELEASE_TAG `
         --title "$RELEASE_TITLE" `
         --notes-file "$RELEASE_NOTES_FILE" `
+        --prerelease --latest=false `
         --repo "lyehe/build_gpu_colmap" `
         @assets
 

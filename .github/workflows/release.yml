@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g., v4.2.1)'
+        description: 'Release tag (e.g., v4.3.0)'
         required: true
         type: string
 
@@ -52,10 +52,10 @@ jobs:
           if gh release view "$TAG" --repo "${{ github.repository }}" 2>/dev/null; then
             echo "Release $TAG already exists; refreshing title and notes"
             gh release edit "$TAG" --repo "${{ github.repository }}" \
-              --title "COLMAP Build $TAG" "${NOTES_ARGS[@]}"
+              --title "COLMAP Build $TAG (development preview)" --prerelease --latest=false "${NOTES_ARGS[@]}"
           else
             gh release create "$TAG" --repo "${{ github.repository }}" \
-              --title "COLMAP Build $TAG" --draft "${NOTES_ARGS[@]}"
+              --title "COLMAP Build $TAG (development preview)" --draft --prerelease --latest=false "${NOTES_ARGS[@]}"
           fi
           echo "Draft release ready: $TAG"
 
@@ -137,4 +137,4 @@ jobs:
         run: |
           gh release edit "${{ needs.prepare.outputs.tag }}" \
             --repo "${{ github.repository }}" \
-            --draft=false
+            --draft=false --prerelease --latest=false

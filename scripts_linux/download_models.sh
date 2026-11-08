@@ -1,5 +1,5 @@
 #!/bin/bash
-# Download ALIKED and LightGlue ONNX models for COLMAP
+# Download ALIKED, LightGlue, and FlexGlue ONNX models for COLMAP
 # Models are cached in ~/.cache/colmap/ (same location COLMAP uses)
 #
 # Usage: ./download_models.sh [--cache-dir DIR]
@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --help|-h)
-            echo "Download ALIKED and LightGlue ONNX models for COLMAP"
+            echo "Download ALIKED, LightGlue, and FlexGlue ONNX models for COLMAP"
             echo ""
             echo "Usage: $0 [--cache-dir DIR]"
             echo ""
@@ -39,6 +39,9 @@ while [[ $# -gt 0 ]]; do
             echo "  - aliked-lightglue.onnx  ALIKED LightGlue feature matcher"
             echo "  - sift-lightglue.onnx    SIFT LightGlue feature matcher"
             echo "  - bruteforce-matcher.onnx  Brute-force ONNX matcher"
+            echo "  - flexglue_descriptor.onnx  FlexGlue dense descriptor"
+            echo "  - flexglue_matcher_early_stop.onnx  FlexGlue float32 matcher"
+            echo "  - flexglue_matcher_early_stop_fp16.onnx  FlexGlue CUDA float16 matcher"
             exit 0
             ;;
         *)
@@ -49,6 +52,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 BASE_URL="https://github.com/colmap/colmap/releases/download/3.13.0"
+FLEXGLUE_BASE_URL="https://github.com/cvg/FlexGlue/releases/download/v0.1"
 
 # Model definitions: "filename sha256"
 MODELS=(
@@ -57,6 +61,9 @@ MODELS=(
     "aliked-lightglue.onnx b9a5de7204648b18a8cf5dcac819f9d30de1a5961ef03756803c8b86c2dceb8d"
     "sift-lightglue.onnx e0500228472b43f92b3d36881a09b3310d3b058b56187b246cc7b9ab6429096e"
     "bruteforce-matcher.onnx 3c1282f96d83f5ffc861a873298d08bbe5219f59af59223f5ceab5c41a182a47"
+    "flexglue_descriptor.onnx 93fab8a4ccde1b7331640915357d96cff0929ea87134872f37f7b0150d9914ff"
+    "flexglue_matcher_early_stop.onnx c86714cd8ffac70c17ee48c346270497e21846831336e12d307390591aa12ea7"
+    "flexglue_matcher_early_stop_fp16.onnx 01286e692e6396cdfe6eaf5944d3af60752f5043275b338a6419a97efa339e20"
 )
 
 echo -e "${CYAN}Download COLMAP ONNX Models${NC}"
@@ -94,6 +101,9 @@ for entry in "${MODELS[@]}"; do
     # Download
     echo -e "${DARK_GRAY}downloading...${NC}"
     URL="${BASE_URL}/${FILENAME}"
+    if [[ "$FILENAME" == flexglue_* ]]; then
+        URL="${FLEXGLUE_BASE_URL}/${FILENAME}"
+    fi
 
     if curl -fSL --progress-bar -o "$CACHED_FILE" "$URL"; then
         # Verify checksum
